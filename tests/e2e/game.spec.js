@@ -39,9 +39,9 @@ async function playAHand(page) {
 test.describe("first visit", () => {
   test("loads and explains itself before anything else", async ({ page }) => {
     await page.goto(GAME);
-    await expect(page).toHaveTitle("NecroCards");
+    await expect(page).toHaveTitle("Overtone");
     const panel = page.locator("#panel");
-    await expect(panel).toContainText("How NecroCards works");
+    await expect(panel).toContainText("How Overtone works");
     await expect(panel).toContainText("Chips × Mult");
     /* the worked example and the overtone legend both carry the rules */
     await expect(panel.locator(".worked")).toBeVisible();
@@ -154,7 +154,7 @@ test.describe("playing a hand", () => {
 });
 
 /* ------------------------------------------------------------------ */
-test.describe("the Reliquary", () => {
+test.describe("the Bookseller", () => {
   test("opens on clearing a round and teaches the economy", async ({ page }) => {
     await open(page);
     for (let i = 0; i < 4; i++) {
@@ -163,22 +163,22 @@ test.describe("the Reliquary", () => {
     }
 
     const panel = page.locator("#panel");
-    await expect(panel).toContainText("The Reliquary");
+    await expect(panel).toContainText("The Bookseller");
     /* the exponential has to be stated in numbers, not implied */
-    await expect(panel.locator(".stakes")).toContainText("Sigils multiply");
+    await expect(panel.locator(".stakes")).toContainText("Lenses multiply");
     await expect(panel.locator(".offer")).toHaveCount(3);
-    await expect(panel.locator("#leaveShop")).toContainText("Leave with no Sigil");
+    await expect(panel.locator("#leaveShop")).toContainText("Leave with no Lens");
   });
 
-  test("buying a Sigil equips it and it survives into the next round", async ({ page }) => {
+  test("buying a Lens equips it and it survives into the next round", async ({ page }) => {
     await open(page);
     for (let i = 0; i < 4; i++) {
       if (await page.locator("#veil").isVisible()) break;
       await playAHand(page);
     }
-    await expect(page.locator("#panel")).toContainText("The Reliquary");
+    await expect(page.locator("#panel")).toContainText("The Bookseller");
 
-    /* buy the first Sigil the purse can afford */
+    /* buy the first Lens the purse can afford */
     const bought = await page.evaluate(() => {
       const i = G.offers.findIndex(o => o.kind === "lens" && G.bank >= o.cost);
       if (i < 0) return null;
@@ -186,7 +186,7 @@ test.describe("the Reliquary", () => {
       buy(i, 9);
       return name;
     });
-    test.skip(bought === null, "no affordable Sigil in this roll");
+    test.skip(bought === null, "no affordable Lens in this roll");
 
     await expect(page.locator("#leaveShop")).toContainText("To the table");
     await page.click("#leaveShop");
@@ -248,11 +248,112 @@ test.describe("layout", () => {
     await expect(page.locator("#interpBtn")).toBeInViewport();
   });
 
+  test("the hand stays in one row beside the sidebar", async ({ page }, testInfo) => {
+    const w = page.viewportSize().width;
+    test.skip(w < 1080, "the two-column layout only applies above 1080px");
+    await open(page);
+    /* Cards are fanned, so their tops differ by a dozen pixels on purpose —
+       a wrapped second row differs by a whole card height. */
+    const tops = await page.locator("#hand .card")
+      .evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)));
+    const spread = Math.max(...tops) - Math.min(...tops);
+    expect(spread, "the hand wrapped to a second row at " + w + "px").toBeLessThan(60);
+  });
+
   test("help can be reopened at any time", async ({ page }) => {
     await open(page);
     await page.click("#helpBtn");
-    await expect(page.locator("#panel")).toContainText("How NecroCards works");
+    await expect(page.locator("#panel")).toContainText("How Overtone works");
     await page.keyboard.press("Escape");
     await expect(page.locator("#veil")).toBeHidden();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("first-run coaching", () => {
+  test("walks the player through round one, then retires", async ({ page }) => {
+    await open(page);
+    const coach = page.locator("#coach");
+
+    /* step 1: pick */
+    await expect(coach).toBeVisible();
+    await expect(coach).toContainText("Gold tags match the Demand");
+
+    /* step 2: play — and the button it points at is marked */
+    await page.keyboard.press("1");
+    await expect(coach).toContainText("press PLAY");
+    await expect(page.locator("#playBtn")).toHaveClass(/hint-pulse/);
+
+    /* deselecting walks it back rather than stranding the player */
+    await page.keyboard.press("1");
+    await expect(coach).toContainText("Gold tags match the Demand");
+
+    /* step 3: read the result */
+    await playAHand(page);
+    if (!(await page.locator("#veil").isVisible())) {
+      await expect(coach).toContainText("Chips");
+    }
+  });
+
+  test("does not come back on a later run", async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#coach")).toBeVisible();
+    /* finishing the shop retires the coach for good */
+    await page.evaluate(() => coachFinish());
+    await expect(page.locator("#coach")).toBeHidden();
+
+    await page.click("#newRunBtn");
+    await expect(page.locator("#hand .card")).toHaveCount(7);
+    await expect(page.locator("#coach")).toBeHidden();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the end of a run", () => {
+  test("running out of plays ends the run and offers the result", async ({ page }) => {
+    await open(page);
+    /* Drop the player on the last Demand with one play and an impossible
+       target, so the real play -> endRun path runs without 30 hands first. */
+    await page.evaluate(() => {
+      G.round = ROUNDS - 1;
+      G.plays = 1;
+      G.roundScore = 0;
+      G.target = 9999999;
+      G.total = 4321;
+      G.lenses = [LENSES.find(l => l.id === "pyro")];
+      G.best = { word: "AVALANCHE", mult: 12, score: 1800 };
+      render();
+    });
+    await playAHand(page);
+
+    const panel = page.locator("#panel");
+    await expect(panel).toContainText("The run ends at");
+    await expect(panel.locator(".share")).toContainText("OVERTONE");
+    await expect(panel.locator(".share")).toContainText("AVALANCHE");
+    /* a Lens was owned, so something carries into the next run */
+    await expect(panel.locator(".unlock")).toBeVisible();
+    await expect(panel).toContainText("PYROMANIAC");
+
+    /* and the run is genuinely restartable */
+    await page.click("#againNew");
+    await expect(page.locator("#veil")).toBeHidden();
+    await expect(page.locator("#hand .card")).toHaveCount(7);
+    await expect(page.locator("#roundLabel")).toContainText("Round 1");
+  });
+
+  test("the carried Lens is equipped at the start of the next run", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      G.round = ROUNDS - 1; G.plays = 1; G.roundScore = 0; G.target = 9999999;
+      G.lenses = [LENSES.find(l => l.id === "zoo")];
+      render();
+    });
+    await playAHand(page);
+    await expect(page.locator("#panel")).toContainText("The run ends at");
+    await page.click("#againNew");
+
+    await expect(page.locator("#rail .lens")).toHaveCount(1);
+    await expect(page.locator("#rail .lens .n")).toContainText("ZOOLOGIST");
+    await expect(page.locator("#lensCount")).toHaveText("1/5");
   });
 });

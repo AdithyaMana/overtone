@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NecroCards</title>
+<title>Overtone</title>
 <meta name="description" content="A word roguelite where meaning is the physics. Play words into an escalating scoring engine and warp the rules with Lenses.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0&display=swap">
 <style>
 /* ============================================================
-   NECROCARDS
+   OVERTONE
 
    Four rules, held everywhere. Breaking them is what made the last
    pass read as generated:
@@ -26,13 +26,13 @@
 
   /* A PICO-8-derived arcade set: indigo room, wine table, hot accents.
      The flat/hard-shadow/one-font rules still hold — only the hues moved. */
-  --bg:        #1B1B3A;   /* the room */
+  --bg:        #000000;   /* the room */
   --felt:      #6E1E4B;   /* the table cards are played on */
   --felt-d:    #4A1233;
-  --panel:     #2E2E5C;
-  --panel-2:   #414178;
-  --inset:     #14142B;
-  --edge:      #0B0B1C;   /* the lip under everything */
+  --panel:     #2B2B57;
+  --panel-2:   #3E3E73;
+  --inset:     #101024;
+  --edge:      #191934;   /* the lip — must read against black */
 
   --chips:     #29ADFF;
   --chips-d:   #1668AD;
@@ -44,19 +44,19 @@
   --blind-d:   #B36F00;
   --green:     #00E436;
   --green-d:   #009424;
-  --sigil:     #FF77A8;
-  --sigil-d:   #B34A75;
+  --lens:     #FF77A8;
+  --lens-d:   #B34A75;
 
   --card:      #FFF1E8;
   --card-edge: #C8B8AE;
-  --card-ink:  #1B1B3A;
+  --card-ink:  #14141F;
   --card-dim:  #6B6478;
 
   --text:      #FFF1E8;
   --text-dim:  #C2C3C7;
   --text-faint:#83769C;
 
-  --f: "Pixelify Sans", "Trebuchet MS", Verdana, system-ui, sans-serif;
+  --f: "Silkscreen", "Courier New", ui-monospace, monospace;
   --drop: 2px 2px 0 rgba(0,0,0,.55);
   --drop-sm: 1px 1px 0 rgba(0,0,0,.55);
 }
@@ -67,8 +67,8 @@ body{
   background: var(--bg);
   color: var(--text);
   font-family: var(--f);
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.65;
   min-height: 100vh;
 }
 button{ font-family: inherit; color: inherit; }
@@ -93,7 +93,7 @@ button{ font-family: inherit; color: inherit; }
 /* ---------- masthead ---------- */
 .masthead{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .wordmark{
-  margin:0; font-size: 30px; font-weight: 700; letter-spacing: .05em;
+  margin:0; font-size: 26px; font-weight: 700; letter-spacing: .05em;
   color: var(--card);
   text-shadow: 3px 3px 0 var(--mult);
 }
@@ -116,7 +116,7 @@ button{ font-family: inherit; color: inherit; }
 .blind-badge{
   background: var(--blind);
   border-radius: 7px; padding: 10px 8px;
-  font-size: 18px; font-weight:700; letter-spacing:.02em; line-height:1.12;
+  font-size: 15px; font-weight:700; letter-spacing:.02em; line-height:1.2;
   color:#3D2200; text-shadow: none;
   box-shadow: 0 3px 0 var(--blind-d);
   text-wrap: balance;
@@ -129,14 +129,14 @@ button{ font-family: inherit; color: inherit; }
 }
 .blind-wants{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; margin-top:11px; }
 .blind-wants .w{
-  background: var(--gold); color:#1B1B3A; border-radius: 4px;
+  background: var(--gold); color:#0B0B18; border-radius: 4px;
   padding: 3px 8px; font-size: 11px; font-weight:700; letter-spacing:.03em;
   box-shadow: 0 2px 0 var(--gold-d);
 }
 .blind-req{ margin-top: 13px; }
 .blind-req .k{ font-size: 12px; color: var(--text-dim); letter-spacing:.04em; }
 .blind-req .v{
-  font-size: 30px; font-weight:700; color: var(--mult);
+  font-size: 28px; font-weight:700; color: var(--mult);
   text-shadow: var(--drop); font-variant-numeric: tabular-nums; line-height:1.1;
 }
 .progress{
@@ -152,7 +152,7 @@ button{ font-family: inherit; color: inherit; }
 .roundscore{ padding: 9px 12px; text-align:center; }
 .roundscore .k{ font-size: 12px; color: var(--text-dim); letter-spacing:.04em; }
 .roundscore .v{
-  font-size: 27px; font-weight:700; font-variant-numeric: tabular-nums;
+  font-size: 25px; font-weight:700; font-variant-numeric: tabular-nums;
   text-shadow: var(--drop); line-height:1.15;
 }
 
@@ -164,7 +164,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .tally .chips, .tally .multv{
   border-radius: 6px; padding: 9px 4px; text-align:center;
-  font-size: 25px; font-weight:700; font-variant-numeric: tabular-nums;
+  font-size: 23px; font-weight:700; font-variant-numeric: tabular-nums;
   text-shadow: var(--drop);
   overflow: hidden; text-overflow: ellipsis;
 }
@@ -179,13 +179,13 @@ button{ font-family: inherit; color: inherit; }
 .meters{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .meter{ padding: 8px 6px; text-align:center; }
 .meter .k{ font-size: 11.5px; color: var(--text-dim); }
-.meter .v{ font-size: 24px; font-weight:700; text-shadow: var(--drop); line-height:1.15; }
+.meter .v{ font-size: 22px; font-weight:700; text-shadow: var(--drop); line-height:1.15; }
 .meter.plays .v{ color: var(--chips); }
 .meter.disc .v{ color: var(--mult); }
 
 .money{
   padding: 9px; text-align:center;
-  font-size: 25px; font-weight:700; color: var(--gold);
+  font-size: 23px; font-weight:700; color: var(--gold);
   text-shadow: var(--drop);
 }
 .runinfo{
@@ -201,21 +201,21 @@ button{ font-family: inherit; color: inherit; }
   display:flex; justify-content:space-between; align-items:center;
   font-size: 12px; letter-spacing:.1em; color: var(--text-dim); margin-bottom: 7px;
 }
-.lensbar-head b{ color: var(--sigil); font-weight:700; font-size: 14px; }
+.lensbar-head b{ color: var(--lens); font-weight:700; font-size: 14px; }
 .rail{ display:flex; gap:8px; flex-wrap:wrap; min-height: 54px; align-items:stretch; }
 .lens{
   position:relative; border-radius: 7px; padding: 7px 9px;
   min-width: 118px; max-width: 168px; cursor: help;
-  background: var(--sigil);
-  box-shadow: 0 3px 0 var(--sigil-d);
+  background: var(--lens);
+  box-shadow: 0 3px 0 var(--lens-d);
 }
 .lens .n{
   font-size: 12px; font-weight:700; color:#3D0F27; text-shadow: none;
   white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
 }
-.lens .d{ font-size: 11px; line-height:1.3; color:#5C1A3A; margin-top:3px; }
-.lens.fired{ animation: sigilFire .5s cubic-bezier(.2,1.3,.3,1); }
-@keyframes sigilFire{
+.lens .d{ font-size: 9.5px; line-height:1.5; color:#5C1A3A; margin-top:4px; }
+.lens.fired{ animation: lensFire .5s cubic-bezier(.2,1.3,.3,1); }
+@keyframes lensFire{
   0%{ transform: translateY(0) scale(1) rotate(0); }
   30%{ transform: translateY(-10px) scale(1.1) rotate(-3deg); }
   60%{ transform: translateY(0) scale(1.03) rotate(2deg); }
@@ -234,11 +234,11 @@ button{ font-family: inherit; color: inherit; }
 }
 .stage-cards{ display:flex; gap:10px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
 .stage-hint{
-  font-size: 15px; font-weight:600; letter-spacing:.03em; color: #F2D8E6;
+  font-size: 13px; font-weight:600; letter-spacing:.03em; color: #F2D8E6;
   text-align:center; max-width: 44ch; text-shadow: var(--drop-sm);
 }
 .stage-hint .hand-name{
-  display:inline-block; font-size: 17px; font-weight:700;
+  display:inline-block; font-size: 15px; font-weight:700;
   background: var(--inset); color:#FFF;
   border-radius: 6px; padding: 6px 16px;
   box-shadow: 0 3px 0 var(--edge);
@@ -246,7 +246,7 @@ button{ font-family: inherit; color: inherit; }
 }
 @keyframes nameIn{ 0%{transform:scale(.72);opacity:0} 100%{transform:none;opacity:1} }
 .stage-total{
-  font-size: 54px; font-weight:700; color: var(--gold);
+  font-size: 46px; font-weight:700; color: var(--gold);
   text-shadow: 4px 4px 0 var(--edge);
   font-variant-numeric: tabular-nums;
   animation: slam .34s cubic-bezier(.2,1.5,.4,1);
@@ -327,11 +327,11 @@ button{ font-family: inherit; color: inherit; }
 }
 .ms-ok .ms{ visibility: visible; }
 .card .art .ms.hit{
-  color:#1B1B3A; background: var(--gold); border-radius: 50%;
+  color:#0B0B18; background: var(--gold); border-radius: 50%;
   padding: 2px; text-shadow: none;
 }
 /* dark ink on the bright plates, and invert the match ring so it still reads */
-.card .art.light .ms{ color:#1B1B3A; text-shadow: none; }
+.card .art.light .ms{ color:#0B0B18; text-shadow: none; }
 .card .art.light .ms.hit{ background:#1B1B3A; color: var(--gold); }
 .legend{ display:flex; flex-wrap:wrap; gap: 6px; margin-bottom: 16px; }
 .legend .leg{
@@ -341,7 +341,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .legend .ms{ font-size: 17px; color: var(--text-dim); text-shadow:none; }
 .card .w{
-  font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
+  font-size: 13px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
   flex: 1;
 }
@@ -353,16 +353,16 @@ button{ font-family: inherit; color: inherit; }
 }
 .card .tags{ display:flex; flex-wrap:wrap; gap:3px; }
 .card .tg{
-  font-size: 10.5px; font-weight:600; letter-spacing:.02em;
+  font-size: 9px; font-weight:600; letter-spacing:.02em;
   padding: 2px 5px; border-radius: 3px;
   background: #DCD4E0; color: #453F54;
 }
-.card .tg.match{ background: var(--gold); color:#1B1B3A; font-weight:700; }
+.card .tg.match{ background: var(--gold); color:#0B0B18; font-weight:700; }
 .card.interpreted{
-  box-shadow: 0 0 0 3px var(--sigil), 0 4px 0 var(--card-edge), 0 7px 13px rgba(0,0,0,.4);
+  box-shadow: 0 0 0 3px var(--lens), 0 4px 0 var(--card-edge), 0 7px 13px rgba(0,0,0,.4);
 }
 .card.interpreted::after{
-  content:"\2666"; position:absolute; top:5px; left:6px; font-size:10px; color: var(--sigil-d);
+  content:"\2666"; position:absolute; top:5px; left:6px; font-size:10px; color: var(--lens-d);
 }
 .card.scoring{ animation: scorePop .4s cubic-bezier(.2,1.5,.35,1); z-index: 6; }
 @keyframes scorePop{
@@ -381,7 +381,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .float.c{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .float.m{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
-.float.r{ background: var(--gold); color:#1B1B3A; box-shadow: 0 3px 0 var(--gold-d); }
+.float.r{ background: var(--gold); color:#0B0B18; box-shadow: 0 3px 0 var(--gold-d); }
 @keyframes floatUp{
   0%{ opacity:0; transform: translate(-50%,6px) scale(.78); }
   16%{ opacity:1; transform: translate(-50%,-18px) scale(1.1); }
@@ -393,14 +393,14 @@ button{ font-family: inherit; color: inherit; }
 .demand-call{ display:flex; flex-direction:column; align-items:center; gap: 12px; }
 .dc-icons{ display:flex; gap: 16px; }
 .dc-icons .ms{ font-size: 50px; color: var(--gold); text-shadow: 3px 3px 0 rgba(0,0,0,.35); }
-.dc-text{ font-size: 15px; color:#F2D8E6; text-align:center; max-width: 40ch; }
+.dc-text{ font-size: 13px; color:#F2D8E6; text-align:center; max-width: 40ch; }
 .dc-text b{ color: var(--gold); }
 
 /* which card is first, second, third — the rule the game kept stating */
 .pos{
   position:absolute; top:-9px; left:-7px; z-index:9;
   width:23px; height:23px; border-radius:50%;
-  background: var(--gold); color:#1B1B3A;
+  background: var(--gold); color:#0B0B18;
   font-size:13px; font-weight:700;
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 2px 0 var(--gold-d);
@@ -415,7 +415,7 @@ button{ font-family: inherit; color: inherit; }
 .stakes b{ color: var(--gold); }
 .fit{
   align-self:flex-start; font-size:11px; font-weight:700;
-  background: var(--gold); color:#1B1B3A; border-radius:4px; padding:2px 7px;
+  background: var(--gold); color:#0B0B18; border-radius:4px; padding:2px 7px;
 }
 
 /* ---------- hand + controls ---------- */
@@ -426,7 +426,7 @@ button{ font-family: inherit; color: inherit; }
 .btn{
   touch-action: manipulation;
   border:none; border-radius: 8px; cursor:pointer;
-  padding: 13px 26px; font-size: 15px; font-weight:700; letter-spacing: .08em;
+  padding: 13px 26px; font-size: 13px; font-weight:700; letter-spacing: .06em;
   text-transform: uppercase;
   background: var(--panel-2); color:#FFF;
   box-shadow: 0 4px 0 var(--edge);
@@ -440,7 +440,7 @@ button{ font-family: inherit; color: inherit; }
 .btn.primary:active:not(:disabled){ box-shadow: none; }
 .btn.danger{ background: var(--mult); box-shadow: 0 4px 0 var(--mult-d); }
 .btn.danger:active:not(:disabled){ box-shadow: none; }
-.btn.interp{ background: var(--sigil); color:#3D0F27; text-shadow:none; box-shadow: 0 4px 0 var(--sigil-d); }
+.btn.interp{ background: var(--lens); color:#3D0F27; text-shadow:none; box-shadow: 0 4px 0 var(--lens-d); }
 .btn.interp:active:not(:disabled){ box-shadow: none; }
 
 /* ---------- overlays ---------- */
@@ -460,26 +460,26 @@ button{ font-family: inherit; color: inherit; }
 }
 @keyframes panelIn{ 0%{transform:scale(.93) translateY(12px); opacity:0} 100%{transform:none; opacity:1} }
 .panel h2{
-  margin:0 0 4px; font-size: 27px; font-weight:700;
+  margin:0 0 4px; font-size: 23px; font-weight:700;
   text-shadow: var(--drop); text-wrap: balance;
 }
 .panel .sub{ font-size: 13px; color: var(--text-faint); margin-bottom: 15px; letter-spacing:.05em; }
-.panel p{ color: var(--text-dim); margin: 0 0 12px; max-width: 60ch; font-size: 14px; line-height:1.6; }
+.panel p{ color: var(--text-dim); margin: 0 0 12px; max-width: 56ch; font-size: 13px; line-height:1.8; }
 .panel p b, .panel li b{ color:#FFF; font-weight:700; }
 .panel p.gold{ color: var(--gold); }
 
 .offers{ display:grid; grid-template-columns: repeat(auto-fit, minmax(172px,1fr)); gap:10px; margin: 14px 0; }
 .offer{
-  background: var(--sigil); border:none; border-radius: 8px; padding: 12px;
+  background: var(--lens); border:none; border-radius: 8px; padding: 12px;
   display:flex; flex-direction:column; gap:7px; text-align:left; cursor:pointer;
-  box-shadow: 0 4px 0 var(--sigil-d);
+  box-shadow: 0 4px 0 var(--lens-d);
   transition: transform .07s ease, filter .12s ease;
 }
 .offer:hover:not(:disabled){ filter: brightness(1.12); }
 .offer:active:not(:disabled){ transform: translateY(4px); box-shadow: none; }
 .offer:disabled{ opacity:.4; cursor:not-allowed; }
 .offer .on{ font-size: 13px; font-weight:700; color:#3D0F27; text-shadow: none; }
-.offer .od{ font-size: 12px; color:#5C1A3A; line-height:1.4; flex:1; }
+.offer .od{ font-size: 10px; color:#5C1A3A; line-height:1.6; flex:1; }
 .offer .oc{ font-size: 14px; font-weight:700; color: #3D0F27; text-shadow: none; }
 
 .rowend{ display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
@@ -497,8 +497,8 @@ button{ font-family: inherit; color: inherit; }
 .stat.gold .v{ color: var(--gold); }
 
 .unlock{
-  background: var(--sigil); border-radius:8px; padding:12px 14px; margin:14px 0;
-  box-shadow: 0 4px 0 var(--sigil-d);
+  background: var(--lens); border-radius:8px; padding:12px 14px; margin:14px 0;
+  box-shadow: 0 4px 0 var(--lens-d);
 }
 .unlock .k{ font-size:11.5px; color:#5C1A3A; letter-spacing:.06em; }
 .unlock .v{ font-size:15px; font-weight:700; color:#3D0F27; margin-top:3px; text-shadow: none; }
@@ -514,7 +514,7 @@ button{ font-family: inherit; color: inherit; }
 .appraisal{ display:flex; gap:14px; align-items:center; margin:14px 0; min-height: 150px; }
 .appraisal .say{ font-size: 13px; color: var(--text-dim); line-height:1.55; }
 .appraisal .say .src{ display:block; font-size:11px; color: var(--text-faint); margin-top:8px; letter-spacing:.04em; }
-.helplist{ margin:0 0 14px; padding-left:18px; color: var(--text-dim); font-size:14px; line-height:1.6; }
+.helplist{ margin:0 0 14px; padding-left:18px; color: var(--text-dim); font-size:13px; line-height:1.8; }
 .helplist li{ margin-bottom:7px; }
 
 .teach{ display:flex; flex-direction:column; gap:13px; margin: 4px 0 16px; }
@@ -525,7 +525,7 @@ button{ font-family: inherit; color: inherit; }
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 3px 0 var(--chips-d); text-shadow: var(--drop-sm);
 }
-.teach-row p{ margin:0; font-size:14px; line-height:1.55; }
+.teach-row p{ margin:0; font-size:13px; line-height:1.8; }
 .gold{ color: var(--gold); }
 .worked{
   display:flex; gap:16px; align-items:center; flex-wrap:wrap;
@@ -541,9 +541,9 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 2px 0 var(--edge);
 }
 .coach{
-  align-self:center; background: var(--gold); color:#1B1B3A;
-  border-radius: 8px; padding: 10px 18px; max-width: 56ch;
-  text-align:center; font-size: 14px; font-weight:700; line-height:1.4;
+  align-self:center; background: var(--gold); color:#0B0B18;
+  border-radius: 8px; padding: 10px 18px; max-width: 52ch;
+  text-align:center; font-size: 12px; font-weight:700; line-height:1.4;
   box-shadow: 0 4px 0 var(--gold-d);
   animation: coachIn .24s ease-out;
 }
@@ -568,7 +568,7 @@ button{ font-family: inherit; color: inherit; }
    monitor the stage absorbed every spare pixel — a 500px empty slab that
    pushed the hand away from the board and made all the type look small.
    Let the content be its natural height and centre the whole thing. */
-@media (min-width: 1000px){
+@media (min-width: 1240px){
   #app{ max-width: 1320px; gap: 14px; justify-content: center; }
   .table{ flex: 0 0 auto; grid-template-columns: 268px 1fr; gap: 14px; }
   .stage{ flex: 0 0 auto; min-height: 240px; }
@@ -578,8 +578,8 @@ button{ font-family: inherit; color: inherit; }
   .card .art{ height: 64px; }
   .card .art .icons{ gap: 6px; }
   .card .art .ms{ font-size: 25px; }
-  .card .w{ font-size: 18px; }
-  .card .tg{ font-size: 11px; }
+  .card .w{ font-size: 15px; }
+  .card .tg{ font-size: 9.5px; }
   .card .base{ font-size: 12px; }
   .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 30px; }
   .pos{ width: 26px; height: 26px; font-size: 14px; top: -10px; left: -8px; }
@@ -587,32 +587,36 @@ button{ font-family: inherit; color: inherit; }
   /* the round's rule, at the size it deserves */
   .dc-icons .ms{ font-size: 54px; }
   .dc-icons{ gap: 22px; }
-  .dc-text{ font-size: 17px; max-width: 46ch; }
+  .dc-text{ font-size: 14px; max-width: 46ch; }
   .demand-call{ gap: 13px; }
-  .stage-hint{ font-size: 16px; }
-  .stage-hint .hand-name{ font-size: 19px; padding: 6px 20px; }
+  .stage-hint{ font-size: 14px; }
+  .stage-hint .hand-name{ font-size: 16px; padding: 6px 20px; }
 
   /* the sidebar has the width to be read at a glance */
-  .blind-badge{ font-size: 20px; padding: 12px 9px; }
+  .blind-badge{ font-size: 17px; padding: 12px 9px; }
   .blind-wants .w{ font-size: 12px; padding: 3px 9px; }
-  .blind-req .v{ font-size: 34px; }
+  .blind-req .v{ font-size: 30px; }
   .blind-req .k, .roundscore .k, .meter .k{ font-size: 13px; }
-  .roundscore .v{ font-size: 30px; }
-  .tally .chips, .tally .multv{ font-size: 28px; padding: 10px 5px; }
-  .meter .v{ font-size: 27px; }
-  .money{ font-size: 28px; }
+  .roundscore .v{ font-size: 27px; }
+  .tally .chips, .tally .multv{ font-size: 25px; padding: 10px 5px; }
+  .meter .v{ font-size: 24px; }
+  .money{ font-size: 25px; }
 
   .lens{ min-width: 134px; max-width: 186px; padding: 8px 10px; }
   .lens .n{ font-size: 13px; }
   .lens .d{ font-size: 12px; }
   .lensbar-head{ font-size: 13px; }
 
-  .btn{ font-size: 16px; padding: 13px 28px; }
-  .coach{ font-size: 15px; padding: 11px 22px; }
+  .btn{ font-size: 14px; padding: 14px 28px; }
+  .coach{ font-size: 13px; padding: 12px 22px; }
 }
 
-/* ---------- narrow: sidebar becomes a HUD strip ---------- */
-@media (max-width: 900px){
+/* ---------- narrow: sidebar becomes a HUD strip ----------
+   Above this the sidebar sits beside the board, which only works once the
+   board is wide enough for all seven cards in one row (776px of hand plus
+   the 232px sidebar and gaps). Below it, the HUD goes horizontal and the
+   board gets the full width. */
+@media (max-width: 1080px){
   .table{ grid-template-columns: 1fr; }
   .sidebar{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 9px; align-items:start; }
   .meters{ display: contents; }
@@ -697,7 +701,7 @@ button{ font-family: inherit; color: inherit; }
     background: var(--bg);
     box-shadow: 0 -2px 0 var(--edge);
   }
-  .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 8px; font-size: 13px; letter-spacing: .03em; }
+  .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 6px; font-size: 11px; letter-spacing: 0; }
 
   .panel{ padding: 16px; }
   .panel h2{ font-size: 21px; }
@@ -719,7 +723,7 @@ button{ font-family: inherit; color: inherit; }
 <div id="app">
 
   <header class="masthead">
-    <h1 class="wordmark">NECRO<span>CARDS</span></h1>
+    <h1 class="wordmark">OVER<span>TONE</span></h1>
     <div class="mast-actions">
       <button class="chip-btn" id="helpBtn" type="button">How to play</button>
       <button class="chip-btn" id="newRunBtn" type="button">New run</button>
@@ -773,7 +777,7 @@ button{ font-family: inherit; color: inherit; }
     <main class="board">
       <div class="lensbar slab">
         <div class="lensbar-head">
-          <span>SIGILS</span>
+          <span>LENSES</span>
           <b id="lensCount">0/5</b>
         </div>
         <div class="rail" id="rail"></div>
@@ -807,7 +811,7 @@ button{ font-family: inherit; color: inherit; }
 <script>
 "use strict";
 /* ============================================================
-   NECROCARDS
+   OVERTONE
    A word roguelite where meaning is the physics.
 
    The lexicon below is the game's physics engine: every word carries
@@ -1197,8 +1201,8 @@ function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=ri(i+1); const t
 
 /* ---------- storage (may be blocked; never let it break the game) ---------- */
 const store = {
-  get:function(k,d){ try{ const v=localStorage.getItem("necrocards:"+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
-  set:function(k,v){ try{ localStorage.setItem("necrocards:"+k, JSON.stringify(v)); }catch(e){} }
+  get:function(k,d){ try{ const v=localStorage.getItem("overtone:"+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+  set:function(k,v){ try{ localStorage.setItem("overtone:"+k, JSON.stringify(v)); }catch(e){} }
 };
 
 /* ---------- audio: synthesised, no asset files ---------- */
@@ -1513,7 +1517,7 @@ function winRound(){
   openShop(reward);
 }
 
-/* Which overtone a Sigil keys off. Only the ones that trigger on a single
+/* Which overtone a Lens keys off. Only the ones that trigger on a single
    overtone are listed — the rest have no honest "fits your deck" answer. */
 const LENS_TAG = {
   pyro:"HEA", zoo:"ANI", doom:"DAN", meta:"ABS", carn:"ANI", hydro:"WET",
@@ -1538,9 +1542,9 @@ function openShop(reward){
   if(!G.offers) G.offers = rollOffers();
   const nextDemand = G.demandOrder[G.round];
   const html = ''
-    + '<h2>The Reliquary</h2>'
+    + '<h2>The Bookseller</h2>'
     + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
-    + (coachDone() ? '' : '<p class="gold"><b>Sigils are the engine.</b> Buy one — from here the targets climb faster than any deck can add.</p>')
+    + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one — from here the targets climb faster than any deck can add.</p>')
     + '<p>Next is <b>' + nextDemand.n + '</b>, which pays for '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" and ")
     + '. Target <b>' + TARGETS[G.round].toLocaleString() + '</b>.</p>'
@@ -1549,13 +1553,13 @@ function openShop(reward){
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
     + TARGETS[ROUNDS-1].toLocaleString() + '</b> &mdash; <b>'
     + Math.round(TARGETS[ROUNDS-1] / TARGETS[G.round]) + '\u00d7</b> this one.<br>'
-    + '<b>Sigils multiply. More words only add.</b></p>'
+    + '<b>Lenses multiply. More words only add.</b></p>'
     + '<div class="offers" id="offers"></div>'
     + '<div class="rowend">'
     + '<button class="btn ghost" id="rerollBtn" type="button">Reroll $1</button>'
     + '<div class="purse">Purse $' + G.bank + '</div>'
     + '<button class="btn ' + (G.lenses.length ? 'primary' : 'danger') + '" id="leaveShop" type="button">'
-    + (G.lenses.length ? 'To the table →' : 'Leave with no Sigil') + '</button>'
+    + (G.lenses.length ? 'To the table →' : 'Leave with no Lens') + '</button>'
     + '</div>';
   showPanel(html);
 
@@ -1565,7 +1569,7 @@ function openShop(reward){
     b.className = "offer"; b.type = "button";
     b.disabled = o.bought || G.bank < o.cost || (o.kind==="lens" && G.lenses.length>=LENS_SLOTS);
     if(o.kind === "lens"){
-      /* An honest nudge: say when a Sigil actually has words to fire on. */
+      /* An honest nudge: say when a Lens actually has words to fire on. */
       const lt = LENS_TAG[o.lens.id];
       const n = lt ? deckCount(lt) : 0;
       const fit = (lt && n >= 5)
@@ -1811,7 +1815,7 @@ function endRun(won){
 
 function shareText(won){
   const lines = [];
-  lines.push("NECROCARDS — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
+  lines.push("OVERTONE — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
@@ -2035,6 +2039,9 @@ function toggleSel(id){
   if(G.coachStep === "pick" && G.selected.length) G.coachStep = "play";
   else if(G.coachStep === "play" && !G.selected.length) G.coachStep = "pick";
   renderHand(); renderControls(); renderPreview();
+  /* coachSet lives in render(), which this path deliberately skips — without
+     this the coach never leaves step one and the Play prompt never appears. */
+  coachSet(G.coachStep);
 }
 
 /* ---------- first-run coaching ----------
@@ -2047,7 +2054,7 @@ const IDLE_HINT = "Tap up to 3 words — they score left to right.";
 const COACH = {
   pick:  "Gold tags match the Demand. Tap two or three words that have one.",
   play:  "Now press PLAY — the stage shows what you'd score before you commit.",
-  score: "That's Chips × Mult. Gold tags add chips; Sigils multiply them."
+  score: "That's Chips × Mult. Gold tags add chips; Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -2146,7 +2153,7 @@ function renderRail(){
   if(G.lenses.length === 0){
     const e = document.createElement("div");
     e.className = "rail-empty";
-    e.textContent = "NO SIGILS — clear this Demand and the Reliquary will sell you one.";
+    e.textContent = "NO LENSES — clear this Demand and the Bookseller will sell you one.";
     rail.appendChild(e);
     return;
   }
@@ -2243,7 +2250,7 @@ function showHelp(){
   }).join("");
 
   showPanel(''
-    + '<h2>How NecroCards works</h2>'
+    + '<h2>How Overtone works</h2>'
     + '<div class="sub">Three things, then you are fine</div>'
 
     + '<div class="teach">'
@@ -2255,7 +2262,7 @@ function showHelp(){
     +     '<p><b>You score Chips × Mult.</b> Play up to three words. They resolve '
     +     '<b>left to right</b>, so the order you tap them in is part of the puzzle.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>Sigils rewrite the rules.</b> Clear a round and the Reliquary sells you one. '
+    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
     +     'They are the engine — later targets grow faster than any deck can add.</p></div>'
     + '</div>'
 

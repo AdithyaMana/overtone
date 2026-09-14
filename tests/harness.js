@@ -98,6 +98,7 @@ function load(){
     get G(){ return G; },
     resolve, newRun, startRound, draw, toggleSel, winRound, rollOffers,
     makeCard, houseAppraise, deckCount, resonanceName, shareText, endRun, store,
+    buy, openShop, coachDone, coachFinish, coachSet,
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,
     LEXICON, LENSES, DEMANDS, TARGETS, TAGS, TAG_KEYS, ICONS, TAG_COLOR,
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES

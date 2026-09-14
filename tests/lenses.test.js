@@ -1,9 +1,9 @@
-/* Per-Sigil arithmetic.
+/* Per-Lens arithmetic.
  *
- * The fuzz in logic.test.js proves no Sigil crashes or produces nonsense. It
+ * The fuzz in logic.test.js proves no Lens crashes or produces nonsense. It
  * does NOT prove ANTONYM ENGINE pays exactly 120 and doubles. These do: each
- * one builds a controlled hand, scores it with and without the Sigil, and
- * asserts the exact difference. A Sigil whose numbers are retuned in
+ * one builds a controlled hand, scores it with and without the Lens, and
+ * asserts the exact difference. A Lens whose numbers are retuned in
  * index.html without updating its test will fail here, which is the point.
  */
 const { test, describe } = require("node:test");
@@ -15,11 +15,11 @@ const { api } = load();
 const card = (w, tags) => api.makeCard({ w, t: tags }, false);
 const sigil = id => {
   const l = api.LENSES.find(x => x.id === id);
-  assert.ok(l, "no Sigil with id " + id);
+  assert.ok(l, "no Lens with id " + id);
   return l;
 };
 
-/* Score a hand with no Sigils, then with one, and hand back both. */
+/* Score a hand with no Lenses, then with one, and hand back both. */
 function compare(id, cards, demandTags, ctx) {
   api.newRun("sigil-" + id);
   api.G.demand = { n: "TEST", tags: demandTags || [] };
@@ -33,7 +33,7 @@ function compare(id, cards, demandTags, ctx) {
 }
 
 /* ------------------------------------------------------------------ */
-describe("flat chip Sigils", () => {
+describe("flat chip Lenses", () => {
   test("PYROMANIAC pays 45 per HEAT word", () => {
     const one = compare("pyro", [card("EMBER", ["HEA"])]);
     assert.strictEqual(one.chips, 45);
@@ -97,7 +97,7 @@ describe("flat chip Sigils", () => {
 });
 
 /* ------------------------------------------------------------------ */
-describe("mult Sigils", () => {
+describe("mult Lenses", () => {
   test("ZOOLOGIST adds 2 mult per ANIMAL word", () => {
     assert.strictEqual(compare("zoo", [card("WOLF", ["ANI"])]).with_.mult, 3);          // 1 + 2
     assert.strictEqual(compare("zoo", [card("WOLF", ["ANI"]), card("CROW", ["ANI"])]).with_.mult, 5);
@@ -157,7 +157,7 @@ describe("mult Sigils", () => {
 });
 
 /* ------------------------------------------------------------------ */
-describe("Sigils that read the hand's shape", () => {
+describe("Lenses that read the hand's shape", () => {
   test("CARNIVORE lets an ANIMAL word devour the word to its left", () => {
     const oak = card("OAK", ["PLA"]);
     const wolf = card("WOLF", ["ANI"]);
@@ -194,11 +194,11 @@ describe("Sigils that read the hand's shape", () => {
 
 /* ------------------------------------------------------------------ */
 describe("coverage", () => {
-  test("every Sigil in the pool has an arithmetic test", () => {
-    /* Guards against adding a Sigil and forgetting to pin its numbers. */
+  test("every Lens in the pool has an arithmetic test", () => {
+    /* Guards against adding a Lens and forgetting to pin its numbers. */
     const fs = require("fs");
     const path = require("path");
-    const src = fs.readFileSync(path.join(__dirname, "sigils.test.js"), "utf8");
+    const src = fs.readFileSync(path.join(__dirname, "lenses.test.js"), "utf8");
     const untested = api.LENSES
       .map(l => l.id)
       .filter(id => !src.includes('compare("' + id + '"'));
@@ -206,6 +206,6 @@ describe("coverage", () => {
        .map() carries the VM's Array.prototype and deepStrictEqual — which
        checks prototype identity — never matches a host-realm []. */
     assert.strictEqual(untested.length, 0,
-      "these Sigils have no arithmetic test: " + untested.join(", "));
+      "these Lenses have no arithmetic test: " + untested.join(", "));
   });
 });

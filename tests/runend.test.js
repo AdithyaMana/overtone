@@ -56,45 +56,45 @@ describe("run bookkeeping", () => {
 
 /* ------------------------------------------------------------------ */
 describe("the Memory unlock — the reason run 2 differs from run 1", () => {
-  test("a Sigil the player actually used is carried forward", () => {
+  test("a Lens the player actually used is carried forward", () => {
     const api = fresh();
     finishRun(api, { seed: "mem", lenses: ["pyro", "zoo"] });
     const kept = api.store.get("memory", null);
     assert.ok(kept, "nothing was carried into the next run");
     assert.ok(["pyro", "zoo"].includes(kept),
-      "carried a Sigil the player never owned: " + kept);
+      "carried a Lens the player never owned: " + kept);
   });
 
-  test("the carried Sigil is equipped at the start of the next run", () => {
+  test("the carried Lens is equipped at the start of the next run", () => {
     const api = fresh();
     finishRun(api, { seed: "mem", lenses: ["pyro"] });
     assert.strictEqual(api.store.get("memory", null), "pyro");
 
     api.newRun("next");
-    assert.strictEqual(api.G.lenses.length, 1, "run 2 started with no Sigil");
+    assert.strictEqual(api.G.lenses.length, 1, "run 2 started with no Lens");
     assert.strictEqual(api.G.lenses[0].id, "pyro");
-    /* and it is a working Sigil, not just an entry in a list */
+    /* and it is a working Lens, not just an entry in a list */
     api.G.demand = { n: "T", tags: [] };
     const c = api.makeCard({ w: "EMBER", t: ["HEA"] }, false);
     const withMemory = api.resolve([c]).chips;
     api.G.lenses = [];
     assert.strictEqual(withMemory - api.resolve([c]).chips, 45,
-      "the carried Sigil did not actually fire");
+      "the carried Lens did not actually fire");
   });
 
-  test("a run with no Sigils carries nothing", () => {
+  test("a run with no Lenses carries nothing", () => {
     const api = fresh();
     finishRun(api, { seed: "none", lenses: [] });
     assert.strictEqual(api.store.get("memory", null), null);
   });
 
-  test("the unlock does not hand back the same Sigil twice running", () => {
+  test("the unlock does not hand back the same Lens twice running", () => {
     const api = fresh();
     api.store.set("memory", "pyro");
     /* only pyro was owned, so there is nothing new to offer */
     finishRun(api, { seed: "same", lenses: ["pyro"] });
     assert.strictEqual(api.store.get("memory", null), "pyro",
-      "storage was cleared when there was no new Sigil to give");
+      "storage was cleared when there was no new Lens to give");
   });
 });
 
@@ -107,7 +107,7 @@ describe("the share block — the only part other people see", () => {
     api.G.round = 5;
     const s = api.shareText(false);
 
-    assert.match(s, /NECROCARDS/, "the game is not named");
+    assert.match(s, /OVERTONE/, "the game is not named");
     assert.match(s, /free-abc123/, "the seed is missing, so nobody can race it");
     assert.match(s, /14,320|14320/, "the score is missing");
   });

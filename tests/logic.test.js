@@ -120,7 +120,7 @@ describe("scoring", () => {
     api.newRun("score-2");
     api.G.demand = { n: "TEST", tags: [] };
     const carn = api.LENSES.find(l => l.id === "carn");
-    assert.ok(carn, "CARNIVORE missing from the Sigil pool");
+    assert.ok(carn, "CARNIVORE missing from the Lens pool");
     api.G.lenses = [carn];
 
     const wolf = api.makeCard({ w: "WOLF", t: ["ANI"] }, false);
@@ -148,10 +148,10 @@ describe("scoring", () => {
 });
 
 /* ------------------------------------------------------------------ */
-describe("Sigils", () => {
-  test("every Sigil is well formed", () => {
+describe("Lenses", () => {
+  test("every Lens is well formed", () => {
     for (const l of api.LENSES) {
-      assert.ok(l.id && typeof l.id === "string", "Sigil without an id");
+      assert.ok(l.id && typeof l.id === "string", "Lens without an id");
       assert.ok(l.n && l.n.length, l.id + " has no name");
       assert.ok(l.d && l.d.length > 10, l.id + " has no readable description");
       assert.ok(typeof l.cost === "number" && l.cost > 0, l.id + " has a bad cost");
@@ -159,13 +159,13 @@ describe("Sigils", () => {
     }
   });
 
-  test("Sigil ids are unique", () => {
+  test("Lens ids are unique", () => {
     const ids = api.LENSES.map(l => l.id);
-    assert.strictEqual(new Set(ids).size, ids.length, "duplicate Sigil id");
+    assert.strictEqual(new Set(ids).size, ids.length, "duplicate Lens id");
   });
 
-  test("no Sigil throws or produces nonsense on any hand — fuzz", () => {
-    /* Sigils read neighbours, letter counts and play size, so the risky
+  test("no Lens throws or produces nonsense on any hand — fuzz", () => {
+    /* Lenses read neighbours, letter counts and play size, so the risky
        cases are 1-card plays, edge positions and stacked multipliers. */
     api.newRun("fuzz");
     const rng = api.mulberry32(api.hashStr("fuzz"));
@@ -203,10 +203,10 @@ describe("Sigils", () => {
     assert.strictEqual(plays, 600);
   });
 
-  test("the 'fits your deck' hint only names single-overtone Sigils", () => {
+  test("the 'fits your deck' hint only names single-overtone Lenses", () => {
     for (const id of Object.keys(api.LENS_TAG)) {
       const tag = api.LENS_TAG[id];
-      assert.ok(api.LENSES.some(l => l.id === id), "LENS_TAG names unknown Sigil " + id);
+      assert.ok(api.LENSES.some(l => l.id === id), "LENS_TAG names unknown Lens " + id);
       if (tag !== null) {
         assert.ok(TAG_CODES.includes(tag), id + " maps to unknown overtone " + tag);
       }
@@ -240,13 +240,13 @@ describe("run shape", () => {
   });
 
   test("the first shop is always affordable", () => {
-    /* Comprehension is the barrier at the Reliquary, not money — this keeps
+    /* Comprehension is the barrier at the Bookseller, not money — this keeps
        that true. Worst case: clear round 1 using every play and discard. */
     const cheapest = Math.min.apply(null, api.LENSES.map(l => l.cost));
     api.newRun("economy");
     const worstReward = 4 + 0 + 0;           // no plays or discards left over
     assert.ok(api.G.bank + worstReward >= cheapest,
-      "a player can reach the first shop unable to afford any Sigil");
+      "a player can reach the first shop unable to afford any Lens");
   });
 
   test("no Demand repeats inside a run", () => {

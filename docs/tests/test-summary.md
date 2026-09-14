@@ -1,6 +1,6 @@
-# Test Automation Summary — NecroCards
+# Test Automation Summary — Overtone
 
-**115 tests, 0 failures.** 65 engine tests + 50 E2E tests across two device profiles.
+**137 tests, 0 failures.** 78 engine tests + 59 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -33,32 +33,35 @@ It now runs on the harness too.
 
 ## Generated tests
 
-### Engine — `tests/*.test.js` (65)
+### Engine — `tests/*.test.js` (78)
 
 | Suite | Covers |
 |---|---|
 | lexicon | 249 words parse; every overtone is real; no duplicates; every overtone has ≥15 words |
 | deck construction | exactly 26 distinct words; **no Demand is ever starved**; same seed ⇒ same run; different seeds ⇒ different runs |
 | scoring | base value formula; +25 per matching overtone; **order changes the score**; chips never negative, mult never zero |
-| Sigils | all 24 well formed and uniquely id'd; **600-play fuzz** across random hands and loadouts; the "fits your deck" map only names single-overtone Sigils |
+| Lenses | all 24 well formed and uniquely id'd; **600-play fuzz** across random hands and loadouts; the "fits your deck" map only names single-overtone Lenses |
 | run shape | targets climb monotonically; the climb is ≥15× so an engine is mandatory; a run starts fully resourced; **the first shop is always affordable**; no Demand repeats |
 | the Interpreter | the house appraiser always returns 1–4 valid overtones on junk input; appraisal is stable; known vocabulary is read from its shape; an interpreted word is scorable |
 | presentation | every overtone has an icon and a valid colour; bright plates are detected so icons stay legible; hand names cover every resonance count |
-| **Sigil arithmetic** (`sigils.test.js`) | all 24 Sigils pinned to their exact numbers — each scored with and without the Sigil, asserting the precise chip and mult delta. A guard test fails if a Sigil is added without one |
-| **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Sigil the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
+| **Lens arithmetic** (`lenses.test.js`) | all 24 Lenses pinned to their exact numbers — each scored with and without the Lens, asserting the precise chip and mult delta. A guard test fails if a Lens is added without one |
+| **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
+| **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (25 × desktop + phone)
+### E2E — `tests/e2e/` (30 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
 | first visit | title; help card with worked example and 19-icon legend; a 7-card hand; the rule stated mid-screen; scoring cards marked live |
 | playing a hand | selection lifts, numbers and scores live; **order badges 1‑2‑3**; hand-name shape; the 4th card is refused with a reason; deselection clears; playing spends a play and refills; discarding replaces cards |
-| the Reliquary | opens on clearing a round; states the exponential; offers three items; **"Leave with no Sigil"** when empty-handed; a bought Sigil equips and survives into the next round |
+| the Bookseller | opens on clearing a round; states the exponential; offers three items; **"Leave with no Lens"** when empty-handed; a bought Lens equips and survives into the next round |
 | the Interpreter | a typed word becomes a real card via the house appraiser, which names itself; a 1-letter word is rejected |
 | layout | never scrolls sideways; **the controls stay in the viewport**; help reopens and closes on Escape |
+| **first-run coaching** | the coach walks pick → play → read the result, marks the Play button at the right moment, walks *back* if the player deselects, and never returns on a later run |
+| **the end of a run** | running out of plays ends the run through the real code path; the result screen carries the share block and the Memory unlock; the next run starts with the carried Lens equipped |
 | **the live Claude path** (`interpreter.spec.js`) | a fake sampler is injected before page load, proving the live branch works and names itself; **invented overtones are discarded rather than rendered**; a reply with no usable tags, a malformed reply, `not_granted` and `rate_limited` all degrade to the house appraiser with the run intact |
 
-## Two real bugs the tests found
+## Three real bugs the tests found
 
 **1. An unwinnable round (engine).** Seed 151 dealt `THE GREENHOUSE` only 3 playable
 cards. The cause: the deck's coverage floor was per *overtone*, but a Demand is
@@ -79,26 +82,33 @@ The Play button fell off-screen.
 Fixed by pinning the control row to the bottom on phones rather than shaving more
 pixels, since device heights vary far more than widths.
 
+**3. The coach never advanced (UX).** `toggleSel` re-renders the hand, controls and
+preview directly rather than calling `render()` — and `coachSet` only ran inside
+`render()`. So selecting a card never moved the coach past step one: the "press PLAY"
+prompt and the pulsing button were dead code that no first-time player would ever see.
+
+Found the moment onboarding got its first test.
+
 ## Coverage
 
 | Area | State |
 |---|---|
 | Scoring engine | covered, including a 600-play fuzz |
 | Deck construction & seeding | covered |
-| Sigil effects | covered — structural, 600-play fuzz, and exact arithmetic for all 24 |
-| Shop economy | affordability and purchase flow covered; reroll and word-packs not |
+| Lens effects | covered — structural, 600-play fuzz, and exact arithmetic for all 24 |
+| Shop economy | covered — offers, buying, word packs, rerolling, slot limits, rewards |
 | Interpreter | covered — fallback, live path, response validation and every refusal code |
 | Run end | covered — bookkeeping, Memory unlock, share block |
-| Coach / onboarding | not covered |
+| Coach / onboarding | covered |
 | API | not applicable — no backend |
 
 ## Next steps
 
-- **Coach / onboarding is still untested.** The coach advances pick → play → score and then
-  retires permanently; none of that is asserted.
-- **The shop’s reroll and word-pack offers** are untested, as is running out of money.
-- **A full losing run** — playing until the targets outrun the deck — is not simulated end to
-  end; `runend.test.js` calls `endRun` directly rather than arriving there through play.
+- **A run is never played start to finish.** The end-of-run E2E test drops the player on the
+  last Demand rather than grinding through eight rounds, so the full arc is still unproven.
+- **The daily seed is not tested across a date boundary** — `todayKey()` is trusted.
+- **No visual regression testing.** Every layout bug so far was caught by a geometry assertion
+  (viewport containment, row spread); nothing guards colour or spacing.
 - **CI**: both tiers run headless with no server. `npm test` is fast enough for a pre-commit
   hook; `npm run test:e2e` suits a push hook or CI job.
 

@@ -4,7 +4,7 @@
  *   node tools/sim.js [seeds]
  *
  * Reports two things a screenshot cannot show: whether any Demand can be dealt
- * a deck that cannot answer it, and how a greedy player with NO Sigils fares
+ * a deck that cannot answer it, and how a greedy player with NO Lenses fares
  * against each round's target.
  *
  * It runs the real game through tests/harness.js — real deck construction, real
@@ -25,7 +25,7 @@ for (let s = 0; s < SEEDS; s++) {
   const cards = wholeDeck(api.G);
   const demands = api.G.demandOrder;
 
-  /* No Sigils: this is the floor a player who ignores the Reliquary plays at. */
+  /* No Lenses: this is the floor a player who ignores the Bookseller plays at. */
   api.G.lenses = [];
 
   demands.forEach((d, round) => {
@@ -66,7 +66,7 @@ if (starved.length) {
     .map(s => s.demand + " r" + s.round + " (" + s.cards + ")").join(" | "));
 }
 
-console.log("\nNaive Sigil-less player, score as a multiple of target (needs ~1.0 to survive)");
+console.log("\nNaive Lens-less player, score as a multiple of target (needs ~1.0 to survive)");
 ratios.forEach((r, i) => {
   r.sort((a, b) => a - b);
   const med = r[Math.floor(r.length / 2)];
@@ -78,6 +78,6 @@ ratios.forEach((r, i) => {
 });
 
 const firstFail = ratios.findIndex(r => r[Math.floor(r.length / 2)] < 1);
-console.log("\nA player who ignores the Reliquary stalls at round "
+console.log("\nA player who ignores the Bookseller stalls at round "
   + (firstFail < 0 ? "never" : firstFail + 1)
   + " — which is the round the shop has to have taught them by.");
