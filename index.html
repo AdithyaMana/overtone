@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wordhoard</title>
+<title>Logomancy</title>
 <meta name="description" content="A word roguelite where meaning is the physics. Play words into an escalating scoring engine and warp the rules with Lenses.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0&display=swap">
 <style>
 /* ============================================================
-   WORDHOARD — CRT felt-table theme.
+   LOGOMANCY — CRT felt-table theme.
    A dark blue-slate table under a monitor, chunky pressable slabs,
    and the blue/red chips-and-mult pairing doing the loudest talking.
    Single committed look; every colour painted explicitly.
@@ -252,6 +253,7 @@ button{ font-family: inherit; color: inherit; }
 
 /* ---------- cards ---------- */
 .card{
+  touch-action: manipulation;
   position:relative; width: 104px; min-height: 178px;
   background: var(--card); color: var(--card-ink);
   border-radius: 9px; padding: 7px 7px 7px;
@@ -273,11 +275,37 @@ button{ font-family: inherit; color: inherit; }
 .card.sel:hover{ transform: translateY(calc(var(--dy, 0px) - 32px)) rotate(0deg) scale(1.08); }
 .card.static, .card.static:hover{ cursor:default; transform:none; z-index:auto; }
 .card .art{
-  border-radius: 6px; overflow: hidden; line-height: 0;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+  border-radius: 6px; height: 54px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.22), inset 0 -3px 0 rgba(0,0,0,.15);
 }
-.card .art svg,
-.card .art img{ display:block; width: 100%; height: 56px; object-fit: cover; }
+.card .art .icons{ display:flex; align-items:center; gap: 5px; }
+
+/* Material Symbols. Kept invisible until the font is confirmed loaded, so a
+   blocked or slow icon font never flashes its ligature text across the card. */
+.ms{
+  font-family: "Material Symbols Rounded";
+  font-weight: normal; font-style: normal; line-height: 1;
+  letter-spacing: normal; text-transform: none; white-space: nowrap;
+  word-wrap: normal; direction: ltr; display: inline-block;
+  font-feature-settings: "liga"; -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-size: 21px; color: #FFF; visibility: hidden;
+  text-shadow: 0 2px 0 rgba(0,0,0,.28);
+}
+.ms-ok .ms{ visibility: visible; }
+.card .art .ms.hit{
+  color:#2A1B02; background: var(--gold); border-radius: 50%;
+  padding: 2px; text-shadow: none; box-shadow: 0 2px 0 rgba(0,0,0,.3);
+}
+.legend{ display:flex; flex-wrap:wrap; gap: 6px; margin-bottom: 16px; }
+.legend .leg{
+  display:inline-flex; align-items:center; gap:5px;
+  background: var(--inset); border-radius: 7px; padding: 4px 9px;
+  font-size: 11px; font-weight:600; color: var(--text-dim);
+  box-shadow: inset 0 2px 0 rgba(0,0,0,.3);
+}
+.legend .ms{ font-size: 17px; color: var(--text-dim); text-shadow:none; }
 .card .w{
   font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
@@ -330,6 +358,7 @@ button{ font-family: inherit; color: inherit; }
   align-items:flex-end; padding-top: 30px; padding-bottom: 34px; }
 .controls{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
 .btn{
+  touch-action: manipulation;
   border:none; border-radius: 9px; cursor:pointer;
   padding: 12px 24px; font-size: 15px; font-weight:700; letter-spacing:.06em;
   background: var(--panel-2); color:#FFF;
@@ -462,31 +491,91 @@ button{ font-family: inherit; color: inherit; }
 .worked-sum b{ color:#FFF; }
 .worked-tot{ display:block; margin-top:6px; font-size:17px; font-weight:700; color: var(--gold); }
 
-@media (max-width: 860px){
+/* ---------- narrow: the sidebar becomes a HUD strip ---------- */
+@media (max-width: 900px){
   .table{ grid-template-columns: 1fr; }
-  .sidebar{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-items:start; }
-  /* Pair the two single-cell panels so the stack leaves no empty cells. */
+  .sidebar{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 9px; align-items:start; }
+  /* `display:contents` lets the two meters sit in the strip as individual
+     cells, so the row fills instead of leaving gaps. */
+  .meters{ display: contents; }
   .blind{ grid-column: 1 / -1; order:1; }
   .tally{ grid-column: 1 / -1; order:2; }
   .roundscore{ order:3; }
-  .money{ order:4; }
-  .meters{ grid-column: 1 / -1; order:5; }
-  .runinfo{ grid-column: 1 / -1; order:6; }
+  .meter.plays{ order:4; }
+  .meter.disc{ order:5; }
+  .money{ order:6; }
+  .runinfo{ grid-column: 1 / -1; order:7; }
+  .stage{ min-height: 150px; }
 }
-@media (max-width: 560px){
-  .card{ width: 84px; min-height: 150px; padding: 5px; }
-  .card .art svg,
-  .card .art img{ height: 44px; }
-  .card .w{ font-size: 12.5px; }
-  .card .tg{ font-size: 8px; }
-  .wordmark{ font-size: 23px; }
-  .stage-total{ font-size: 38px; }
-  .tally .chips, .tally .multv{ font-size: 19px; }
-  .blind-req .v{ font-size: 25px; }
-  .hand{ gap:5px; min-height: 160px; padding-top: 22px; padding-bottom: 24px; }
-  .handwrap{ gap: 16px; }
-  .btn{ padding: 11px 16px; font-size: 14px; }
+
+/* ---------- phone: fit one screen, thumb-sized targets ---------- */
+@media (max-width: 620px){
+  /* dvh, not vh — mobile browser chrome makes vh lie */
+  #app{ min-height: 100dvh; padding-inline: 9px; padding-block: 7px 8px; gap: 7px; }
+  .masthead{ gap: 8px; }
+  .wordmark{ font-size: 20px; text-shadow: 2px 2px 0 var(--edge); }
+  .chip-btn{ padding: 7px 10px; font-size: 12px; }
+
+  .sidebar{ gap: 7px; }
+  /* the blind panel lies down so it costs height instead of hoarding it */
+  .blind{
+    padding: 8px 10px; text-align:left;
+    display:grid; grid-template-columns: 1fr auto; gap: 5px 10px; align-items:center;
+  }
+  .blind-badge{ font-size: 13.5px; padding: 7px 9px; grid-column: 1; }
+  .blind-wants{ justify-content:flex-start; margin-top: 0; grid-column: 1; }
+  .blind-req{ margin-top: 0; text-align:right; grid-column: 2; grid-row: 1 / span 2; }
+  .blind-req .k{ font-size: 10px; }
+  .blind-req .v{ font-size: 21px; }
+  .progress{ grid-column: 1 / -1; margin-top: 1px; height: 7px; }
+
+  .tally{ padding: 7px 6px; }
+  .tally .chips, .tally .multv{ font-size: 19px; padding: 6px 3px; }
+  .roundscore{ padding: 6px 4px; }
+  .roundscore .k, .meter .k{ font-size: 10px; }
+  .roundscore .v, .meter .v{ font-size: 17px; }
+  .meter{ padding: 6px 3px; }
+  .money{ padding: 6px 4px; font-size: 17px; }
+  .runinfo{ font-size: 10px; }
+
+  .lensbar{ padding: 7px 8px; }
+  .lensbar-head{ font-size: 11px; margin-bottom: 5px; }
+  /* lenses scroll sideways rather than stacking rows and eating the board */
+  .rail{ flex-wrap: nowrap; overflow-x: auto; min-height: 46px; padding-bottom: 2px; }
+  .lens{ flex: 0 0 auto; min-width: 106px; }
+  .rail-empty{ white-space: normal; }
+
+  .stage{ min-height: 76px; padding: 9px; gap: 7px; }
+  .stage-hint{ font-size: 12.5px; }
+  .stage-hint .hand-name{ font-size: 13px; padding: 4px 10px; }
+  .stage-total{ font-size: 34px; }
+  .coach{ font-size: 12px; padding: 7px 11px; line-height: 1.35; }
+
+  /* no fan on a phone (JS drops the tilt too) — two tidy rows read better */
+  .handwrap{ gap: 9px; }
+  .hand{ gap: 5px; min-height: 0; padding-top: 7px; padding-bottom: 7px; }
+  .card{ width: 68px; min-height: 116px; padding: 5px 4px; border-radius: 7px; }
+  .card .art{ height: 34px; border-radius: 5px; }
+  .card .art .icons{ gap: 3px; }
+  .card .art .ms{ font-size: 15px; }
+  .card .w{ font-size: 11.5px; }
+  .card .base{ font-size: 9.5px; padding: 0 4px; top: 5px; right: 5px; }
+  .card .tg{ font-size: 7.5px; padding: 1px 3px; border-radius: 3px; }
+  .card:hover{ transform: none; }
+  .card.sel{ transform: translateY(-10px) scale(1.03); }
+  .card.sel:hover{ transform: translateY(-10px) scale(1.03); }
+
+  .controls{ gap: 7px; }
+  .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 8px; font-size: 13px; letter-spacing: .03em; }
+
+  .panel{ padding: 16px; border-radius: 10px; }
+  .panel h2{ font-size: 20px; }
+  .panel p, .helplist{ font-size: 13px; }
+  .worked{ padding: 11px; gap: 11px; }
+  .appraisal{ min-height: 0; flex-wrap: wrap; }
+  #interpInput{ font-size: 18px; }
 }
+
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .01ms !important; transition-duration: .01ms !important; }
   body::after{ display:none; }
@@ -499,7 +588,7 @@ button{ font-family: inherit; color: inherit; }
 <div id="app">
 
   <header class="masthead">
-    <h1 class="wordmark">WORD<span>HOARD</span></h1>
+    <h1 class="wordmark">LOGO<span>MANCY</span></h1>
     <div class="mast-actions">
       <button class="chip-btn" id="helpBtn" type="button">How to play</button>
       <button class="chip-btn" id="newRunBtn" type="button">New run</button>
@@ -587,7 +676,7 @@ button{ font-family: inherit; color: inherit; }
 <script>
 "use strict";
 /* ============================================================
-   WORDHOARD
+   LOGOMANCY
    A word roguelite where meaning is the physics.
 
    The lexicon below is the game's physics engine: every word carries
@@ -977,8 +1066,8 @@ function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=ri(i+1); const t
 
 /* ---------- storage (may be blocked; never let it break the game) ---------- */
 const store = {
-  get:function(k,d){ try{ const v=localStorage.getItem("wordhoard:"+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
-  set:function(k,v){ try{ localStorage.setItem("wordhoard:"+k, JSON.stringify(v)); }catch(e){} }
+  get:function(k,d){ try{ const v=localStorage.getItem("logomancy:"+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+  set:function(k,v){ try{ localStorage.setItem("logomancy:"+k, JSON.stringify(v)); }catch(e){} }
 };
 
 /* ---------- audio: synthesised, no asset files ---------- */
@@ -1542,7 +1631,7 @@ function endRun(won){
 
 function shareText(won){
   const lines = [];
-  lines.push("WORDHOARD — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
+  lines.push("LOGOMANCY — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
@@ -1553,254 +1642,99 @@ function shareText(won){
   return lines.join("\n");
 }
 
-/* ---------- generative card art ----------
-   Every card's emblem is drawn from its own overtones, so the picture is a
-   view of the same data the scoring engine reads: a word tagged HEAT+DANGER
-   grows flames and spikes. Deterministic per word (seeded by the word
-   itself), so a card always looks the same — and any word the Interpreter
-   invents gets real art for free, with no asset to author.                  */
+/* ---------- card faces: overtone icons ----------
+   Each card shows the icons for its own overtones on a plate tinted by the
+   first of them. Nineteen icons instead of 249 pictures: perfectly consistent,
+   nothing to load per card, and it teaches the tag system rather than
+   competing with it — a player learns the flame means HEAT in one round.
+   Icons are Google Material Symbols (the one icon set the artifact CSP will
+   serve, since it comes from fonts.googleapis.com).                         */
 
-const ART = {
-  HEA:{ c:"#FFB55C", d:"#B83A18" },
-  COL:{ c:"#CFEEFF", d:"#2E6A94" },
-  WET:{ c:"#7FD0F0", d:"#1B5580" },
-  MOT:{ c:"#FFD97A", d:"#8A6A1E" },
-  DAN:{ c:"#FF7B6B", d:"#8E2018" },
-  LOU:{ c:"#FF9ECF", d:"#8E2A63" },
-  BRI:{ c:"#FFE98A", d:"#A8781A" },
-  DAR:{ c:"#8E86C4", d:"#221D3D" },
-  ANI:{ c:"#F0A874", d:"#7A3E1C" },
-  PLA:{ c:"#8FDD92", d:"#26643A" },
-  NAT:{ c:"#7CC49A", d:"#1F5340" },
-  BOD:{ c:"#F5A0B0", d:"#8A2E47" },
-  FOO:{ c:"#FFC981", d:"#95571C" },
-  TOO:{ c:"#C6D2DE", d:"#46566B" },
-  TEC:{ c:"#7FE8D2", d:"#186A62" },
-  MON:{ c:"#FFDC6B", d:"#96721A" },
-  MIN:{ c:"#C4AEFF", d:"#4B3A8E" },
-  TIM:{ c:"#B9C9DA", d:"#3D5266" },
-  ABS:{ c:"#DCD4EE", d:"#4A4266" }
+const ICONS = {
+  ANI:"pets",       PLA:"psychiatry",  NAT:"landscape",  BOD:"ecg_heart",
+  FOO:"restaurant", TOO:"handyman",    TEC:"memory",     MON:"paid",
+  HEA:"local_fire_department",         COL:"ac_unit",    WET:"water_drop",
+  MOT:"speed",      DAN:"warning",     LOU:"volume_up",  BRI:"light_mode",
+  DAR:"dark_mode",  MIN:"psychology",  TIM:"schedule",   ABS:"blur_on"
 };
 
-/* Which overtone paints the ground, in order of how well it reads as a
-   backdrop rather than a subject. */
-const GROUND_ORDER = ["DAR","NAT","WET","HEA","COL","BRI","TEC","MON","ABS","TIM","MIN","FOO","TOO","PLA","BOD","ANI","LOU","MOT","DAN"];
-/* Which overtones get drawn on top, most pictorial first. */
-const MOTIF_ORDER  = ["ANI","PLA","NAT","TOO","TEC","MON","BOD","FOO","TIM","MIN","BRI","HEA","COL","WET","DAN","LOU","MOT","DAR","ABS"];
-
-function n2(x){ return Math.round(x * 10) / 10; }
-
-const MOTIF = {
-  HEA: function(r,c){
-    let s = "";
-    for(let i=0;i<3;i++){
-      const x = 18 + i*26 + r()*7, top = 16 + r()*12;
-      s += '<path d="M'+n2(x)+' 50 C'+n2(x-8)+' 38 '+n2(x-5)+' '+n2(top+8)+' '+n2(x)+' '+n2(top)
-         + ' C'+n2(x+5)+' '+n2(top+8)+' '+n2(x+8)+' 38 '+n2(x)+' 50 Z" fill="'+c.c+'" opacity=".9"/>';
-    }
-    return s;
-  },
-  COL: function(r,c){
-    let s = "";
-    for(let i=0;i<4;i++){
-      const x = 10 + i*22 + r()*8, h = 16 + r()*16, w = 4 + r()*4;
-      s += '<polygon points="'+n2(x)+',0 '+n2(x+w)+',0 '+n2(x+w/2)+','+n2(h)+'" fill="'+c.c+'" opacity=".8"/>';
-    }
-    return s;
-  },
-  WET: function(r,c){
-    let s = "";
-    for(let i=0;i<3;i++){
-      const y = 30 + i*9 + r()*3;
-      s += '<path d="M0 '+n2(y)+' q 11 -6 22 0 t 22 0 t 22 0 t 22 0" fill="none" stroke="'+c.c
-         + '" stroke-width="2.6" stroke-linecap="round" opacity=".8"/>';
-    }
-    return s;
-  },
-  MOT: function(r,c){
-    let s = "";
-    for(let i=0;i<4;i++){
-      const y = 10 + i*11 + r()*4, len = 20 + r()*26, x = 6 + r()*18;
-      s += '<line x1="'+n2(x)+'" y1="'+n2(y)+'" x2="'+n2(x+len)+'" y2="'+n2(y-5)+'" stroke="'+c.c
-         + '" stroke-width="3" stroke-linecap="round" opacity=".85"/>';
-    }
-    return s;
-  },
-  DAN: function(r,c){
-    const y = 52;
-    let d = "M0 "+y;
-    for(let i=0;i<7;i++){ d += " L"+n2(i*13+6.5)+" "+n2(y-9-r()*7)+" L"+n2((i+1)*13)+" "+n2(y); }
-    return '<path d="'+d+' L88 56 L0 56 Z" fill="'+c.c+'" opacity=".85"/>';
-  },
-  LOU: function(r,c){
-    let s = "";
-    for(let i=0;i<3;i++){
-      const rad = 13 + i*11;
-      s += '<path d="M10 '+n2(28-rad)+' A '+rad+' '+rad+' 0 0 1 10 '+n2(28+rad)
-         + '" fill="none" stroke="'+c.c+'" stroke-width="2.6" stroke-linecap="round" opacity="'+n2(0.85-i*0.18)+'"/>';
-    }
-    return s;
-  },
-  BRI: function(r,c){
-    const cx = 30 + r()*28, cy = 16 + r()*14;
-    let s = '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="7" fill="'+c.c+'" opacity=".95"/>';
-    for(let i=0;i<8;i++){
-      const a = (i/8)*Math.PI*2 + r()*0.2;
-      s += '<line x1="'+n2(cx+Math.cos(a)*10)+'" y1="'+n2(cy+Math.sin(a)*10)+'" x2="'+n2(cx+Math.cos(a)*17)
-         + '" y2="'+n2(cy+Math.sin(a)*17)+'" stroke="'+c.c+'" stroke-width="2.2" stroke-linecap="round" opacity=".75"/>';
-    }
-    return s;
-  },
-  DAR: function(r,c){
-    const cx = 22 + r()*44;
-    return '<circle cx="'+n2(cx)+'" cy="20" r="13" fill="'+c.c+'" opacity=".55"/>'
-         + '<circle cx="'+n2(cx+6)+'" cy="17" r="12" fill="'+c.d+'" opacity=".9"/>';
-  },
-  ANI: function(r,c){
-    const cx = 30 + r()*28, cy = 24 + r()*8;
-    return '<ellipse cx="'+n2(cx)+'" cy="'+n2(cy)+'" rx="16" ry="10" fill="'+c.c+'" opacity=".95"/>'
-         + '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="5.5" fill="'+c.d+'"/>'
-         + '<circle cx="'+n2(cx+2)+'" cy="'+n2(cy-2)+'" r="1.8" fill="#FFFFFF" opacity=".9"/>';
-  },
-  PLA: function(r,c){
-    const x = 28 + r()*32;
-    let s = '<path d="M'+n2(x)+' 54 L'+n2(x)+' 18" stroke="'+c.c+'" stroke-width="2.8" stroke-linecap="round" fill="none"/>';
-    for(let i=0;i<3;i++){
-      const y = 24 + i*10, dir = i%2 ? 1 : -1;
-      s += '<path d="M'+n2(x)+' '+n2(y)+' q '+n2(dir*11)+' -7 '+n2(dir*15)+' 2 q '+n2(-dir*10)+' 6 '+n2(-dir*15)+' -2 Z" fill="'+c.c+'" opacity=".9"/>';
-    }
-    return s;
-  },
-  NAT: function(r,c){
-    const a = 18 + r()*10, b = 48 + r()*14;
-    return '<polygon points="'+n2(a)+',16 '+n2(a+22)+',56 '+n2(a-22)+',56" fill="'+c.c+'" opacity=".75"/>'
-         + '<polygon points="'+n2(b)+',24 '+n2(b+19)+',56 '+n2(b-19)+',56" fill="'+c.d+'" opacity=".85"/>';
-  },
-  BOD: function(r,c){
-    let s = "";
-    for(let i=0;i<3;i++){
-      const y = 20 + i*10;
-      s += '<path d="M22 '+n2(y)+' q 22 '+n2(9+i*2)+' 44 0" fill="none" stroke="'+c.c
-         + '" stroke-width="2.8" stroke-linecap="round" opacity=".85"/>';
-    }
-    return s;
-  },
-  FOO: function(r,c){
-    let s = '<path d="M18 30 q 26 22 52 0 Z" fill="'+c.c+'" opacity=".9"/>';
-    for(let i=0;i<3;i++){
-      s += '<circle cx="'+n2(30+i*14)+'" cy="'+n2(22-r()*6)+'" r="'+n2(3.5+r()*2)+'" fill="'+c.c+'" opacity=".8"/>';
-    }
-    return s;
-  },
-  TOO: function(r,c){
-    const x = 26 + r()*22;
-    return '<rect x="'+n2(x)+'" y="12" width="30" height="11" rx="2.5" fill="'+c.c+'" opacity=".95"/>'
-         + '<rect x="'+n2(x+11)+'" y="21" width="6" height="28" rx="2.5" fill="'+c.d+'" opacity=".95"/>';
-  },
-  TEC: function(r,c){
-    let s = "";
-    const pts = [];
-    for(let i=0;i<4;i++) pts.push([12+i*21+r()*7, 14+r()*28]);
-    for(let i=0;i<pts.length-1;i++){
-      s += '<line x1="'+n2(pts[i][0])+'" y1="'+n2(pts[i][1])+'" x2="'+n2(pts[i+1][0])+'" y2="'+n2(pts[i+1][1])
-         + '" stroke="'+c.c+'" stroke-width="2" opacity=".7"/>';
-    }
-    pts.forEach(function(p){ s += '<circle cx="'+n2(p[0])+'" cy="'+n2(p[1])+'" r="3.6" fill="'+c.c+'"/>'; });
-    return s;
-  },
-  MON: function(r,c){
-    let s = "";
-    for(let i=0;i<3;i++){
-      const cx = 26 + i*17, cy = 32 - i*5;
-      s += '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="10" fill="'+c.c+'" opacity=".95"/>'
-         + '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="5" fill="none" stroke="'+c.d+'" stroke-width="2"/>';
-    }
-    return s;
-  },
-  MIN: function(r,c){
-    return '<path d="M44 30 m0 -14 a14 14 0 1 1 -10 4 a10 10 0 1 0 7 -3 a6 6 0 1 1 -4 2" fill="none" stroke="'
-         + c.c + '" stroke-width="2.8" stroke-linecap="round" opacity=".9"/>';
-  },
-  TIM: function(r,c){
-    const cx = 30 + r()*28;
-    return '<circle cx="'+n2(cx)+'" cy="27" r="15" fill="none" stroke="'+c.c+'" stroke-width="2.8"/>'
-         + '<line x1="'+n2(cx)+'" y1="27" x2="'+n2(cx)+'" y2="17" stroke="'+c.c+'" stroke-width="2.6" stroke-linecap="round"/>'
-         + '<line x1="'+n2(cx)+'" y1="27" x2="'+n2(cx+9)+'" y2="31" stroke="'+c.c+'" stroke-width="2.6" stroke-linecap="round"/>';
-  },
-  ABS: function(r,c){
-    let s = '<circle cx="44" cy="28" r="15" fill="none" stroke="'+c.c
-          + '" stroke-width="2.4" stroke-dasharray="5 5" opacity=".85"/>';
-    for(let i=0;i<3;i++){
-      s += '<circle cx="'+n2(18+r()*52)+'" cy="'+n2(10+r()*36)+'" r="2.4" fill="'+c.c+'" opacity=".8"/>';
-    }
-    return s;
-  }
+const TAG_COLOR = {
+  HEA:{ c:"#F07A3A", d:"#8E2B10" },
+  COL:{ c:"#7FC7E8", d:"#245A80" },
+  WET:{ c:"#4E9FD8", d:"#16456E" },
+  MOT:{ c:"#E8B93C", d:"#7A5610" },
+  DAN:{ c:"#E85C4C", d:"#7E1C15" },
+  LOU:{ c:"#E874B0", d:"#7A2452" },
+  BRI:{ c:"#F2CE55", d:"#8A650F" },
+  DAR:{ c:"#6E66A8", d:"#221D3D" },
+  ANI:{ c:"#DE9058", d:"#6B3416" },
+  PLA:{ c:"#6FC47A", d:"#1F5430" },
+  NAT:{ c:"#5FAE85", d:"#17453A" },
+  BOD:{ c:"#E08698", d:"#742640" },
+  FOO:{ c:"#EBAE62", d:"#7E4816" },
+  TOO:{ c:"#A8B6C6", d:"#3A4859" },
+  TEC:{ c:"#5FCFBA", d:"#125853" },
+  MON:{ c:"#EBC44E", d:"#7E5E10" },
+  MIN:{ c:"#A88FE0", d:"#3F3078" },
+  TIM:{ c:"#9DB0C4", d:"#31455A" },
+  ABS:{ c:"#C4BCDC", d:"#413A5C" }
 };
 
-const ART_CACHE = {};
-let ART_N = 0;
+/* The icon font either arrives or it doesn't. Until it's confirmed the glyphs
+   stay invisible rather than showing their ligature text, and the tinted plate
+   carries the card on its own. */
+function initIcons(){
+  const root = document.documentElement;
+  try{
+    if(document.fonts && document.fonts.ready){
+      document.fonts.ready.then(function(){
+        if(document.fonts.check('20px "Material Symbols Rounded"')) root.classList.add("ms-ok");
+      });
+      /* Don't let a slow font hide the icons for ever. */
+      setTimeout(function(){ root.classList.add("ms-ok"); }, 2500);
+    } else {
+      root.classList.add("ms-ok");
+    }
+  }catch(e){ root.classList.add("ms-ok"); }
+}
 
-/* Real artwork drops in here: save art/<slug>.png and the game picks it up.
-   The generated emblem paints instantly and is swapped only once a real image
-   has actually loaded, so a missing file costs nothing and a half-finished art
-   pass ships fine. A word the Interpreter invents has no file by definition and
-   keeps its emblem for good, which is why the generator has to stay. */
-const ART_BASE = "art/";
-const ART_IMG = {};   // slug -> false once we know there is no file
-
-function artSlug(w){ return w.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+/* Which overtone tints the plate. Ordered by how distinctive the colour is,
+   not by the card's tag order — NATURE and TIME sit on so many words that
+   leading with them turned half the hand the same green. */
+const LEAD_ORDER = ["HEA","MON","DAN","COL","LOU","MIN","TEC","BOD","FOO",
+                    "BRI","DAR","WET","ANI","TOO","PLA","MOT","NAT","TIM","ABS"];
 
 function artNode(card){
+  const tags = card.t.length ? card.t : ["ABS"];
+  let lead = null;
+  for(let i=0;i<LEAD_ORDER.length && !lead;i++){
+    if(tags.indexOf(LEAD_ORDER[i]) >= 0) lead = LEAD_ORDER[i];
+  }
+  if(!lead) lead = tags[0];
+  const col = TAG_COLOR[lead] || TAG_COLOR.ABS;
+
   const d = document.createElement("div");
   d.className = "art";
-  d.innerHTML = artFor(card);
-  const slug = artSlug(card.w);
-  if(ART_IMG[slug] === false) return d;      // already known missing; do not refetch
-  const img = new Image();
-  img.alt = "";
-  img.onload  = function(){ ART_IMG[slug] = true; d.innerHTML = ""; d.appendChild(img); };
-  img.onerror = function(){ ART_IMG[slug] = false; };
-  img.src = ART_BASE + slug + ".png";
+  d.style.background = "linear-gradient(158deg, " + col.c + " 0%, " + col.d + " 100%)";
+
+  const row = document.createElement("div");
+  row.className = "icons";
+  tags.slice(0, 3).forEach(function(t){
+    const s = document.createElement("span");
+    const hit = G && G.demand && G.demand.tags.indexOf(t) >= 0;
+    s.className = "ms" + (hit ? " hit" : "");
+    s.textContent = ICONS[t] || "blur_on";
+    s.setAttribute("aria-hidden", "true");
+    s.title = TAGS[t] ? TAGS[t][0] : "";
+    row.appendChild(s);
+  });
+  d.appendChild(row);
   return d;
 }
 
-function artFor(card){
-  const key = card.w + "|" + card.t.join(",");
-  if(ART_CACHE[key]) return ART_CACHE[key];
-
-  const r = mulberry32(hashStr(key));
-  const tags = card.t.length ? card.t : ["ABS"];
-
-  let ground = null;
-  for(let i=0;i<GROUND_ORDER.length;i++){
-    if(tags.indexOf(GROUND_ORDER[i]) >= 0){ ground = GROUND_ORDER[i]; break; }
-  }
-  if(!ground) ground = tags[0];
-  const gc = ART[ground] || ART.ABS;
-  const gid = "oa" + (++ART_N);
-
-  let s = '<svg viewBox="0 0 88 56" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-        + '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0.3" y2="1">'
-        + '<stop offset="0" stop-color="'+gc.c+'"/><stop offset="1" stop-color="'+gc.d+'"/>'
-        + '</linearGradient></defs>'
-        + '<rect width="88" height="56" fill="url(#'+gid+')"/>';
-
-  /* Cap at three motifs — past that the emblem turns to mud. */
-  let drawn = 0;
-  for(let i=0;i<MOTIF_ORDER.length && drawn<3;i++){
-    const t = MOTIF_ORDER[i];
-    if(tags.indexOf(t) < 0 || t === ground) continue;
-    if(!MOTIF[t]) continue;
-    s += MOTIF[t](r, ART[t]);
-    drawn++;
-  }
-  /* A word whose only overtone painted the ground still needs a subject. */
-  if(drawn === 0 && MOTIF[ground]) s += MOTIF[ground](r, ART[ground]);
-
-  s += '<rect width="88" height="56" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2"/></svg>';
-
-  ART_CACHE[key] = s;
-  return s;
+/* A standalone icon, for the tag legend in the help card. */
+function iconSpan(tag){
+  return '<span class="ms" aria-hidden="true">' + (ICONS[tag] || "blur_on") + '</span>';
 }
 
 /* ---------- rendering ---------- */
@@ -1958,11 +1892,14 @@ function renderHand(){
   /* Fan the hand: cards tilt away from centre and dip at the edges, so the
      hand reads as held cards rather than a row of buttons. */
   const n = G.hand.length, mid = (n - 1) / 2;
+  /* A fan needs width. On a phone the hand wraps to two rows, where tilted
+     cards just collide — so lay them flat there. */
+  const fan = window.innerWidth > 620;
   G.hand.forEach(function(c, i){
     const el = cardEl(c, false);
     const off = i - mid;
-    el.style.setProperty("--rot", (off * 2.2).toFixed(2) + "deg");
-    el.style.setProperty("--dy", (Math.pow(Math.abs(off), 1.7) * 2.6).toFixed(1) + "px");
+    el.style.setProperty("--rot", fan ? (off * 2.2).toFixed(2) + "deg" : "0deg");
+    el.style.setProperty("--dy", fan ? (Math.pow(Math.abs(off), 1.7) * 2.6).toFixed(1) + "px" : "0px");
     h.appendChild(el);
   });
 }
@@ -2013,9 +1950,17 @@ function showHelp(){
     return '<span class="tg' + (t === "HEA" ? " match" : "") + '">' + TAGS[t][0] + '</span>';
   }).join("");
   const withLens = ex.base + 25 + 45;
+  const exCol = TAG_COLOR[ex.t[0]];
+  const exArt = '<div class="art" style="background:linear-gradient(158deg,' + exCol.c + ' 0%,' + exCol.d + ' 100%)">'
+    + '<div class="icons">' + ex.t.slice(0,3).map(function(t){
+        return '<span class="ms' + (t === "HEA" ? " hit" : "") + '" aria-hidden="true">' + ICONS[t] + '</span>';
+      }).join("") + '</div></div>';
+  const legend = TAG_KEYS.map(function(t){
+    return '<span class="leg">' + iconSpan(t) + TAGS[t][0] + '</span>';
+  }).join("");
 
   showPanel(''
-    + '<h2>How Wordhoard works</h2>'
+    + '<h2>How Logomancy works</h2>'
     + '<div class="sub">Three things, then you are fine</div>'
 
     + '<div class="teach">'
@@ -2033,7 +1978,7 @@ function showHelp(){
 
     + '<div class="worked">'
     +   '<div class="card static">'
-    +     '<div class="art">' + artFor(ex) + '</div>'
+    +     exArt
     +     '<div class="base">' + ex.base + '</div>'
     +     '<div class="w">' + ex.w + '</div>'
     +     '<div class="tags">' + exTags + '</div>'
@@ -2047,6 +1992,8 @@ function showHelp(){
     +   '</div>'
     + '</div>'
 
+    + '<div class="sub" style="margin:0 0 7px">The nineteen overtones</div>'
+    + '<div class="legend">' + legend + '</div>'
     + '<p style="font-size:13px"><span class="kbd">1</span>–<span class="kbd">7</span> pick &middot; '
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
@@ -2065,6 +2012,13 @@ document.getElementById("newRunBtn").onclick = function(){
 };
 document.getElementById("stage").onclick = function(){ if(G && G.animating) skipAnim = true; };
 
+/* Re-lay the hand when the screen changes shape (rotation, resize). */
+let resizeT = null;
+window.addEventListener("resize", function(){
+  clearTimeout(resizeT);
+  resizeT = setTimeout(function(){ if(G && !G.animating) renderHand(); }, 160);
+});
+
 document.addEventListener("keydown", function(e){
   if(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
   if(e.key === "Escape"){ hidePanel(); return; }
@@ -2080,6 +2034,7 @@ document.addEventListener("keydown", function(e){
 
 /* ---------- boot ---------- */
 function start(restored){
+  initIcons();
   newRun(null);
   if(!store.get("seenHelp", false)){
     store.set("seenHelp", true);

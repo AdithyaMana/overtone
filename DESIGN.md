@@ -1,4 +1,4 @@
-# Wordhoard — design writeup
+# Logomancy — design writeup
 
 A word roguelite where meaning is the physics.
 
@@ -6,7 +6,7 @@ A word roguelite where meaning is the physics.
 
 ## 1. The pitch
 
-**What it is.** Wordhoard is a five-minute roguelite built on a scoring engine that runs on
+**What it is.** Logomancy is a five-minute roguelite built on a scoring engine that runs on
 *meaning* instead of spelling. Every word in the game carries **overtones** — semantic tags
 like HEAT, MOTION, DANGER, TIME. Each round sets a **Demand** (`THE FURNACE — wants HEAT,
 DANGER`) and a target score. You play up to three word-cards; they resolve left to right,
@@ -20,7 +20,7 @@ product: people who play a word game every morning (Wordle, Connections, Context
 who play build-a-broken-engine roguelites (Balatro, Slay the Spire, Luck be a Landlord). Word
 games are almost entirely pure puzzles with no build variety and no run structure. Deckbuilders
 are almost entirely fantasy-combat-themed and demand a rules vocabulary before they're fun.
-Wordhoard is a deckbuilder whose rules vocabulary is *the language you already speak*.
+Logomancy is a deckbuilder whose rules vocabulary is *the language you already speak*.
 
 **Why someone plays it.** Because sixty seconds in, you notice that AVALANCHE is COLD and
 MOTION and DANGER and LOUD all at once, that you happen to own two Lenses that both care about
@@ -156,22 +156,17 @@ Crucially it's **baked to a static table at build time**. The game runs at 0ms, 
 no API key and no per-session cost, and it's fully deterministic — which is what makes a shared
 daily seed possible at all.
 
-**The art comes out of the same table.** Every card's emblem is generated from its own
-overtones: the ground colour is picked from the word's most backdrop-ish overtone, then up to
-three motifs are drawn on top — flames for HEAT, shards for COLD, an eye for ANIMAL, coins for
-MONEY, a spiral for MIND. It's seeded by the word itself, so a card always looks the same, and
-capped at three motifs because past that the emblem turns to mud.
+**The card faces come out of the same table.** Each card shows the icons for its own
+overtones on a plate tinted by its most distinctive one. I tried per-word generated artwork
+first and it read as abstract shapes rather than art — nineteen consistent icons beat 249
+inconsistent pictures, and they *teach*: the picture and the scoring rule are views of the same
+data, so a player learns that the flame means HEAT within one round rather than parsing tag
+text. Overtones matching the current Demand take a gold ring, which makes a playable card
+readable without reading at all.
 
-This is worth more than decoration, for three reasons:
-
-- **It teaches.** Players start recognising card types by sight before they read a single tag.
-  The picture and the scoring rule are views of the same data, so learning one teaches the
-  other.
-- **It costs nothing to scale.** A lexicon pack of 200 new words ships with 200 pieces of art
-  and no artist. So does any word a player invents — the Interpreter's cards get real emblems
-  for free, which is exactly the case a hand-drawn asset library cannot serve.
-- **It stays honest to the brief.** No bitmaps, no external assets, nothing to load. The whole
-  art system is a few hundred lines of SVG primitives inside the same single file.
+It also stays honest to the brief and to the content treadmill: a lexicon pack of 200 new words
+ships with zero new art, and so does every word a player invents with the Interpreter — the one
+case a fixed art library can never serve.
 
 ### 5.2 AI as a live participant in the game (runtime)
 
@@ -279,11 +274,11 @@ pairing carrying the loudest colour in the UI. The structural steal is the left-
 panel — Demand badge, "score at least", round score, the chips × mult readout, plays and
 discards, money — with the board to its right: Lens row on top, resolution stage in the middle,
 a fanned hand at the bottom. Plays are announced with named shapes (`DOUBLE RESONANCE`,
-`WORDHOARD CASCADE`) the way Balatro names poker hands, which teaches players to aim for a shape
+`LOGOMANCY CASCADE`) the way Balatro names poker hands, which teaches players to aim for a shape
 instead of squinting at individual tags.
 
 *Did differently:* Balatro's hand is poker, so the skill floor is a memorised ranking table.
-Wordhoard's "hand" is meaning, which every player already has. And card *order* matters here in
+Logomancy's "hand" is meaning, which every player already has. And card *order* matters here in
 a way it mostly doesn't there, which turns each play into a small ordering puzzle on top of a
 selection puzzle. The card faces carry words and overtones rather than rank and suit, so they
 run slightly larger and lean on type instead of pips — no art required either way.
@@ -292,7 +287,7 @@ run slightly larger and lean on type instead of pips — no art required either 
 *Borrowed:* the shared daily seed; a plain-text share block small enough to paste into a
 message; zero account, zero install, one screen.
 *Did differently:* Wordle is deliberately finite — one puzzle, then stop. That's excellent for
-habit and terrible for session length. Wordhoard keeps the daily seed as a *comparison* surface
+habit and terrible for session length. Logomancy keeps the daily seed as a *comparison* surface
 but lets you play unlimited free runs, so it can be both a habit and a sitting.
 
 **Slay the Spire** — the run-structure reference.
@@ -305,14 +300,14 @@ blocks and shapes are fine."
 **Semantle / Contexto** — the proof that semantic distance is a legitimate mechanic.
 *Borrowed:* the core insight that meaning can be a scoring surface, not just a theme.
 *Did differently:* those games hide the semantic state and make you grind toward it one guess
-at a time, which is tense but slow and can feel like homework. Wordhoard **prints the overtones
+at a time, which is tense but slow and can feel like homework. Logomancy **prints the overtones
 on the card**. Meaning becomes tactical information you act on immediately rather than hidden
 state you search for — which is what lets the loop run at roguelite speed.
 
 **Scrabble / Wordscapes** — the deliberate anti-reference.
 Both make vocabulary size and spelling the skill. That gates non-native speakers, rewards
 memorising two-letter word lists over actual thought, and makes losing feel like a verdict on
-your education. Wordhoard removes spelling from the skill entirely: you never construct a word,
+your education. Logomancy removes spelling from the skill entirely: you never construct a word,
 you only choose and order ones you're shown.
 
 **Vampire Survivors** — borrowed exactly one lesson: if the numbers escalate hard enough and
@@ -328,7 +323,7 @@ the feedback is loud enough, nobody asks where the art is.
 | Rules that warp meaning | `LENSES` — 24 entries, `onCard` / `onPlay` hooks |
 | Order matters | `resolve()` iterates played cards left to right, emitting an event per trigger |
 | Teach the maths without a tutorial | `renderPreview()` — live "would score" before committing |
-| Card art from the same data | `artFor()` / `MOTIF` — generated emblems, no assets |
+| Card faces from the same data | `artNode()` / `ICONS` — overtone icons, no per-word assets |
 | Teach in context, not up front | `COACH` / `coachSet()` — a one-line coach through round 1 |
 | Day-1 hook | `openInterpreter()` / `runAppraisal()` |
 | AI degrades, never breaks | `houseAppraise()` — the local fallback appraiser |

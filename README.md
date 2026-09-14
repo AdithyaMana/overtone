@@ -1,4 +1,4 @@
-# Wordhoard
+# Logomancy
 
 **A word roguelite where meaning is the physics.**
 
@@ -51,10 +51,9 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `build-artifact.js` | Strips the HTML wrapper to produce `artifact.html` for the Claude Artifacts host. |
 | `artifact.html` | Generated — do not edit by hand. |
 | `tools/sim.js` | Headless balance simulator (deck coverage + difficulty curve). |
-| `tools/export-cards.js` | Exports the full card list for artwork sourcing. |
-| `art/CARDS.md` | All 249 cards, grouped, with filenames and prompts. |
+| `tools/export-cards.js` | Exports the full card list from the lexicon. |
+| `art/CARDS.md` | All 249 cards, grouped, with overtones and icons. |
 | `art/cards.csv` | Same list as data. |
-| `art/prompts.txt` | One image prompt per line, for batch generation. |
 | `docs/brainstorming/` | The ideation log the design came out of — 86 logged ideas across seven techniques. |
 
 ## Balance
@@ -70,22 +69,18 @@ It caught two real bugs before launch: decks that could hand you an unwinnable D
 on only 21 of 249 words), and a difficulty wall at round 3. Both are written up in
 [DESIGN.md §5.4](DESIGN.md).
 
-## Card artwork
+## Card faces
 
-Each card shows a generated emblem built from its own overtones — flames for HEAT, shards for
-COLD, an eye for ANIMAL — so the picture and the scoring rule are views of the same data.
+Each card shows the **icons for its own overtones** — a flame for HEAT, a snowflake for COLD,
+paws for ANIMAL — on a plate tinted by its most distinctive one. The picture and the scoring
+rule are views of the same data, so a player learns the mapping within a round, and overtones
+matching the current Demand get a gold ring so a playable card reads at a glance.
 
-To use real artwork instead, save an image as `art/<slug>.png` and the game picks it up
-automatically. Slugs and prompts for all 249 cards are in [`art/CARDS.md`](art/CARDS.md),
-regenerate with:
+Nineteen icons cover all 249 words, and every word a player invents with the Interpreter — the
+case a fixed art library could never serve. Icons are [Google Material Symbols](https://fonts.google.com/icons); that set is also the only one the artifact host’s CSP will
+serve, since it allows stylesheets from `fonts.googleapis.com` alone.
 
-```bash
-node tools/export-cards.js
-```
-
-Recommended size **440×280** (11:7), PNG or WebP. Cards without a file keep their emblem, so a
-partial art pass ships fine — and words a player invents with the Interpreter have no file by
-definition, which is why the generator stays as the fallback.
+The full card list is in [`art/CARDS.md`](art/CARDS.md), regenerate with `node tools/export-cards.js`.
 
 ## AI in this project
 
