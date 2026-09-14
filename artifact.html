@@ -219,6 +219,22 @@ button{ font-family: inherit; color: inherit; }
   padding: 3px 8px; font-size: 11px; font-weight:700; letter-spacing:.03em;
   box-shadow: 0 2px 0 var(--gold-d);
 }
+/* An Ordeal is the round changing a rule rather than a number, so it gets the
+   warning colour and sits directly under what the round wants — the two things
+   a player has to hold in their head at once. */
+.ordeal{
+  margin-top: 10px; text-align: left;
+  background: var(--blind); border-radius: 7px; padding: 7px 9px;
+  box-shadow: 0 3px 0 var(--blind-d);
+  animation: plaqueSlam .34s cubic-bezier(.2,1.5,.4,1) .12s backwards;
+}
+.ordeal[hidden]{ display: none !important; }
+.ordeal .on{
+  font-family: var(--f-display); font-size: 11.5px; color: #FFF;
+  text-shadow: var(--drop-sm); letter-spacing: .03em;
+}
+.ordeal .od{ font-size: 11.5px; line-height: 1.4; color: #FFE2DE; margin-top: 3px; }
+
 .blind-req{ margin-top: 13px; }
 .blind-req .k{ font-size: 12px; color: var(--text-dim); letter-spacing:.04em; }
 .blind-req .v{
@@ -524,11 +540,15 @@ button{ font-family: inherit; color: inherit; }
 .card .art{
   position: relative;
   border-radius: 5px; height: 56px;
-  display:flex; align-items:flex-start; justify-content:center;
-  padding-top: 7px;
+  /* One row, two children, space between them. The badge used to be absolutely
+     positioned over this box while the icons were centred in it, which meant
+     nothing in the layout prevented a third icon from running underneath the
+     number — and on a 30px phone plate, it did. */
+  display:flex; align-items:center; justify-content:center;
+  gap: 5px; padding: 0 5px;
   box-shadow: 0 3px 0 rgba(0,0,0,.22);
 }
-.card .art .icons{ display:flex; align-items:center; gap: 5px; }
+.card .art .icons{ display:flex; align-items:center; gap: 5px; min-width: 0; }
 .ms{
   font-family: "Material Symbols Rounded";
   font-weight: normal; font-style: normal; line-height: 1;
@@ -564,7 +584,7 @@ button{ font-family: inherit; color: inherit; }
   min-width: 0;
 }
 .card .base{
-  position: absolute; right: 4px; bottom: 3px; z-index: 2;
+  flex: none;
   font-size: 11px; font-weight:700; color:#FFF;
   background: rgba(0,0,0,.55); border-radius: 4px; padding: 0 4px;
   font-variant-numeric: tabular-nums; line-height: 1.45;
@@ -643,6 +663,15 @@ button{ font-family: inherit; color: inherit; }
 }
 .offer.flawed{ background: var(--blind); box-shadow: 0 4px 0 var(--blind-d); }
 .offer.flawed .od{ color: #FFE2DE; }
+.ordeal-warn{
+  background: var(--blind); border-radius: 8px; padding: 11px 13px; margin: 0 0 14px;
+  box-shadow: 0 4px 0 var(--blind-d);
+}
+.ordeal-warn .on{
+  font-family: var(--f-display); font-size: 12px; color:#FFF; text-shadow: var(--drop-sm);
+}
+.ordeal-warn .od{ font-size: 13px; line-height:1.5; color:#FFE2DE; margin-top: 4px; }
+
 .cost-warn{
   align-self:flex-start; font-family: var(--f-display); font-size:10px;
   background: var(--card); color: var(--blind-d); border-radius:4px; padding:2px 7px;
@@ -855,7 +884,7 @@ button{ font-family: inherit; color: inherit; }
 
   /* bigger cards: the thing players actually read */
   .card{ width: 122px; height: 196px; padding: 8px; }
-  .card .art{ height: 68px; }
+  .card .art{ height: 68px; gap: 6px; }
   .card .art .icons{ gap: 6px; }
   .card .art .ms{ font-size: 25px; }
   .card .w{ font-size: 17px; }
@@ -951,6 +980,9 @@ button{ font-family: inherit; color: inherit; }
   .blind-wants{ justify-content:flex-start; margin-top: 0; grid-column: 1; gap: 4px; }
   .blind-wants .w{ font-size: 10px; padding: 2px 6px; }
   .blind-req{ margin-top: 0; text-align:right; grid-column: 2; grid-row: 1 / span 2; }
+  .ordeal{ grid-column: 1 / -1; margin-top: 2px; padding: 5px 8px; }
+  .ordeal .on{ font-size: 10px; }
+  .ordeal .od{ font-size: 10.5px; line-height: 1.3; margin-top: 2px; }
   .blind-req .k{ font-size: 9.5px; line-height: 1.3; }
   .blind-req .v{ font-size: 21px; }
   .progress{ grid-column: 1 / -1; margin-top: 0; height: 6px; }
@@ -1031,11 +1063,11 @@ button{ font-family: inherit; color: inherit; }
      takes the slack, which puts every tag row on the same baseline. */
   .card{ width: 80px; height: 104px; min-height: 0; padding: 5px 4px; border-radius: 6px; }
   .card-inner{ gap: 3px; height: 100%; }
-  .card .art{ height: 36px; flex: none; border-radius: 4px; padding-top: 4px; }
-  .card .art .icons{ gap: 4px; }
-  .card .art .ms{ font-size: 15px; }
+  .card .art{ height: 36px; flex: none; border-radius: 4px; padding: 0 4px; gap: 4px; }
+  .card .art .icons{ gap: 3px; }
+  .card .art .ms{ font-size: 14px; }
   .card .w{ font-size: 11.5px; }
-  .card .base{ font-size: 9.5px; padding: 0 4px; line-height: 1.4; }
+  .card .base{ font-size: 9px; padding: 0 3px; line-height: 1.4; }
   /* Two rows, always. Matching tags are sorted to the front in cardEl, so what
      a fourth long tag pushes out of sight is never one that scores — and the
      plate above still carries every overtone as an icon. */
@@ -1123,11 +1155,11 @@ button{ font-family: inherit; color: inherit; }
   .hand{ padding: 2px 0 0; gap: 4px; }
   .card{ width: 74px; height: 94px; min-height: 0; padding: 4px 3px; }
   .card-inner{ gap: 3px; height: 100%; }
-  .card .art{ height: 30px; flex: none; padding-top: 3px; }
-  .card .art .ms{ font-size: 12px; }
-  .card .art .icons{ gap: 3px; }
+  .card .art{ height: 30px; flex: none; padding: 0 3px; gap: 3px; }
+  .card .art .ms{ font-size: 11px; }
+  .card .art .icons{ gap: 2px; }
   .card .w{ font-size: 10px; }
-  .card .base{ font-size: 8.5px; padding: 0 3px; line-height: 1.4; }
+  .card .base{ font-size: 8px; padding: 0 2px; line-height: 1.35; }
   .card .tags{ flex: none; height: 20px; overflow: hidden; align-content: flex-start; gap: 2px; }
   .card .tg{ font-size: 6.5px; padding: 0 3px; letter-spacing: 0; line-height: 1.4; }
   .card.sel{ transform: translateY(-7px) scale(1.03); }
@@ -1182,6 +1214,7 @@ button{ font-family: inherit; color: inherit; }
       <div class="blind slab">
         <div class="blind-badge" id="demandName">—</div>
         <div class="blind-wants" id="demandWants"></div>
+        <div class="ordeal" id="ordeal" hidden></div>
         <div class="blind-req">
           <div class="k">Score at least</div>
           <div class="v" id="roundTarget">0</div>
@@ -1692,6 +1725,36 @@ const LENSES = [
     onRound:function(g){ g.target = g.target * 2; } }
 ];
 
+/* ---------- Ordeals ----------
+   Three rounds of every run change a rule rather than a number. Each one
+   invalidates a different habit: THE VICE breaks "always take three", THE FOG
+   breaks a deck built on long words, THE MIRROR breaks a deck built on breadth,
+   THE HALF-LIGHT breaks an engine that leans on the multiplier.
+
+   Hooks mirror the Lens ones: `round` reshapes plays/discards, `hand` shrinks
+   the deal, `maxPlay` caps a selection, `card`/`play` fold into scoring.   */
+const ORDEALS = [
+  { id:"drought", n:"THE DROUGHT", d:"No discards. Play the hand you are dealt.",
+    round:function(g){ g.discards = 0; } },
+  { id:"clock", n:"THE CLOCK", d:"Three plays this round instead of four.",
+    round:function(g){ g.plays = 3; } },
+  { id:"lean", n:"THE LEAN YEAR", d:"Your hand is four cards, not seven.", hand:-3 },
+  { id:"vice", n:"THE VICE", d:"Two words at a time, at most.", maxPlay:2 },
+  { id:"fog", n:"THE FOG", d:"Words are worth nothing on their own. Only matching tags pay.",
+    card:function(c){ return {chips:-c.base, label:"fogged"}; } },
+  { id:"toll", n:"THE TOLL", d:"Every word you play costs 90 points.",
+    card:function(){ return {chips:-90, label:"toll"}; } },
+  { id:"mirror", n:"THE MIRROR", d:"A word scores nothing unless two of its tags match the round.",
+    card:function(c,i,all,ctx){
+      const hits = c.t.filter(function(t){ return ctx.demand.tags.indexOf(t) >= 0; }).length;
+      return hits >= 2 ? null : {chips:-(c.base + 25*hits), label:"unreflected"}; } },
+  { id:"halflight", n:"THE HALF-LIGHT", d:"Every hand begins at half a multiplier.",
+    play:function(){ return {xmult:0.5}; } }
+];
+/* Which rounds are Ordeals. Round 8 always is, so a run ends on a wall rather
+   than on a slightly larger number. */
+const ORDEAL_ROUNDS = [3, 5, 7];
+
 /* ---------- Demands ---------- */
 const DEMANDS = [
   { n:"THE FURNACE",            tags:["HEA","DAN"] },
@@ -1728,7 +1791,7 @@ const DEMANDS = [
    rounds stay generous on purpose — dying in round 2 reads as the game
    cheating, dying in round 6 reads as your build being wrong, and only one of
    those makes someone start again. */
-const TARGETS = [250, 550, 1900, 5500, 10500, 15500, 20500, 29000];
+const TARGETS = [250, 700, 2600, 5200, 11500, 15000, 23500, 28000];
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
@@ -2096,6 +2159,10 @@ function newRun(seedStr){
   rng = mulberry32(hashStr(seed));
 
   const demandOrder = shuffle(DEMANDS.slice()).slice(0, ROUNDS);
+  /* Seeded like everything else, so a daily deals every player the same three. */
+  const ordealPool = shuffle(ORDEALS.slice());
+  const ordealOrder = {};
+  ORDEAL_ROUNDS.forEach(function(r, i){ ordealOrder[r] = ordealPool[i % ordealPool.length]; });
 
   /* Build the deck knowing what this run will ask for. Some overtones are
      genuinely rare in the lexicon (FOOD sits on 21 of 249 words), so a purely
@@ -2153,6 +2220,8 @@ function newRun(seedStr){
     roundScore: 0,
     total: 0,
     demandOrder: demandOrder,
+    ordealOrder: ordealOrder,
+    ordeal: null,
     best: { word:"", mult:0, score:0 },
     coachStep: null,
     /* what each Lens has grown to this run, keyed by Lens id */
@@ -2192,11 +2261,19 @@ function todayKey(){
 function handSize(){
   let n = HAND_SIZE;
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.hand) n += l.hand; });
+  if(G && G.ordeal && G.ordeal.hand) n += G.ordeal.hand;
   return Math.max(4, n);
+}
+
+/* How many words this round will let you play at once. */
+function maxPlay(){
+  if(G && G.ordeal && G.ordeal.maxPlay) return Math.min(MAX_PLAY, G.ordeal.maxPlay);
+  return MAX_PLAY;
 }
 
 function startRound(){
   G.demand = { n: G.demandOrder[G.round].n, tags: G.demandOrder[G.round].tags.slice() };
+  G.ordeal = (G.ordealOrder && G.ordealOrder[G.round]) || null;
   G.target = TARGETS[G.round];
   G.roundScore = 0;
   G.plays = 4; G.discards = 3;
@@ -2209,6 +2286,9 @@ function startRound(){
     if(l.onRound) l.onRound(G);
     if(l.grows) G.lensState[l.id] = (G.lensState[l.id] || 0) + l.grows;
   });
+  /* The Ordeal takes its cut after the Lenses, so a Lens can never hand back
+     what the round has taken. */
+  if(G.ordeal && G.ordeal.round) G.ordeal.round(G);
   G.plays = Math.max(1, G.plays);
   G.discards = Math.max(0, G.discards);
   G.target = Math.max(1, Math.round(G.target));
@@ -2242,7 +2322,7 @@ function resolve(cards){
   const lensState = (G.lensState = G.lensState || {});
   const growth = {};
   const ctx = {
-    demand: G.demand, discards: G.discards, resoUsed: false,
+    demand: G.demand, discards: G.discards, plays: G.plays, resoUsed: false,
     lenses: G.lenses,
     lv: function(id){ return lensState[id] || 0; }
   };
@@ -2258,6 +2338,18 @@ function resolve(cards){
       events.push({ k:"card", i:i, cls:"r", txt:"MATCH +25", chips:chips, mult:mult });
     }
 
+    /* The Ordeal lands between the word's own worth and the Lenses, so a Lens
+       still fires on a word the round has just taken the value out of. */
+    if(G.ordeal && G.ordeal.card){
+      const o = G.ordeal.card(c, i, cards, ctx);
+      if(o && o.chips){
+        chips += o.chips;
+        events.push({ k:"card", i:i, cls:"c",
+                      txt: G.ordeal.n + " " + (o.label || "") + " " + Math.round(o.chips),
+                      chips:chips, mult:mult });
+      }
+    }
+
     for(let li=0; li<G.lenses.length; li++){
       const L = G.lenses[li];
       if(!L.onCard) continue;
@@ -2270,6 +2362,18 @@ function resolve(cards){
       if(r.grow) growth[L.id] = (growth[L.id] || 0) + r.grow;
       events.push({ k:"lens", i:i, lens:li, cls:(r.xmult||r.mult)?"m":"c",
                     txt: L.n+" "+(r.label?r.label+" ":"")+parts.join(" "), chips:chips, mult:mult });
+    }
+  }
+
+  if(G.ordeal && G.ordeal.play){
+    const o = G.ordeal.play(cards, ctx);
+    if(o){
+      if(o.chips) chips += o.chips;
+      if(o.mult) mult += o.mult;
+      if(o.xmult) mult *= o.xmult;
+      events.push({ k:"card", i:-1, cls:"m",
+                    txt: G.ordeal.n + " " + (o.label || (o.xmult ? "×" + o.xmult + " mult" : "")),
+                    chips:chips, mult:mult });
     }
   }
 
@@ -2512,6 +2616,7 @@ function rollOffers(){
 function openShop(reward){
   if(!G.offers) G.offers = rollOffers();
   const nextDemand = G.demandOrder[G.round];
+  const nextOrdeal = (G.ordealOrder && G.ordealOrder[G.round]) || null;
   const html = ''
     + '<h2>The Bookseller</h2>'
     + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
@@ -2519,6 +2624,13 @@ function openShop(reward){
     + '<p>Next up is <b>' + nextDemand.n + '</b>. It wants '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
     + ', and you\'ll need <b>' + TARGETS[G.round].toLocaleString() + '</b> points.</p>'
+    /* Naming the Ordeal here is the whole point of it being on a fixed round:
+       you get to spend money answering it, rather than discovering it. */
+    + (nextOrdeal
+        ? '<div class="ordeal-warn"><div class="on">NEXT ROUND IS AN ORDEAL &mdash; '
+          + escapeHtml(nextOrdeal.n) + '</div><div class="od">'
+          + escapeHtml(nextOrdeal.d) + '</div></div>'
+        : '')
     /* The exponential is the whole reason to shop, and it is invisible from
        inside a single round. Say it out loud, in numbers. */
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
@@ -3244,8 +3356,9 @@ function toggleSel(id){
   const i = G.selected.indexOf(id);
   if(i >= 0){ G.selected.splice(i,1); SFX.drop(); buzz(6); }
   else{
-    if(G.selected.length >= MAX_PLAY){
-      toast("Three at a time. Drop one first.");
+    if(G.selected.length >= maxPlay()){
+      toast(maxPlay() === 3 ? "Three at a time. Drop one first."
+                            : G.ordeal.n + " allows " + maxPlay() + ". Drop one first.");
       SFX.deny(); buzz([8,45,8]); return;
     }
     G.selected.push(id); SFX.pick(G.selected.length); buzz(11);
@@ -3462,9 +3575,12 @@ function renderTut(){
    actually miss: order is a decision. */
 const IDLE_HINT = "Pick up to 3 words, then hit PLAY.";
 function idleHint(){
-  return orderMatters()
-    ? IDLE_HINT + " Your Lenses read left to right, so the order changes the score."
-    : IDLE_HINT + " Three words beat one.";
+  const cap = maxPlay();
+  const lead = cap < 3
+    ? "Pick up to " + cap + " words, then hit PLAY."
+    : IDLE_HINT;
+  if(orderMatters()) return lead + " Your Lenses read left to right, so the order changes the score.";
+  return lead + (cap < 3 ? " " + G.ordeal.n + " is holding you to " + cap + "." : " Three words beat one.");
 }
 const COACH = {
   pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
@@ -3538,7 +3654,7 @@ function renderPreview(){
   }, 0);
   /* Say the number, then say the one thing that would make it bigger. A
      player holding two words when a third is free should be told so. */
-  const room = MAX_PLAY - cards.length;
+  const room = maxPlay() - cards.length;
   const spare = room > 0 && G.hand.some(function(c){
     return G.selected.indexOf(c.id) < 0
       && c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
@@ -3563,6 +3679,14 @@ function renderDemand(){
     s.className = "w"; s.textContent = TAGS[t][0];
     w.appendChild(s);
   });
+  const ord = document.getElementById("ordeal");
+  if(G.ordeal){
+    ord.hidden = false;
+    ord.innerHTML = '<div class="on">' + escapeHtml(G.ordeal.n) + '</div>'
+                  + '<div class="od">' + escapeHtml(G.ordeal.d) + '</div>';
+  } else {
+    ord.hidden = true;
+  }
   document.getElementById("roundScore").textContent = G.roundScore.toLocaleString();
   document.getElementById("roundTarget").textContent = G.target.toLocaleString();
   const pct = Math.min(100, (G.roundScore / G.target) * 100);
@@ -3738,7 +3862,7 @@ function showHelp(){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Five things and you are fine</div>'
+    + '<div class="sub">Six things and you are fine</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
@@ -3768,6 +3892,12 @@ function showHelp(){
     +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
     +     'it grew &mdash; so the question is never just "is this one better", it is "is it '
     +     'better than what mine has already become".</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">6</div>'
+    +     '<p><b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
+    +     'raising the number: no discards, two words at a time, a four-card hand, words worth '
+    +     'nothing on their own. The Bookseller tells you which one is coming before you spend, '
+    +     'so an Ordeal is something you buy against rather than something that happens to '
+    +     'you.</p></div>'
     + '</div>'
 
     + '<div class="worked">'

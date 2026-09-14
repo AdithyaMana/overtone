@@ -35,11 +35,34 @@ const BUY = flag("buy", "value");
 function bestPlay(hand, optimal) {
   let best = null;
   const n = hand.length;
+  const cap = api.maxPlay();
   const consider = (cards) => {
+    if (cards.length > cap) return;
     const r = api.resolve(cards);
     if (!best || r.total > best.total) best = { cards: cards.slice(), total: r.total, mult: r.mult };
   };
+  /* A human does not enumerate 259 orderings -- but they do not have to. The
+     board scores every selection live, so clicking three cards and swapping
+     them about IS a search, just a shallower one. "human" searches the top five
+     cards by face value, which is about what a person tries before playing. */
+  const pool = optimal === "human"
+    ? hand.slice().sort((a, b) => b.base - a.base).slice(0, 5)
+    : hand;
+  const m = pool.length;
+  for (let i = 0; i < m; i++) {
+    consider([pool[i]]);
+    for (let j = 0; j < m; j++) {
+      if (j === i) continue;
+      consider([pool[i], pool[j]]);
+      if (!optimal) continue;
+      for (let k = 0; k < m; k++) {
+        if (k === i || k === j) continue;
+        consider([pool[i], pool[j], pool[k]]);
+      }
+    }
+  }
   for (let i = 0; i < n; i++) {
+    if (optimal === "human") break;
     consider([hand[i]]);
     for (let j = 0; j < n; j++) {
       if (j === i) continue;
@@ -52,12 +75,13 @@ function bestPlay(hand, optimal) {
     }
   }
   /* A greedy player takes three by face value and does not shop the ordering. */
+  if (optimal === "human") return best;
   if (!optimal) {
     const d = api.G.demand;
     const ranked = hand.slice().sort((a, b) =>
       (b.base + 25 * b.t.filter(t => d.tags.indexOf(t) >= 0).length) -
       (a.base + 25 * a.t.filter(t => d.tags.indexOf(t) >= 0).length));
-    const three = ranked.slice(0, 3);
+    const three = ranked.slice(0, cap);
     const r = api.resolve(three);
     if (!best || r.total > best.total) best = { cards: three, total: r.total, mult: r.mult };
   }
@@ -122,6 +146,24 @@ function lensValue(lens) {
 function shop(policy) {
   const G = api.G;
   G.offers = api.rollOffers();
+
+  /* A player with spare cash rerolls until something fits. The first version of
+     this simulator never rerolled at all, which quietly modelled a player who
+     takes whatever the first roll hands them -- and made the game look harder
+     than it is. */
+  if (policy === "value") {
+    let spins = 0;
+    while (G.bank >= 4 && spins < 6) {
+      const best = Math.max.apply(null, G.offers.map(o =>
+        o.kind === "lens" && G.lenses.length < api.LENS_SLOTS && G.bank - 1 >= o.cost
+          ? lensValue(o.lens) : 0).concat([0]));
+      if (best > 120) break;                 // good enough, buy it
+      G.bank -= 1;
+      G.offers = api.rollOffers();
+      spins++;
+    }
+  }
+
   for (let pass = 0; pass < 4; pass++) {
     const buyable = G.offers
       .map((o, i) => ({ o, i }))
@@ -161,6 +203,13 @@ function shop(policy) {
 function runOnce(seed, opts) {
   api.newRun(seed);
   const G = api.G;
+  /* Memory: from run 2 onward a real player starts holding a Lens they earned.
+     The simulator never called endRun, so it never banked one, and every run it
+     measured was somebody's first. */
+  if (opts.memory !== false && !opts.force && !opts.solo) {
+    const carried = api.LENSES[Math.abs(api.hashStr(seed)) % api.LENSES.length];
+    if (G.lenses.length === 0) G.lenses.push(carried);
+  }
   if (opts.force) G.lenses = opts.force.slice();
   if (opts.noShop) G.bank = 0;
 
@@ -190,7 +239,7 @@ function bar(n, d, width) {
 }
 
 function headline() {
-  const opts = { optimal: PLAY === "optimal", buy: BUY };
+  const opts = { optimal: PLAY === "greedy" ? false : PLAY, buy: BUY };
   const res = [];
   for (let s = 0; s < RUNS; s++) res.push(runOnce("bal-" + s, opts));
 

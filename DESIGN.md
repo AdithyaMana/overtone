@@ -489,6 +489,49 @@ that makes someone press New Run.
 
 ---
 
+## 6.9 Ordeals, and why raising the numbers was the wrong answer
+
+The second round of reviews said it was still too easy, and my own simulator agreed with me
+instead of with them — which usually means the simulator is measuring the wrong player. It was.
+It never rerolled the shop, never carried a Memory Lens into run 2, and its "realistic" player
+took the best three cards by face value without trying orderings.
+
+That last one is the real error. **The board scores every selection live**, so a human clicking
+three cards and swapping them about is running a search — a shallow one, but a search. The game
+does the arithmetic for them, which means a human plays much closer to optimal than any greedy
+model. Once the simulator rerolled, carried a Lens and searched the best five cards, the honest
+number was 33%, and rounds 1-3 killed 0.3% of runs between them.
+
+So the game was easy, and the first three rounds were a formality. The obvious fix is to raise the
+curve again. I think that would have been wrong: it makes the same eight rounds grindier, and the
+complaint underneath "too easy" was **"aimlessly boring"**. Eight rounds of *make a bigger number
+than last time* is one decision repeated eight times, however steep the numbers get.
+
+**Rounds 4, 6 and 8 now carry an Ordeal** — one rule, on the plaque, that stops the hand you have
+been playing all run from working. No discards. Two words at a time. A four-card hand. Words worth
+nothing on their own. A word scores nothing unless *two* of its tags match.
+
+Three design decisions inside that:
+
+1. **They sit on fixed rounds and the Bookseller names the next one before you spend.** An Ordeal
+   you are told about is a purchase decision — you can buy MISER for a round with no discards, or
+   dump a three-word Lens before THE VICE. An Ordeal you discover is just a bad beat. Same
+   mechanic, opposite feeling.
+2. **Each one invalidates a different habit.** THE VICE breaks "always take three" — the thing the
+   tutorial spends a whole step teaching. THE FOG breaks a deck built on long words. THE MIRROR
+   breaks a deck built on breadth. THE HALF-LIGHT breaks an engine leaning on the multiplier. A
+   run that has gone well in one direction meets the round that punishes exactly that direction.
+3. **Round 8 is always one**, so a run ends on a wall rather than on a slightly larger number. And
+   round 1 never is, because the tutorial runs there.
+
+Where it landed: 23% for perfect play, **18% for a realistic player**, 11% for a careless one.
+Even flawless play loses three runs in four. Deaths sit at 14% / 15% / 22% on rounds 4, 5 and 6 —
+the Ordeal rounds are visible spikes in that distribution, which is the point. A loss you can name
+("THE MIRROR, and my whole deck was one-tag words") is a reason to start again. A loss to a
+slightly bigger number is a reason to stop.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or

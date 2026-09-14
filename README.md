@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**252 tests, 0 failures.** 102 engine + 150 E2E. The engine tier uses Node’s built-in runner and needs no
+**268 tests, 0 failures.** 102 engine + 166 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -196,6 +196,39 @@ every frame of the scoring window and fails if any particle's animation does not
 frame — and it was checked against the broken version, because a regression test that passes
 either way is worse than none.
 
+## Ordeals
+
+Raising the target curve makes a game grindier, not harder, and the reviews had already said the
+loop felt aimless. The problem was not that the rounds were easy, it was that they were all the
+**same** — eight rounds of "make a bigger number than last time" with a difficulty knob on it.
+
+**Rounds 4, 6 and 8 now carry an Ordeal**: one rule, stated on the plaque before a card is played,
+that stops the hand you have been playing all run from working.
+
+| | |
+|---|---|
+| THE DROUGHT | no discards |
+| THE CLOCK | three plays instead of four |
+| THE LEAN YEAR | a four-card hand |
+| THE VICE | two words at a time, at most |
+| THE FOG | words are worth nothing on their own; only matching tags pay |
+| THE TOLL | every word costs 90 points to play |
+| THE MIRROR | a word scores nothing unless *two* of its tags match |
+| THE HALF-LIGHT | every hand begins at half a multiplier |
+
+Three are drawn per run from the seed, so a daily deals everyone the same three and two runs are
+never shaped alike. Each invalidates a different habit: THE VICE breaks "always take three",
+THE FOG breaks a deck built on long words, THE MIRROR breaks a deck built on breadth,
+THE HALF-LIGHT breaks an engine leaning on the multiplier.
+
+**The Bookseller names the next Ordeal before you spend.** That is the whole reason they sit on
+fixed rounds rather than arriving as a surprise: an Ordeal you are told about is a purchase
+decision, and an Ordeal you discover is just a bad beat. Round 8 is always one, so a run ends on a
+wall rather than on a slightly larger number.
+
+Round 1 is never an Ordeal — the tutorial runs there, and meeting a rule-breaking round while
+still learning the rules would be indefensible. There is a test for it.
+
 ## Playing on a phone
 
 Portrait is a first-class layout, not a squeezed desktop. The budget is written against
@@ -243,13 +276,26 @@ being taught and the wrong one once the shop became the game: **it cannot see a 
 because it never buys one.** `balance.js` does, and the first time it ran it reported a **70%
 win rate** — the reviews were right.
 
+### The simulator was flattering itself
+
+After the first pass the model said 25% and players said it was still easy. They were right, and
+the model was wrong in three specific ways — **it never rerolled** the shop, **it never carried a
+Memory Lens** into run 2, and its "realistic" player took the best three cards by face value
+without trying orderings. That last one is the worst of the three: the board scores every
+selection live, so clicking three cards and swapping them about *is* a search. A human is far
+closer to optimal play than a greedy model, because the game does the arithmetic for them.
+
+With rerolling, Memory, and a human-depth search (`--play human`, which tries every ordering of
+the best five cards), the honest number was **33%**, and rounds 1-3 killed 0.3% of runs between
+them. The first three rounds were a formality.
+
 ### What the numbers said
 
-| | before | after |
-|---|---|---|
-| optimal player | 70% | 43% |
-| realistic player | — | **25%** |
-| careless player (random buys) | — | 12% |
+| | at first | after pass one | now |
+|---|---|---|---|
+| optimal player | 70% | 43% | **23%** |
+| realistic player (`--play human`) | — | 33% | **18%** |
+| careless player (random buys) | — | 12% | **11%** |
 | round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) |
 | best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% |
 | worst single Lens | CHRONICLER, 3% | 21% |

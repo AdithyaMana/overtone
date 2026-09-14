@@ -801,6 +801,114 @@ test.describe("throwaway motion cleans up after itself", () => {
 });
 
 /* ------------------------------------------------------------------ */
+test.describe("Ordeals", () => {
+  async function enterOrdeal(page, id) {
+    return page.evaluate(id => {
+      G.round = 3;
+      G.ordealOrder[3] = ORDEALS.find(o => o.id === id);
+      startRound();
+      return { plays: G.plays, discards: G.discards, hand: G.hand.length, cap: maxPlay() };
+    }, id);
+  }
+
+  test("three rounds of every run change a rule, not a number", async ({ page }) => {
+    await open(page);
+    const shape = await page.evaluate(() => {
+      const out = [];
+      for (let r = 0; r < ROUNDS; r++) {
+        G.round = r; startRound();
+        out.push(G.ordeal ? G.ordeal.id : null);
+      }
+      return out;
+    });
+    /* Rounds 4, 6 and 8 — and round 8 always, so a run ends on a wall rather
+       than on a slightly larger number. */
+    expect(shape.map((o, i) => o ? i : null).filter(i => i !== null)).toEqual([3, 5, 7]);
+    expect(new Set(shape.filter(Boolean)).size, "the same Ordeal three times").toBe(3);
+  });
+
+  test("the board states the rule before a card is played", async ({ page }) => {
+    await open(page);
+    await enterOrdeal(page, "fog");
+    const ord = page.locator("#ordeal");
+    await expect(ord).toBeVisible();
+    await expect(ord).toContainText("THE FOG");
+    await expect(ord).toContainText("Only matching tags pay");
+  });
+
+  test("the Bookseller names the Ordeal so you can spend money answering it",
+    async ({ page }) => {
+      await open(page);
+      await page.evaluate(() => {
+        G.round = 3;
+        G.ordealOrder[3] = ORDEALS.find(o => o.id === "vice");
+        G.bank = 12; G.offers = null;
+        openShop(9);
+      });
+      const warn = page.locator(".ordeal-warn");
+      await expect(warn).toBeVisible();
+      await expect(warn).toContainText("NEXT ROUND IS AN ORDEAL");
+      await expect(warn).toContainText("THE VICE");
+    });
+
+  test("THE VICE actually refuses a third word", async ({ page }) => {
+    await open(page);
+    const state = await enterOrdeal(page, "vice");
+    expect(state.cap).toBe(2);
+    for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
+    await expect(page.locator("#hand .card.sel")).toHaveCount(2);
+    await expect(page.locator("#toast")).toContainText("THE VICE allows 2");
+  });
+
+  test("THE DROUGHT, THE CLOCK and THE LEAN YEAR take what they say they take",
+    async ({ page }) => {
+      await open(page);
+      expect((await enterOrdeal(page, "drought")).discards).toBe(0);
+      expect((await enterOrdeal(page, "clock")).plays).toBe(3);
+      expect((await enterOrdeal(page, "lean")).hand).toBe(4);
+    });
+
+  test("THE FOG takes a word's own value but leaves its matching tags", async ({ page }) => {
+    await open(page);
+    const r = await page.evaluate(() => {
+      G.lenses = []; G.lensState = {};
+      G.demand = { n: "T", tags: ["HEA"] };
+      const c = makeCard({ w: "FURNACE", t: ["HEA"] }, false);
+      G.ordeal = null;
+      const clear = resolve([c]).chips;
+      G.ordeal = ORDEALS.find(o => o.id === "fog");
+      const fogged = resolve([c]).chips;
+      return { clear, fogged, base: c.base };
+    });
+    expect(r.clear).toBe(r.base + 25);
+    expect(r.fogged, "the matching tag should still pay").toBe(25);
+  });
+
+  test("THE MIRROR pays only words with two matching tags", async ({ page }) => {
+    await open(page);
+    const r = await page.evaluate(() => {
+      G.lenses = []; G.lensState = {};
+      G.demand = { n: "T", tags: ["HEA", "DAN"] };
+      G.ordeal = ORDEALS.find(o => o.id === "mirror");
+      const both = makeCard({ w: "WILDFIRE", t: ["HEA", "DAN"] }, false);
+      const one = makeCard({ w: "EMBER", t: ["HEA"] }, false);
+      return { both: resolve([both]).chips, one: resolve([one]).chips };
+    });
+    expect(r.both).toBeGreaterThan(0);
+    expect(r.one, "a single match should score nothing under THE MIRROR").toBe(0);
+  });
+
+  test("an Ordeal never lands on the round a first-timer is being taught",
+    async ({ page }) => {
+      await page.goto(GAME);
+      /* The tutorial runs on round 1. Meeting a rule-breaking round while
+         still learning the rules would be indefensible. */
+      const first = await page.evaluate(() => G.ordeal);
+      expect(first).toBeNull();
+    });
+});
+
+/* ------------------------------------------------------------------ */
 test.describe("selling a Lens", () => {
   async function shopWith(page, ids, bank) {
     await page.evaluate(({ ids, bank }) => {
