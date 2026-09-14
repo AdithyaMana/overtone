@@ -569,9 +569,12 @@ test.describe("the opening tutorial", () => {
     await expect(text).toContainText("more money");
     await expect(page.locator("#tutNext")).toBeHidden();
 
-    /* and the step is only cleared by actually taking a second word */
-    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    /* the step teaches "take three", so two is not enough to clear it */
     await page.locator("#hand .card").nth(1).click();
+    await expect(page.locator("#hand .card.sel")).toHaveCount(2);
+    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+
+    await page.locator("#hand .card").nth(2).click();
     await expect(page.locator("#tutStep")).toContainText("5 of 7");
   });
 
@@ -580,6 +583,7 @@ test.describe("the opening tutorial", () => {
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
+    await page.locator("#hand .card").nth(2).click();
     await page.click("#tutNext");                      // -> play
     await page.click("#playBtn");
     await expect(page.locator("#tutStep")).toContainText("7 of 7");
@@ -593,6 +597,7 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(0).click();
     await expect(page.locator("#tutStep")).toContainText("4 of 7");
     await page.locator("#hand .card").nth(1).click();
+    await page.locator("#hand .card").nth(2).click();
     await expect(page.locator("#tutStep")).toContainText("5 of 7");
     await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText("6 of 7");
@@ -631,6 +636,7 @@ test.describe("the opening tutorial", () => {
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
+    await page.locator("#hand .card").nth(2).click();
     await page.click("#tutNext");
     await page.click("#playBtn");
     await expect(page.locator("#tutStep")).toContainText("7 of 7");
@@ -662,6 +668,7 @@ test.describe("the opening tutorial", () => {
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
+    await page.locator("#hand .card").nth(2).click();
     await page.click("#tutNext");                                  // -> Play it
 
     /* The spotlight sits on the pinned control row at the bottom, so the card
@@ -791,6 +798,134 @@ test.describe("throwaway motion cleans up after itself", () => {
       document.querySelectorAll(".spark, .confetto, .flyer, .shock").length
     ), { timeout: 6000, message: "particles outlived the hand" }).toBe(0);
   });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("reading a Lens you own", () => {
+  async function equip(page, ids) {
+    await page.evaluate(list => {
+      G.lenses = list.map(id => LENSES.find(l => l.id === id));
+      G.openLens = null;
+      render();
+    }, ids);
+  }
+
+  test("tapping one opens it out to the whole rule", async ({ page }) => {
+    await open(page);
+    /* The rail clamps a rule to two lines, and `title` — the only other way to
+       read it — is a hover tooltip, which a touch screen does not have. So the
+       rule a player just paid $6 for was unreadable on a phone. */
+    await equip(page, ["anton", "literal", "carn"]);
+
+    const first = page.locator("#rail .lens").first();
+    await expect(first).toHaveAttribute("aria-expanded", "false");
+    await first.click();
+    await expect(first).toHaveAttribute("aria-expanded", "true");
+
+    const readable = await page.evaluate(() => {
+      const d = document.querySelector(".lens.open .d");
+      return {
+        clamped: getComputedStyle(d).webkitLineClamp !== "none",
+        cut: d.scrollHeight > d.clientHeight + 1,
+        text: d.textContent
+      };
+    });
+    expect(readable.clamped, "the open rule is still clamped").toBe(false);
+    expect(readable.cut, "the open rule is still cut off").toBe(false);
+    expect(readable.text).toContain("COLD");
+  });
+
+  test("only one is open at a time, and tapping again closes it", async ({ page }) => {
+    await open(page);
+    await equip(page, ["anton", "literal", "carn"]);
+    const lenses = page.locator("#rail .lens");
+
+    await lenses.nth(0).click();
+    await lenses.nth(1).click();
+    await expect(lenses.nth(0)).toHaveAttribute("aria-expanded", "false");
+    await expect(lenses.nth(1)).toHaveAttribute("aria-expanded", "true");
+
+    await lenses.nth(1).click();
+    await expect(page.locator("#rail .lens.open")).toHaveCount(0);
+  });
+
+  test("opening one does not push the hand off a phone", async ({ page }, info) => {
+    test.skip(info.project.name !== "phone", "portrait budget");
+    await open(page);
+    /* Letting the rail wrap to a second row cost 53px, which is enough to put
+       the hand's bottom row behind the pinned controls. The open Lens stays on
+       the one row, stopping short of full width so the next one peeks in. */
+    await equip(page, ["anton", "literal", "carn"]);
+    const railBefore = (await page.locator("#rail").boundingBox()).height;
+
+    await page.locator("#rail .lens").first().click();
+    await expect(page.locator("#rail .lens.open")).toHaveCount(1);
+
+    const railAfter = (await page.locator("#rail").boundingBox()).height;
+    expect(railAfter, "the rail grew a second row").toBeLessThanOrEqual(railBefore + 2);
+
+    await expect.poll(() => page.evaluate(() => {
+      const ctl = document.querySelector(".controls").getBoundingClientRect();
+      return Array.from(document.querySelectorAll("#hand .card"))
+        .filter(c => c.getBoundingClientRect().bottom > ctl.top + 1).length;
+    }), { timeout: 4000, message: "an open Lens pushed the hand behind the controls" }).toBe(0);
+  });
+
+  test("every Lens rule fits when opened, however long it is", async ({ page }) => {
+    await open(page);
+    const cut = await page.evaluate(async () => {
+      const bad = [];
+      const byLength = LENSES.slice().sort((a, b) => b.d.length - a.d.length).slice(0, 5);
+      for (const l of byLength) {
+        G.lenses = [l]; G.openLens = l.id; render();
+        await new Promise(r => requestAnimationFrame(r));
+        const d = document.querySelector(".lens.open .d");
+        if (d.scrollHeight > d.clientHeight + 1) bad.push(l.n);
+      }
+      return bad;
+    });
+    expect(cut, "a Lens rule is cut off even when open").toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the shape of a hand", () => {
+  test("every card in the hand is the same rectangle", async ({ page }) => {
+    await open(page);
+    /* Sized by their own content, cards came out as seven different heights:
+       a word takes one line or two, and its tags one row to five.
+
+       Measured with offsetHeight, NOT getBoundingClientRect. The hand is
+       fanned, and a rotated element has an inflated axis-aligned rect whose
+       inflation depends on its angle — so the rect reports four different
+       heights for seven cards that are all laid out at exactly 196px. Same
+       trap the overlap test fell into; offsetHeight is layout, not paint. */
+    await expect.poll(() => page.evaluate(() => {
+      const hs = Array.from(document.querySelectorAll("#hand .card"))
+        .map(c => c.offsetHeight);
+      return new Set(hs).size;
+    }), { timeout: 4000, message: "hand cards are different heights" }).toBe(1);
+  });
+
+  test("a tag that matches the round is never the one pushed out of sight",
+    async ({ page }) => {
+      await open(page);
+      /* The tag row is capped at two lines on a phone, so cardEl sorts matching
+         tags to the front — what a fourth long tag displaces is never one that
+         scores. */
+      const hidden = await page.evaluate(() => {
+        const bad = [];
+        document.querySelectorAll("#hand .card").forEach(card => {
+          const box = card.querySelector(".tags").getBoundingClientRect();
+          card.querySelectorAll(".tg.match").forEach(t => {
+            const r = t.getBoundingClientRect();
+            if (r.bottom > box.bottom + 1 || r.height === 0) bad.push(t.textContent);
+          });
+        });
+        return bad;
+      });
+      expect(hidden, "a matching tag was clipped out of the card").toEqual([]);
+    });
 });
 
 /* ------------------------------------------------------------------ */

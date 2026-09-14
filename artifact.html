@@ -301,18 +301,33 @@ button{ font-family: inherit; color: inherit; }
 .rail{ display:flex; gap:8px; flex-wrap:wrap; min-height: 54px; align-items:stretch; }
 .lens{
   position:relative; border-radius: 7px; padding: 7px 9px;
-  min-width: 118px; max-width: 168px; cursor: help;
+  min-width: 118px; max-width: 168px; cursor: pointer;
   background: var(--lens);
   box-shadow: 0 3px 0 var(--lens-d);
+  border: none; font-family: inherit; text-align: left;
+  transition: max-width .18s cubic-bezier(.2,.9,.3,1);
 }
+.lens:active{ transform: translateY(2px); box-shadow: 0 1px 0 var(--lens-d); }
 .lens .n{
   font-size: 12px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm);
   white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  padding-right: 13px;
 }
 .lens .d{ font-size: 11px; line-height:1.4; color:#2A1C46; margin-top:3px; }
+/* a corner mark, so it reads as something you can open */
+.lens::before{
+  content: "+"; position: absolute; top: 5px; right: 7px;
+  font-family: var(--f-display); font-size: 11px; line-height: 1;
+  color: #FFF; opacity: .75;
+}
+.lens.open::before{ content: "\2212"; }   /* minus */
+.lens.open{ max-width: none; }
+.lens.open .d{
+  -webkit-line-clamp: unset; display: block; overflow: visible;
+}
 .lens.fired{ animation: lensFire .5s cubic-bezier(.2,1.3,.3,1); }
 .lens.fired::after{
-  content:""; position:absolute; inset:0; border-radius:7px;
+  content:""; position:absolute; inset:0; border-radius:7px; z-index:1;
   background: var(--gold); animation: lensWash .5s steps(3) forwards;
   pointer-events:none;
 }
@@ -449,7 +464,11 @@ button{ font-family: inherit; color: inherit; }
 /* ---------- cards ---------- */
 .card{
   touch-action: manipulation;
-  position:relative; width: 104px; min-height: 172px;
+  /* One height for every card, measured against the worst case the lexicon can
+     produce (SANDSTORM, four long overtones, 200px) rather than guessed. Left
+     to size themselves cards came out ragged: a word takes one to three lines
+     and its tags one row to five, so a hand was seven different rectangles. */
+  position:relative; width: 104px; height: 202px;
   background: var(--card); color: var(--card-ink);
   border-radius: 7px; padding: 7px;
   cursor:pointer; user-select:none;
@@ -528,7 +547,11 @@ button{ font-family: inherit; color: inherit; }
 .card .w{
   font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
-  flex: 1; min-width: 0;
+  /* No flex:1. Stretching the word to fill the card's slack made its box the
+     slack rather than the text, so a three-letter word measured as three lines
+     — and the assertion that catches mid-word breaks measures exactly that.
+     .tags carries margin-top:auto instead, which does the same job honestly. */
+  min-width: 0;
 }
 .card .base{
   position: absolute; right: 4px; bottom: 3px; z-index: 2;
@@ -536,7 +559,7 @@ button{ font-family: inherit; color: inherit; }
   background: rgba(0,0,0,.55); border-radius: 4px; padding: 0 4px;
   font-variant-numeric: tabular-nums; line-height: 1.45;
 }
-.card .tags{ display:flex; flex-wrap:wrap; gap:3px; }
+.card .tags{ display:flex; flex-wrap:wrap; gap:3px; margin-top: auto; }
 .card .tg{
   font-size: 10px; font-weight:600; letter-spacing:.02em;
   padding: 2px 5px; border-radius: 3px;
@@ -788,7 +811,7 @@ button{ font-family: inherit; color: inherit; }
   .stage{ flex: 0 0 auto; min-height: 240px; }
 
   /* bigger cards: the thing players actually read */
-  .card{ width: 122px; min-height: 194px; padding: 8px; }
+  .card{ width: 122px; height: 196px; padding: 8px; }
   .card .art{ height: 68px; }
   .card .art .icons{ gap: 6px; }
   .card .art .ms{ font-size: 25px; }
@@ -911,8 +934,14 @@ button{ font-family: inherit; color: inherit; }
     flex-wrap: nowrap; overflow-x: auto; min-height: 42px; padding-bottom: 2px;
     scrollbar-width: none; -webkit-overflow-scrolling: touch;
   }
+  /* An opened Lens stays on the one row the portrait budget allows for it.
+     Letting the rail wrap instead grew it by 53px, which is enough to push the
+     hand's second row back behind the pinned controls. It stops just short of
+     full width so the next Lens peeks in and the rail still reads as one you
+     can swipe. */
   .rail::-webkit-scrollbar{ display: none; }
   .lens{ flex: 0 0 auto; min-width: 122px; max-width: 150px; padding: 6px 8px; }
+  .lens.open{ min-width: 86%; max-width: none; }
   .lens .n{ font-size: 11px; }
   .lens .d{
     font-size: 10px; line-height: 1.3;
@@ -953,18 +982,22 @@ button{ font-family: inherit; color: inherit; }
     gap: 5px; min-height: 0; padding: 4px 0 2px;
     align-items: flex-start;
   }
-  /* No min-height: a card is as tall as a word, its plate and its tags, and
-     nothing else. The 110px floor here was a desktop number that added 40px of
-     empty card to every one of seven cards, twice over in two rows. */
-  .card{ width: 80px; min-height: 0; padding: 5px 4px; border-radius: 6px; }
-  .card-inner{ gap: 3px; }
-  .card .art{ height: 36px; border-radius: 4px; padding-top: 4px; }
+  /* One fixed height for every card in the hand. Left to size themselves, a
+     card was as tall as its own word (one line or two) plus its own tags (one
+     row or four), so seven cards meant seven different rectangles. The word
+     takes the slack, which puts every tag row on the same baseline. */
+  .card{ width: 80px; height: 104px; min-height: 0; padding: 5px 4px; border-radius: 6px; }
+  .card-inner{ gap: 3px; height: 100%; }
+  .card .art{ height: 36px; flex: none; border-radius: 4px; padding-top: 4px; }
   .card .art .icons{ gap: 4px; }
   .card .art .ms{ font-size: 15px; }
   .card .w{ font-size: 11.5px; }
   .card .base{ font-size: 9.5px; padding: 0 4px; line-height: 1.4; }
-  .card .tags{ gap: 2px; }
-  .card .tg{ font-size: 7.5px; padding: 1px 3px; letter-spacing: 0; }
+  /* Two rows, always. Matching tags are sorted to the front in cardEl, so what
+     a fourth long tag pushes out of sight is never one that scores — and the
+     plate above still carries every overtone as an icon. */
+  .card .tags{ flex: none; height: 23px; overflow: hidden; align-content: flex-start; gap: 2px; }
+  .card .tg{ font-size: 7px; padding: 1px 3px; letter-spacing: 0; line-height: 1.45; }
   .card.sel{ transform: translateY(-9px) scale(1.03); }
   .hand .card .card-inner{ animation: none; }
 
@@ -1025,6 +1058,7 @@ button{ font-family: inherit; color: inherit; }
   .lensbar-head{ font-size: 9px; margin-bottom: 2px; }
   .rail{ min-height: 34px; }
   .lens{ min-width: 112px; padding: 5px 7px; }
+  .lens.open{ min-width: 86%; }
   .lens .n{ font-size: 10px; }
   .lens .d{ font-size: 9px; -webkit-line-clamp: 2; }
   .rail-empty{ font-size: 10px; }
@@ -1044,15 +1078,15 @@ button{ font-family: inherit; color: inherit; }
   /* the hand stays readable; everything around a word gives up its padding */
   .handwrap{ gap: 5px; }
   .hand{ padding: 2px 0 0; gap: 4px; }
-  .card{ width: 74px; min-height: 0; padding: 4px 3px; }
-  .card-inner{ gap: 3px; }
-  .card .art{ height: 30px; padding-top: 3px; }
+  .card{ width: 74px; height: 94px; min-height: 0; padding: 4px 3px; }
+  .card-inner{ gap: 3px; height: 100%; }
+  .card .art{ height: 30px; flex: none; padding-top: 3px; }
   .card .art .ms{ font-size: 12px; }
   .card .art .icons{ gap: 3px; }
   .card .w{ font-size: 10px; }
   .card .base{ font-size: 8.5px; padding: 0 3px; line-height: 1.4; }
-  .card .tags{ gap: 2px; }
-  .card .tg{ font-size: 7px; padding: 0 3px; letter-spacing: 0; }
+  .card .tags{ flex: none; height: 20px; overflow: hidden; align-content: flex-start; gap: 2px; }
+  .card .tg{ font-size: 6.5px; padding: 0 3px; letter-spacing: 0; line-height: 1.4; }
   .card.sel{ transform: translateY(-7px) scale(1.03); }
 
   .btn{ min-height: 44px; font-size: 11.5px; padding: 10px 5px; }
@@ -1998,6 +2032,10 @@ function newRun(seedStr){
     demandOrder: demandOrder,
     best: { word:"", mult:0, score:0 },
     coachStep: null,
+    /* which Lens in the rail is opened out to its full rule */
+    openLens: null,
+    /* a round result deferred while the opening tutorial finishes */
+    heldResult: null,
     interpreterUsed: false,
     interpretedWord: null,
     animating: false,
@@ -2181,12 +2219,37 @@ async function play(){
   G.animating = false;
   document.getElementById("app").classList.remove("resolving");
 
+  /* The opening tutorial has to be allowed to finish saying what it came to
+     say. Now that it asks for all three cards, a good first hand can clear
+     round 1 outright — which would drop the Bookseller on top of step 7 and
+     end the lesson two beats early, on the one screen that explains why Lenses
+     exist.
+
+     So while the overlay is up the round is held open, and the result lands the
+     moment it closes. Nothing is faked to do it: the hand scores exactly what
+     it scored and the board shows the real number. The only thing deferred is
+     the celebration. */
+  if(tutActive() && (G.roundScore >= G.target || G.plays <= 0)){
+    G.heldResult = G.roundScore >= G.target ? "won" : "lost";
+    draw(HAND_SIZE - G.hand.length);
+    document.getElementById("stageHint").textContent = idleHint();
+    render();
+    /* Step 7 is reached off `G.plays < 4`, which is true at the TOP of play() —
+       so its text was written before the hand had scored, and told a player who
+       had just cleared the round to go and clear it. Re-render now that the
+       result is in, and reposition the spotlight against the board as it now
+       stands. */
+    renderTut();
+    return;
+  }
+
   if(G.roundScore >= G.target){ await celebrate(); winRound(); return; }
   if(G.plays <= 0){ await lament(); endRun(false); return; }
 
   draw(HAND_SIZE - G.hand.length);
   document.getElementById("stageHint").textContent = idleHint();
   render();
+  if(tutActive()) renderTut();
 }
 
 /* The two beats that end a round. They are in play() rather than in
@@ -2904,7 +2967,14 @@ function cardEl(c, staticCard){
 
   const tags = document.createElement("div");
   tags.className = "tags";
-  c.t.forEach(function(t){
+  /* Sorted on a COPY: c.t is game state and the Lenses read it. Matching tags
+     go first so that on a phone, where the row is capped at two lines, what
+     falls out of sight is never a tag that scores. */
+  const shown = c.t.slice().sort(function(a, b){
+    const m = G && G.demand ? G.demand.tags : [];
+    return (m.indexOf(b) >= 0) - (m.indexOf(a) >= 0);
+  });
+  shown.forEach(function(t){
     const s = document.createElement("span");
     const match = G && G.demand && G.demand.tags.indexOf(t) >= 0;
     s.className = "tg" + (match ? " match" : "");
@@ -3009,8 +3079,8 @@ const TUT = [
            + "still adds its value, so a third card is rarely a bad idea.<br><br>"
            + "And if you clear a round with plays and discards to spare, you get "
            + "<b>more money</b> for it. Finishing fast buys better Lenses."
-           + '<span class="do">Tap a second word.</span>'; },
-    done: function(){ return G.selected.length >= 2; } },
+           + '<span class="do">Tap two more, so you are holding three.</span>'; },
+    done: function(){ return G.selected.length >= 3; } },
 
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
@@ -3033,7 +3103,11 @@ const TUT = [
            + "and the targets climb faster than any deck can keep up with.<br><br>"
            + "A few Lenses want fewer words. <b>ASCETIC</b> pays \u00d75 if you play exactly "
            + "one. Until you own something like that, three is the answer."
-           + '<span class="do">That\u2019s the whole game. Go clear ' + G.demand.n + ".</span>"; } }
+           + '<span class="do">'
+           + (G.roundScore >= G.target
+                ? "You have already cleared " + G.demand.n + ". The Bookseller is next."
+                : "That\u2019s the whole game. Go and clear " + G.demand.n + ".")
+           + "</span>"; } }
 ];
 
 let tutStep = -1, tutWatch = null;
@@ -3073,6 +3147,14 @@ function endTutorial(completed){
      anything, and the coach is one unobtrusive line. Leave them the net. */
   if(completed) coachFinish();
   else if(G) coachSet(G.coachStep);
+
+  /* whatever the last hand earned, it lands now */
+  if(G && G.heldResult && !G.animating){
+    const held = G.heldResult;
+    G.heldResult = null;
+    if(held === "won") celebrate().then(winRound);
+    else lament().then(function(){ endRun(false); });
+  }
 }
 
 function renderTut(){
@@ -3281,12 +3363,27 @@ function renderRail(){
     return;
   }
   G.lenses.forEach(function(l){
-    const d = document.createElement("div");
-    d.className = "lens";
+    const d = document.createElement("button");
+    d.type = "button";
+    d.className = "lens" + (G.openLens === l.id ? " open" : "");
     d.title = l.d;
+    d.setAttribute("aria-expanded", G.openLens === l.id ? "true" : "false");
     d.innerHTML = '<div class="n">' + escapeHtml(l.n) + '</div><div class="d">' + escapeHtml(l.d) + '</div>';
+    /* Tap to read the whole rule. One open at a time, so the rail never turns
+       into a wall of text. */
+    d.onclick = function(){
+      G.openLens = G.openLens === l.id ? null : l.id;
+      SFX.button();
+      renderRail();
+    };
     rail.appendChild(d);
   });
+  rail.classList.toggle("has-open", !!G.openLens);
+  /* bring the one they opened into view, in case it was mid-scroll */
+  const open = rail.querySelector(".lens.open");
+  if(open && open.scrollIntoView){
+    try{ open.scrollIntoView({ block: "nearest", inline: "start", behavior: "smooth" }); }catch(e){}
+  }
 }
 
 function renderHand(){

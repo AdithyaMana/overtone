@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**206 tests, 0 failures.** 83 engine + 123 E2E. The engine tier uses Node’s built-in runner and needs no
+**217 tests, 0 failures.** 83 engine + 134 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -212,6 +212,17 @@ board and the hand gets a fixed allowance, so the two that carry the game get th
   hidden — the order badges are already on the cards in hand — which returned 240px of a 667px
   screen. While a hand resolves the cards fold away and the board takes the room, which is what
   makes the scoring readout fit.
+- **Every card is the same rectangle.** Left to size themselves, cards came out ragged: a word
+  takes one line to three, and its tags one row to five. Each breakpoint now has a single height,
+  measured against the worst case the lexicon can actually produce (SANDSTORM, four long
+  overtones) rather than guessed. Portrait is the one tier that caps the tag row at two lines to
+  afford it — so `cardEl` sorts matching tags to the front, and what a fourth long tag pushes out
+  of sight is never one that scores.
+- **A Lens opens.** The rail clamps a rule to two lines, and `title` — the only other way to read
+  it — is a hover tooltip, which a touch screen does not have, so the rule a player just paid $6
+  for was unreadable on a phone. Tapping one opens it out to the full text. It stays on the rail's
+  one row, stopping just short of full width so the next Lens peeks in: letting the rail wrap grew
+  it by 53px, which is enough to put the hand's bottom row behind the controls.
 
 ## Balance
 
