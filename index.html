@@ -276,7 +276,8 @@ button{ font-family: inherit; color: inherit; }
   border-radius: 6px; overflow: hidden; line-height: 0;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
 }
-.card .art svg{ display:block; width: 100%; height: 56px; }
+.card .art svg,
+.card .art img{ display:block; width: 100%; height: 56px; object-fit: cover; }
 .card .w{
   font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
@@ -474,7 +475,8 @@ button{ font-family: inherit; color: inherit; }
 }
 @media (max-width: 560px){
   .card{ width: 84px; min-height: 150px; padding: 5px; }
-  .card .art svg{ height: 44px; }
+  .card .art svg,
+  .card .art img{ height: 44px; }
   .card .w{ font-size: 12.5px; }
   .card .tg{ font-size: 8px; }
   .wordmark{ font-size: 23px; }
@@ -1738,6 +1740,30 @@ const MOTIF = {
 const ART_CACHE = {};
 let ART_N = 0;
 
+/* Real artwork drops in here: save art/<slug>.png and the game picks it up.
+   The generated emblem paints instantly and is swapped only once a real image
+   has actually loaded, so a missing file costs nothing and a half-finished art
+   pass ships fine. A word the Interpreter invents has no file by definition and
+   keeps its emblem for good, which is why the generator has to stay. */
+const ART_BASE = "art/";
+const ART_IMG = {};   // slug -> false once we know there is no file
+
+function artSlug(w){ return w.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+
+function artNode(card){
+  const d = document.createElement("div");
+  d.className = "art";
+  d.innerHTML = artFor(card);
+  const slug = artSlug(card.w);
+  if(ART_IMG[slug] === false) return d;      // already known missing; do not refetch
+  const img = new Image();
+  img.alt = "";
+  img.onload  = function(){ ART_IMG[slug] = true; d.innerHTML = ""; d.appendChild(img); };
+  img.onerror = function(){ ART_IMG[slug] = false; };
+  img.src = ART_BASE + slug + ".png";
+  return d;
+}
+
 function artFor(card){
   const key = card.w + "|" + card.t.join(",");
   if(ART_CACHE[key]) return ART_CACHE[key];
@@ -1791,9 +1817,7 @@ function cardEl(c, staticCard){
   el.setAttribute("aria-label", c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", "));
   if(!staticCard) el.tabIndex = 0;
 
-  const art = document.createElement("div");
-  art.className = "art";
-  art.innerHTML = artFor(c);
+  const art = artNode(c);
 
   const base = document.createElement("div");
   base.className = "base"; base.textContent = c.base;

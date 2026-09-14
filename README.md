@@ -51,6 +51,10 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `build-artifact.js` | Strips the HTML wrapper to produce `artifact.html` for the Claude Artifacts host. |
 | `artifact.html` | Generated — do not edit by hand. |
 | `tools/sim.js` | Headless balance simulator (deck coverage + difficulty curve). |
+| `tools/export-cards.js` | Exports the full card list for artwork sourcing. |
+| `art/CARDS.md` | All 249 cards, grouped, with filenames and prompts. |
+| `art/cards.csv` | Same list as data. |
+| `art/prompts.txt` | One image prompt per line, for batch generation. |
 | `docs/brainstorming/` | The ideation log the design came out of — 86 logged ideas across seven techniques. |
 
 ## Balance
@@ -65,6 +69,23 @@ node tools/sim.js
 It caught two real bugs before launch: decks that could hand you an unwinnable Demand (FOOD sits
 on only 21 of 249 words), and a difficulty wall at round 3. Both are written up in
 [DESIGN.md §5.4](DESIGN.md).
+
+## Card artwork
+
+Each card shows a generated emblem built from its own overtones — flames for HEAT, shards for
+COLD, an eye for ANIMAL — so the picture and the scoring rule are views of the same data.
+
+To use real artwork instead, save an image as `art/<slug>.png` and the game picks it up
+automatically. Slugs and prompts for all 249 cards are in [`art/CARDS.md`](art/CARDS.md),
+regenerate with:
+
+```bash
+node tools/export-cards.js
+```
+
+Recommended size **440×280** (11:7), PNG or WebP. Cards without a file keep their emblem, so a
+partial art pass ships fine — and words a player invents with the Interpreter have no file by
+definition, which is why the generator stays as the fallback.
 
 ## AI in this project
 
