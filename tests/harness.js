@@ -116,9 +116,10 @@ function load(){
      sandbox object — so export them deliberately. */
   vm.runInContext(`globalThis.__api = {
     get G(){ return G; },
-    resolve, newRun, startRound, draw, toggleSel, winRound, rollOffers,
+    resolve, newRun, startRound, draw, toggleSel, discardSel, winRound, rollOffers,
     makeCard, houseAppraise, deckCount, resonanceName, shareText, endRun, store,
-    handSize, maxPlay, roundShape, deckCeiling, sellValue, sellLens,
+    handSize, maxPlay, roundShape, baseShape, deckCeiling, sellValue, sellLens,
+    reckoning, reckonFor, roundRules, RECKON_AT, RECKON_FROM,
     ORDEALS, ORDEAL_ROUNDS,
     buy, openShop, coachDone, coachFinish, coachSet,
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,

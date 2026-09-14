@@ -774,6 +774,14 @@ button{ font-family: inherit; color: inherit; }
 .reality .rv b{ color: #FFF; }
 .reality.short .rv{ color: #FFE2DE; }
 
+.ordeal-warn.reckon{ background: var(--lens-d); }
+
+.ordeal .why{
+  display:inline-block; margin-left: 7px; vertical-align: 1px;
+  font-family: var(--f); font-size: 8.5px; font-weight:700; letter-spacing:.08em;
+  background: rgba(0,0,0,.34); border-radius: 3px; padding: 1px 5px;
+}
+
 .ordeal-warn{
   background: var(--blind); border-radius: 8px; padding: 11px 13px; margin: 0 0 14px;
   box-shadow: 0 4px 0 var(--blind-d);
@@ -1965,6 +1973,11 @@ const ORDEALS = [
   { id:"clock", n:"THE CLOCK", d:"Three plays this round instead of four.",
     round:function(g){ g.plays = 3; } },
   { id:"lean", n:"THE LEAN YEAR", d:"Your hand is four cards, not seven.", hand:-3 },
+  /* A discard you have to spend, on words you would rather have kept. It hands
+     back a discard first so it can never meet THE DROUGHT and leave a player
+     with a play they are not allowed to make and no way to earn it. */
+  { id:"forfeit", n:"THE FORFEIT", d:"Give a word up before you play. Discard at least once, then the round is yours.",
+    round:function(g){ g.discards = Math.max(1, g.discards); g.mustForfeit = true; } },
   { id:"vice", n:"THE VICE", d:"Two words at a time, at most.", maxPlay:2 },
   { id:"fog", n:"THE FOG", d:"Words are worth nothing on their own. Only matching tags pay.",
     card:function(c){ return {chips:-c.base, label:"fogged"}; } },
@@ -2492,8 +2505,15 @@ function todayKey(){
 function handSize(){
   let n = HAND_SIZE;
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.hand) n += l.hand; });
-  if(G && G.ordeal && G.ordeal.hand) n += G.ordeal.hand;
+  roundRules().forEach(function(o){ if(o.hand) n += o.hand; });
   return Math.max(4, n);
+}
+
+/* Every rule in force this round: the one the round was dealt, and the one
+   THE RECKONING drafted onto it if your deck had outgrown the target. */
+function roundRules(){
+  if(!G) return [];
+  return [G.ordeal, G.levy].filter(Boolean);
 }
 
 /* What a round will ACTUALLY ask for and hand you, once the Lenses you hold
@@ -2503,21 +2523,84 @@ function handSize(){
    The shop used to quote TARGETS[round] straight, which is a lie the moment
    you own THE CURSE: it said 11,500 and the round demanded 23,000. You cannot
    ask someone to shop wisely against a number that is not true. */
-function roundShape(round){
+function shapeFor(round, rules){
   const probe = { target: TARGETS[round], plays: 4, discards: 3, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
-  const o = G && G.ordealOrder ? G.ordealOrder[round] : null;
-  if(o && o.round) o.round(probe);
+  /* The rules take their cut after the Lenses, so a Lens can never hand back
+     what the round has taken. */
+  rules.forEach(function(o){ if(o.round) o.round(probe); });
   let hand = HAND_SIZE;
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.hand) hand += l.hand; });
-  if(o && o.hand) hand += o.hand;
+  rules.forEach(function(o){ if(o.hand) hand += o.hand; });
+  let cap = MAX_PLAY;
+  rules.forEach(function(o){ if(o.maxPlay) cap = Math.min(cap, o.maxPlay); });
   return {
     target: Math.max(1, Math.round(probe.target)),
     plays: Math.max(1, probe.plays),
     discards: Math.max(0, probe.discards),
     hand: Math.max(4, hand),
-    maxPlay: o && o.maxPlay ? Math.min(MAX_PLAY, o.maxPlay) : MAX_PLAY
+    maxPlay: cap,
+    mustForfeit: !!probe.mustForfeit,
+    rules: rules
   };
+}
+
+/* The round as dealt, before it has looked at your deck. THE RECKONING is
+   measured against this one, so measuring it can never depend on itself. */
+function baseShape(round){
+  const o = G && G.ordealOrder ? G.ordealOrder[round] : null;
+  return shapeFor(round, o ? [o] : []);
+}
+
+/* The round you will actually face, reckoning included. */
+function roundShape(round){
+  const o = G && G.ordealOrder ? G.ordealOrder[round] : null;
+  const r = reckoning(round);
+  return shapeFor(round, [o, r].filter(Boolean));
+}
+
+/* ---------- THE RECKONING ----------
+   An engine that has outrun the curve stops playing the game: every hand
+   clears, nothing is a decision, and the run finishes itself. Raising every
+   target instead would only punish the decks that never got going.
+
+   So the round answers the deck in front of it. Past twice what the round
+   asks for, it drafts a second rule — one of the Ordeals, never the one it
+   already has — and the Bookseller names it before you spend, so an engine
+   that triggers it is a purchase you made knowing. Seeded on the run and the
+   round, so a daily deals everyone the same reckoning. */
+/* Measured rather than guessed. Across simulated runs the deck's ceiling over
+   the round's target sits at a median of 4.1x on rounds 1 and 2 — those targets
+   are meant to be walked over, and round 1 is where the tutorial runs — and
+   then at 0.7x to 1.2x from round 3 on, where the curve starts outrunning
+   decks. So "twice what the round asks" only means runaway after round 2; it
+   catches the 5-18% of later rounds where a build has genuinely broken away,
+   and leaves the opening alone. */
+const RECKON_AT = 2, RECKON_FROM = 2;
+
+function reckonFor(round){
+  if(!G || !G.demandOrder || round < RECKON_FROM) return null;
+  const base = baseShape(round);
+  const can = deckCeiling(round, base);
+  if(can < base.target * RECKON_AT) return null;
+  const own = (G.ordealOrder && G.ordealOrder[round]) || null;
+  const pool = ORDEALS.filter(function(o){ return !own || o.id !== own.id; });
+  const pick = mulberry32(hashStr(G.seed + ":reckon:" + round))();
+  return pool[Math.floor(pick * pool.length) % pool.length];
+}
+
+/* Memoised per round and per build: the shop re-renders on every purchase and
+   each check costs a ceiling, and a ceiling is 25ms. */
+let reckonMemo = {};
+function reckoning(round){
+  if(!G || !G.lenses) return null;
+  const key = round + "|" + G.seed + "|"
+    + G.lenses.map(function(l){ return l.id + ":" + Math.round((G.lensState||{})[l.id] || 0); }).join(",")
+    + "|" + (G.deck.length + G.discard.length + G.hand.length);
+  if(reckonMemo.key === key) return reckonMemo.val;
+  const val = reckonFor(round);
+  reckonMemo = { key: key, val: val };
+  return val;
 }
 
 /* The best a deck could possibly do in a given round: the whole deck available,
@@ -2526,13 +2609,17 @@ function roundShape(round){
 
    Scores against the round's OWN Demand and Ordeal, not the current one, since
    the point is to look forward from the shop. Restores everything it borrows. */
-function deckCeiling(round){
+function deckCeiling(round, shape){
   if(!G) return 0;
-  const keepDemand = G.demand, keepOrdeal = G.ordeal, keepDiscards = G.discards;
-  const shape = roundShape(round);
+  const keepDemand = G.demand, keepOrdeal = G.ordeal,
+        keepLevy = G.levy, keepDiscards = G.discards;
+  shape = shape || roundShape(round);
   const d = G.demandOrder[round];
   G.demand = { n: d.n, tags: d.tags.slice() };
-  G.ordeal = (G.ordealOrder && G.ordealOrder[round]) || null;
+  /* Score against the rules that round will really be played under — both of
+     them, if THE RECKONING has drafted a second. */
+  G.ordeal = shape.rules[0] || null;
+  G.levy = shape.rules[1] || null;
   G.discards = shape.discards;
 
   /* Two things were wrong with this pool, and together they made the shop
@@ -2579,22 +2666,36 @@ function deckCeiling(round){
     total += best.total;
   }
 
-  G.demand = keepDemand; G.ordeal = keepOrdeal; G.discards = keepDiscards;
+  G.demand = keepDemand; G.ordeal = keepOrdeal;
+  G.levy = keepLevy; G.discards = keepDiscards;
   return Math.round(total);
 }
 
 /* How many words this round will let you play at once. */
 function maxPlay(){
-  if(G && G.ordeal && G.ordeal.maxPlay) return Math.min(MAX_PLAY, G.ordeal.maxPlay);
-  return MAX_PLAY;
+  let n = MAX_PLAY;
+  roundRules().forEach(function(o){ if(o.maxPlay) n = Math.min(n, o.maxPlay); });
+  return n;
+}
+
+/* Which rule is holding the hand down — the round's own, or the one it drew.
+   Either can be the one doing it, so neither may be assumed. */
+function capper(){
+  const cap = maxPlay();
+  const r = roundRules().find(function(o){ return o.maxPlay === cap; });
+  return r ? r.n : "This round";
 }
 
 function startRound(){
   G.demand = { n: G.demandOrder[G.round].n, tags: G.demandOrder[G.round].tags.slice() };
   G.ordeal = (G.ordealOrder && G.ordealOrder[G.round]) || null;
+  /* Fixed here and left alone for the round: a Lens that grows mid-round must
+     not be able to change the rules under the player who is using it. */
+  G.levy = reckoning(G.round);
   G.target = TARGETS[G.round];
   G.roundScore = 0;
   G.plays = 4; G.discards = 3;
+  G.mustForfeit = false; G.forfeited = false;
   /* Lenses that cost you something take it here, before the round starts, so
      the meters on the board are true from the first frame. And the ones that
      grow, grow here — per round rather than per firing, because firing-based
@@ -2604,9 +2705,9 @@ function startRound(){
     if(l.onRound) l.onRound(G);
     if(l.grows) G.lensState[l.id] = (G.lensState[l.id] || 0) + l.grows;
   });
-  /* The Ordeal takes its cut after the Lenses, so a Lens can never hand back
+  /* The rules take their cut after the Lenses, so a Lens can never hand back
      what the round has taken. */
-  if(G.ordeal && G.ordeal.round) G.ordeal.round(G);
+  roundRules().forEach(function(o){ if(o.round) o.round(G); });
   G.plays = Math.max(1, G.plays);
   G.discards = Math.max(0, G.discards);
   G.target = Math.max(1, Math.round(G.target));
@@ -2658,15 +2759,16 @@ function resolve(cards){
 
     /* The Ordeal lands between the word's own worth and the Lenses, so a Lens
        still fires on a word the round has just taken the value out of. */
-    if(G.ordeal && G.ordeal.card){
-      const o = G.ordeal.card(c, i, cards, ctx);
+    roundRules().forEach(function(rule){
+      if(!rule.card) return;
+      const o = rule.card(c, i, cards, ctx);
       if(o && o.chips){
         chips += o.chips;
         events.push({ k:"card", i:i, cls:"c",
-                      txt: G.ordeal.n + " " + (o.label || "") + " " + Math.round(o.chips),
+                      txt: rule.n + " " + (o.label || "") + " " + Math.round(o.chips),
                       chips:chips, mult:mult });
       }
-    }
+    });
 
     for(let li=0; li<G.lenses.length; li++){
       const L = G.lenses[li];
@@ -2683,17 +2785,18 @@ function resolve(cards){
     }
   }
 
-  if(G.ordeal && G.ordeal.play){
-    const o = G.ordeal.play(cards, ctx);
+  roundRules().forEach(function(rule){
+    if(!rule.play) return;
+    const o = rule.play(cards, ctx);
     if(o){
       if(o.chips) chips += o.chips;
       if(o.mult) mult += o.mult;
       if(o.xmult) mult *= o.xmult;
       events.push({ k:"card", i:-1, cls:"m",
-                    txt: G.ordeal.n + " " + (o.label || (o.xmult ? "×" + o.xmult + " mult" : "")),
+                    txt: rule.n + " " + (o.label || (o.xmult ? "×" + o.xmult + " mult" : "")),
                     chips:chips, mult:mult });
     }
-  }
+  });
 
   for(let li=0; li<G.lenses.length; li++){
     const L = G.lenses[li];
@@ -2721,6 +2824,11 @@ function sleep(ms){ return new Promise(function(r){ if(skipAnim) r(); else setTi
 
 async function play(){
   if(G.animating || G.selected.length===0 || G.plays<=0) return;
+  if(G.mustForfeit && !G.forfeited){
+    toast("THE FORFEIT: give a word up first. Pick one and DISCARD.");
+    SFX.deny(); buzz([8,45,8]);
+    return;
+  }
   G.animating = true; skipAnim = false;
   buzz(18);
   /* While a hand resolves, the board takes the room and the hand steps back.
@@ -2893,6 +3001,7 @@ function discardSel(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.discards--;
+  G.forfeited = true;
   draw(handSize() - G.hand.length);
   SFX.discard();
   buzz([9,26,9]);
@@ -2964,6 +3073,18 @@ function openShop(reward){
           + escapeHtml(nextOrdeal.n) + '</div><div class="od">'
           + escapeHtml(nextOrdeal.d) + '</div></div>'
         : '')
+    /* And the one your own deck called down. It is named here, before you
+       spend, for the same reason the Ordeal is: a rule you are told about is
+       a purchase decision, and a rule you discover is a bad beat. Buying the
+       Lens that trips it and seeing the answer appear in the same breath is
+       the trade being made in the open. */
+    + (function(){
+        const r = reckoning(G.round);
+        if(!r) return '';
+        return '<div class="ordeal-warn reckon"><div class="on">THE RECKONING &mdash; '
+          + escapeHtml(r.n) + '</div><div class="od">Your deck has outgrown this round, so it answers with a second rule. '
+          + escapeHtml(r.d) + '</div></div>';
+      })()
     /* The exponential is the whole reason to shop, and it is invisible from
        inside a single round. Say it out loud, in numbers. */
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
@@ -3320,10 +3441,19 @@ function endRun(won){
   const isRecord = G.total > bestEver;
   if(isRecord) store.set("best", G.total);
 
-  /* Memory unlock: carry one lens you actually used into the next run. */
+  /* Memory unlock: carry one Lens you actually used into the next run.
+
+     Never a flawed one. Memory is a gift handed to a player who has not chosen
+     anything yet — it arrives before the first shop, on a board they cannot
+     answer it on. A Lens that doubles every target or takes a play away is a
+     bargain when you accept it with a deck and a purse; the same Lens dealt to
+     you on round 1 is a sentence. Taking one is a decision, and a decision has
+     to be made, not inherited. */
   let unlocked = null;
   const prev = store.get("memory", null);
-  const candidates = G.lenses.map(function(l){ return l.id; });
+  const candidates = G.lenses
+    .filter(function(l){ return !l.flaw; })
+    .map(function(l){ return l.id; });
   if(candidates.length){
     const choice = candidates[hashStr(G.seed+runs) % candidates.length];
     if(choice !== prev){
@@ -3778,7 +3908,7 @@ function toggleSel(id){
   else{
     if(G.selected.length >= maxPlay()){
       toast(maxPlay() === 3 ? "Three at a time. Drop one first."
-                            : G.ordeal.n + " allows " + maxPlay() + ". Drop one first.");
+                            : capper() + " allows " + maxPlay() + ". Drop one first.");
       SFX.deny(); buzz([8,45,8]); return;
     }
     G.selected.push(id); SFX.pick(G.selected.length); buzz(11);
@@ -4033,7 +4163,7 @@ function idleHint(){
     ? "Pick up to " + cap + " words, then hit PLAY."
     : IDLE_HINT;
   if(orderMatters()) return lead + " Your Lenses read left to right, so the order changes the score.";
-  if(cap < 3) return lead + " " + G.ordeal.n + " is holding you to " + cap + ".";
+  if(cap < 3) return lead + " " + capper() + " is holding you to " + cap + ".";
   for(let i = 0; i < G.lenses.length; i++){
     const s = HAND_SHAPE[G.lenses[i].id];
     if(s) return lead + " " + s;
@@ -4138,10 +4268,17 @@ function renderDemand(){
     w.appendChild(s);
   });
   const ord = document.getElementById("ordeal");
-  if(G.ordeal){
+  const rules = roundRules();
+  if(rules.length){
     ord.hidden = false;
-    ord.innerHTML = '<div class="on">' + escapeHtml(G.ordeal.n) + '</div>'
-                  + '<div class="od">' + escapeHtml(G.ordeal.d) + '</div>';
+    ord.innerHTML = rules.map(function(o, i){
+      /* The drafted one says why it is here — it arrived because of the deck
+         the player built, and a rule that appears unexplained is a punishment
+         rather than an answer. */
+      return '<div class="on">' + escapeHtml(o.n)
+        + (o === G.levy ? '<span class="why">THE RECKONING</span>' : '')
+        + '</div><div class="od">' + escapeHtml(o.d) + '</div>';
+    }).join("");
   } else {
     ord.hidden = true;
   }
@@ -4230,7 +4367,11 @@ function renderControls(){
     s.className = "pip" + (i < G.plays ? "" : " off");
     pips.appendChild(s);
   }
-  document.getElementById("playBtn").disabled = G.animating || G.selected.length===0 || G.plays<=0;
+  const owed = G.mustForfeit && !G.forfeited;
+  document.getElementById("playBtn").disabled =
+    G.animating || G.selected.length===0 || G.plays<=0 || owed;
+  document.getElementById("playBtn").title = owed
+    ? "THE FORFEIT — give a word up first" : "";
   document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
   document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";

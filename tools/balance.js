@@ -94,10 +94,15 @@ function playRound(optimal) {
     const need = G.target - G.roundScore;
     let best = bestPlay(G.hand, optimal);
 
+    /* THE FORFEIT will not let a hand be played until a word has been given
+       up, so the simulator pays it the same way a player has to: with its
+       worst three cards, out of the discard the rule guarantees it. */
+    const owed = G.mustForfeit && !G.forfeited && G.discards > 0;
+
     /* Discard when this hand cannot keep pace: if the best play is under the
        per-play share of what is left, throw the deadest cards back. */
     const pace = need / G.plays;
-    if (G.discards > 0 && best.total < pace * 0.7 && G.deck.length + G.discard.length > 3) {
+    if (owed || (G.discards > 0 && best.total < pace * 0.7 && G.deck.length + G.discard.length > 3)) {
       const d = G.demand;
       const dead = G.hand.slice()
         .sort((a, b) =>
@@ -107,6 +112,7 @@ function playRound(optimal) {
       G.hand = G.hand.filter(c => dead.indexOf(c) < 0);
       G.discard = G.discard.concat(dead);
       G.discards--;
+      G.forfeited = true;
       api.draw(api.handSize() - G.hand.length);
       continue;
     }
@@ -241,7 +247,11 @@ function runOnce(seed, opts) {
      The simulator never called endRun, so it never banked one, and every run it
      measured was somebody's first. */
   if (opts.memory !== false && !opts.force && !opts.solo) {
-    const carried = api.LENSES[Math.abs(api.hashStr(seed)) % api.LENSES.length];
+    /* Never a flawed one: the game stopped handing those down, because a Lens
+       that doubles every target is a bargain you accept with a deck and a
+       purse and a sentence when it is dealt to you on round 1. */
+    const pool = api.LENSES.filter(l => !l.flaw);
+    const carried = pool[Math.abs(api.hashStr(seed)) % pool.length];
     if (G.lenses.length === 0) G.lenses.push(carried);
   }
   if (opts.force) G.lenses = opts.force.slice();

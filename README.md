@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**296 tests, 0 failures.** 106 engine + 190 E2E. The engine tier uses Node’s built-in runner and needs no
+**306 tests, 0 failures.** 116 engine + 190 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -215,6 +215,7 @@ that stops the hand you have been playing all run from working.
 | THE TOLL | every word costs 90 points to play |
 | THE MIRROR | a word scores nothing unless *two* of its tags match |
 | THE HALF-LIGHT | every hand begins at half a multiplier |
+| THE FORFEIT | give a word up before you play |
 
 Three are drawn per run from the seed, so a daily deals everyone the same three and two runs are
 never shaped alike. Each invalidates a different habit: THE VICE breaks "always take three",
@@ -261,6 +262,28 @@ sells whenever the warning fires made things *worse* — stripping the engine co
 drawback did. Selling only helps when removing that Lens actually raises the ceiling, which is
 uncommon. So the flawed Lenses are a bet you commit to rather than a trap you escape, and the
 weight sits where it should: on the purchase.
+
+## The Reckoning
+
+A run that gets its engine going stops playing the game. Every hand clears, nothing is a
+decision, and the run finishes itself — which is a complaint players made in exactly those words.
+
+Raising every target is the obvious answer and the wrong one: it punishes the decks that never got
+going and barely inconveniences the ones that did. So the round answers the deck in front of it.
+**Past twice what the round asks for, it drafts a second rule** — one of the Ordeals, never the one
+it already has — and the Bookseller names it before you spend, so an engine loud enough to trigger
+it is a purchase you made knowing.
+
+The threshold is measured, not guessed. Across simulated runs the deck's ceiling over the round's
+target sits at a median of **4.1×** on rounds 1 and 2 — those targets are meant to be walked over,
+and round 1 is where the tutorial runs — and then at **0.7× to 1.2×** from round 3 on. So the rule
+only starts at round 3, where being twice ahead actually means something: it catches the 5–18% of
+later rounds where a build has genuinely broken away, and leaves the opening alone.
+
+**Memory never carries a flawed Lens.** It is a gift handed to a player who has not chosen anything
+yet — it arrives before the first shop, on a board they cannot answer it on. A Lens that doubles
+every target is a bargain you accept with a deck and a purse, and a sentence when it is dealt to
+you on round 1. Taking one is a decision, and a decision has to be made, not inherited.
 
 ## Playing on a phone
 
@@ -326,8 +349,8 @@ them. The first three rounds were a formality.
 
 | | at first | after pass one | now |
 |---|---|---|---|
-| optimal player | 70% | 43% | **23%** |
-| realistic player (`--play human`) | — | 33% | **18%** |
+| optimal player | 70% | 43% | **22%** |
+| realistic player (`--play human`) | — | 33% | **16%** |
 | careless player (random buys) | — | 12% | **11%** |
 | round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) |
 | best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% |
