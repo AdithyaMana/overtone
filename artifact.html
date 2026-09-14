@@ -633,7 +633,17 @@ button{ font-family: inherit; color: inherit; }
   .card.sel:hover{ transform: translateY(-10px) scale(1.03); }
   .hand .card .card-inner{ animation: none; }
 
-  .controls{ gap: 7px; }
+  /* Play/Discard/Interpret must never sit below the fold. Phone heights vary
+     far more than widths (a Pixel 5 is 117px shorter than an iPhone 14), so
+     pin the row to the bottom instead of trying to out-guess the tallest
+     device that still fits. */
+  .controls{
+    gap: 7px;
+    position: sticky; bottom: 0; z-index: 30;
+    margin-inline: -9px; padding: 7px 9px calc(7px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    box-shadow: 0 -2px 0 var(--edge);
+  }
   .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 8px; font-size: 13px; letter-spacing: .03em; }
 
   .panel{ padding: 16px; }
@@ -1177,28 +1187,42 @@ function newRun(seedStr){
      genuinely rare in the lexicon (FOOD sits on 21 of 249 words), so a purely
      random 26-card deck can hand you a Demand you cannot possibly meet. Seed
      a floor of 3 words per demanded overtone first, then fill at random. */
-  const wanted = [];
-  demandOrder.forEach(function(d){
-    d.tags.forEach(function(t){ if(wanted.indexOf(t)===-1) wanted.push(t); });
-  });
-  const DECK_SIZE = 26, FLOOR = 3;
+  /* Build the deck knowing what this run will ask for.
+
+     The floor has to be per DEMAND, not per overtone. A Demand is answered by
+     ANY of its tags, and words carry 3.2 overtones on average — so three PLANT
+     words that all happened to be NATURE as well satisfied a per-overtone
+     floor twice over while leaving THE GREENHOUSE with three playable cards.
+     Guarantee answers to the Demand itself, scarcest Demand first, so the
+     hardest one to supply gets first claim on the 26 slots. */
+  const DECK_SIZE = 26, FLOOR = 5;
   const bag = shuffle(LEXICON.slice());
   const chosen = [], taken = {};
-  function carrying(t){
-    return chosen.filter(function(e){ return e.t.indexOf(t)>=0; }).length;
+
+  function answers(entry, d){
+    return entry.t.some(function(t){ return d.tags.indexOf(t) >= 0; });
   }
-  /* Words average 3.2 overtones, so one pick often satisfies several demands —
-     recount each time instead of blindly adding FLOOR words per overtone. */
-  shuffle(wanted).forEach(function(t){
-    for(let i=0; i<bag.length && carrying(t)<FLOOR && chosen.length<DECK_SIZE; i++){
-      if(taken[bag[i].w] || bag[i].t.indexOf(t)===-1) continue;
-      taken[bag[i].w] = 1; chosen.push(bag[i]);
-    }
+  function answering(d){
+    return chosen.filter(function(e){ return answers(e, d); }).length;
+  }
+
+  const supply = {};
+  demandOrder.forEach(function(d){
+    supply[d.n] = LEXICON.filter(function(e){ return answers(e, d); }).length;
   });
-  for(let i=0; i<bag.length && chosen.length<DECK_SIZE; i++){
+  demandOrder.slice()
+    .sort(function(a, b){ return supply[a.n] - supply[b.n]; })
+    .forEach(function(d){
+      for(let i = 0; i < bag.length && answering(d) < FLOOR && chosen.length < DECK_SIZE; i++){
+        if(taken[bag[i].w] || !answers(bag[i], d)) continue;
+        taken[bag[i].w] = 1; chosen.push(bag[i]);
+      }
+    });
+  for(let i = 0; i < bag.length && chosen.length < DECK_SIZE; i++){
     if(taken[bag[i].w]) continue;
     taken[bag[i].w] = 1; chosen.push(bag[i]);
   }
+
   const deck = chosen.map(function(e){ return makeCard(e,false); });
 
   G = {

@@ -1,0 +1,22 @@
+{
+  "name": "necrocards",
+  "version": "1.0.0",
+  "description": "A word roguelite where meaning is the physics.",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test",
+    "sim": "node tools/sim.js",
+    "cards": "node tools/export-cards.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

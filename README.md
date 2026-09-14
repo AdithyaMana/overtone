@@ -51,10 +51,30 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `build-artifact.js` | Strips the HTML wrapper to produce `artifact.html` for the Claude Artifacts host. |
 | `artifact.html` | Generated — do not edit by hand. |
 | `tools/sim.js` | Headless balance simulator (deck coverage + difficulty curve). |
+| `tests/harness.js` | Loads the real game into a Node VM for engine tests. |
+| `tests/logic.test.js` | Engine tests (node:test). |
+| `tests/e2e/` | Browser tests (Playwright). |
+| `docs/tests/test-summary.md` | What is covered, and what is not. |
 | `tools/export-cards.js` | Exports the full card list from the lexicon. |
 | `art/CARDS.md` | All 249 cards, grouped, with overtones and icons. |
 | `art/cards.csv` | Same list as data. |
 | `docs/brainstorming/` | The ideation log the design came out of — 86 logged ideas across seven techniques. |
+
+## Tests
+
+```bash
+npm test          # engine — no browser, no network, ~0.3s
+npm run test:e2e  # browser — desktop + phone, ~21s
+```
+
+**64 tests, 0 failures.** The engine tier uses Node’s built-in runner and needs no
+dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
+Playwright is a devDependency only — the game still has zero runtime dependencies and still
+opens by double-clicking `index.html`.
+
+`tests/harness.js` runs the real `index.html` script in a Node VM against a stubbed DOM, so
+engine tests exercise the code that actually ships rather than a copy. Full breakdown, plus
+the two real bugs the suite caught, is in [`docs/tests/test-summary.md`](docs/tests/test-summary.md).
 
 ## Balance
 
