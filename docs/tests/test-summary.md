@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**196 tests, 0 failures.** 83 engine tests + 113 E2E tests across two device profiles.
+**206 tests, 0 failures.** 83 engine tests + 123 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -49,7 +49,7 @@ It now runs on the harness too.
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (59 × desktop + phone)
+### E2E — `tests/e2e/` (64 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -66,9 +66,12 @@ It now runs on the harness too.
 | **the scoring readout** | the board grows and the hand steps back while a hand resolves; the total is fully on screen and the stage is **not** `overflow:hidden`; the green clear-wash fires only on a hand that actually cleared |
 | **order honesty** | the "order matters" line is absent with no Lenses, present with a position-reading Lens, and `orderMatters()` is false for one additive-mult Lens but true once a multiplicative one joins it |
 | **sound, vibration and motion** | three independent switches that persist across a reload; the theme is **not fetched before the first gesture**; it is created looping and pointed at the right file on that gesture; muting actually stops it; the iPhone `navigator.vibrate` gap is stated in the panel |
+| **throwaway motion** | every frame of a scoring window is sampled: no particle's animation may lack a holding `fill`, none may be visible after finishing, and none may outlive the hand. Verified against the broken build first — the first version of this test passed either way, which made it worthless |
+| **the counters** | a rolling counter lands on the exact value the engine computed, not on whatever it was showing when the animation stopped; the total counts from zero and locks on the real score |
+| **the sound engine** | the bus is built, every named sound fires back to back without throwing (they are called from inside `play()`, so one that throws takes the hand with it), and turning effects off means no node is built rather than a silent one |
 | **the live Claude path** (`interpreter.spec.js`) | a fake sampler is injected before page load, proving the live branch works and names itself; **invented overtones are discarded rather than rendered**; a reply with no usable tags, a malformed reply, `not_granted` and `rate_limited` all degrade to the house appraiser with the run intact |
 
-## Six real bugs the tests found
+## Seven real bugs the tests found
 
 **1. An unwinnable round (engine).** Seed 151 dealt `THE GREENHOUSE` only 3 playable
 cards. The cause: the deck's coverage floor was per *overtone*, but a Demand is
@@ -109,7 +112,15 @@ is exactly what a player reported. The stage no longer clips (the clear-wash cli
 instead), and a test asserts both that the computed `overflow` is not `hidden` and that
 the total's rect is inside the viewport.
 
-**6. The tutorial's welcome step never dimmed the board.** With no element to spotlight,
+**6. Every particle was left parked on the board.** Sparks, confetti, the flying points and
+the shockwave were each animated with `el.animate(frames, opts)` and removed by a separate,
+longer `setTimeout`. A Web Animation with no `fill` reverts its element to the element's own
+static style the moment it finishes, so in the gap between the two, every particle snapped
+back to its start position at full opacity. The sparks ran 700–1220ms and were removed at
+1300ms: up to half a second of a solid square sitting dead centre of the board after every
+hand. Reported by a player before any test caught it, which is the part worth noting.
+
+**7. The tutorial's welcome step never dimmed the board.** With no element to spotlight,
 the cutout was parked off-screen at `top: -9999px` on the theory that its `9999px`
 box-shadow spread would still cover the page. It does not: a spread of 9999 from a
 zero-height box at y = −9999 reaches exactly y = 0, so the shadow stopped at the top edge

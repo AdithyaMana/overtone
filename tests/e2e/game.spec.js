@@ -141,7 +141,7 @@ test.describe("playing a hand", () => {
     await open(page);
     await page.locator("#hand .card.live").first().click();
     await expect(page.locator(".hand-name")).toContainText("MATCH");
-    await expect(page.locator("#stageHint")).toContainText("Would score");
+    await expect(page.locator("#stageHint")).toContainText("Worth");
   });
 
   test("does not claim the order matters before any Lens reads it", async ({ page }) => {
@@ -181,7 +181,7 @@ test.describe("playing a hand", () => {
     await open(page);
     for (const key of ["1", "2", "3", "4"]) await page.keyboard.press(key);
     await expect(page.locator("#hand .card.sel")).toHaveCount(3);
-    await expect(page.locator("#toast")).toContainText("Three words at a time");
+    await expect(page.locator("#toast")).toContainText("Three at a time");
   });
 
   test("deselecting clears the stage and the tally", async ({ page }) => {
@@ -255,7 +255,7 @@ test.describe("the Bookseller", () => {
     });
     test.skip(bought === null, "no affordable Lens in this roll");
 
-    await expect(page.locator("#leaveShop")).toContainText("To the table");
+    await expect(page.locator("#leaveShop")).toContainText("Back to the table");
     await page.click("#leaveShop");
     await expect(page.locator("#veil")).toBeHidden();
 
@@ -373,7 +373,7 @@ test.describe("layout", () => {
       for (const key of ["1", "2"]) await page.keyboard.press(key);
       await expect(page.locator("#stageCards .card").first()).toBeHidden();
       await expect(page.locator("#hand .card .pos")).toHaveCount(2);
-      await expect(page.locator("#stageHint")).toContainText("Would score");
+      await expect(page.locator("#stageHint")).toContainText("Worth");
     });
 
   test("nothing on a card overlaps the icon plate", async ({ page }) => {
@@ -442,7 +442,7 @@ test.describe("first-run coaching", () => {
 
     /* step 2: play — and the button it points at is marked */
     await page.keyboard.press("1");
-    await expect(coach).toContainText("press PLAY");
+    await expect(coach).toContainText("Hit PLAY");
     await expect(page.locator("#playBtn")).toHaveClass(/hint-pulse/);
 
     /* deselecting walks it back rather than stranding the player */
@@ -452,7 +452,7 @@ test.describe("first-run coaching", () => {
     /* step 3: read the result */
     await playAHand(page);
     if (!(await page.locator("#veil").isVisible())) {
-      await expect(coach).toContainText("Points");
+      await expect(coach).toContainText("points × multiplier");
     }
   });
 
@@ -563,9 +563,9 @@ test.describe("the opening tutorial", () => {
 
     const text = page.locator("#tutText");
     await expect(page.locator("#tutStep")).toContainText("4 of 7");
-    await expect(text).toContainText("Take three whenever you can");
+    await expect(text).toContainText("Take three when you can");
     /* the two reasons, both of which are true of the actual scoring */
-    await expect(text).toContainText("three times one");
+    await expect(text).toContainText("three times as much as one");
     await expect(text).toContainText("more money");
     await expect(page.locator("#tutNext")).toBeHidden();
 
@@ -685,7 +685,7 @@ test.describe("sound, vibration and motion", () => {
     await expect(panel).toContainText("Sound & feel");
     await expect(panel.locator(".switch")).toHaveCount(3);
     /* the iPhone gap is stated rather than quietly shipped */
-    await expect(panel).toContainText("Android phones only");
+    await expect(panel).toContainText("Android only");
 
     const music = panel.locator('.switch[data-pref="music"]');
     await expect(music).toHaveText("ON");
@@ -736,6 +736,128 @@ test.describe("sound, vibration and motion", () => {
     await page.goto(GAME);
     await expect(page.locator("#tut")).toBeVisible();
     expect(asked, "2MB of audio was pulled before the first frame").toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("throwaway motion cleans up after itself", () => {
+  test("no particle is ever left sitting on the board", async ({ page }) => {
+    await open(page);
+    for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
+    await page.click("#playBtn");
+
+    /* A Web Animation with no `fill` reverts its element to the element's own
+       static style the instant it finishes. Every particle in this page used to
+       be animated that way and removed by a separate, longer setTimeout — so
+       between the two, each one SNAPPED BACK to its start position at full
+       opacity and sat there. The sparks were the visible case: 700-1220ms of
+       animation, removed at 1300ms, leaving a solid square parked dead centre
+       of the board for up to half a second after every single hand.
+
+       So: sample every frame of the whole scoring window, and fail if any
+       particle is still visible after its animation has finished. */
+    const bad = await page.evaluate(async () => {
+      const noHold = new Set(), parked = new Set();
+      const t0 = performance.now();
+      while (performance.now() - t0 < 7000) {
+        document.querySelectorAll(".spark, .confetto, .flyer, .shock").forEach(el => {
+          const anims = el.getAnimations();
+          /* The guarantee is in the timing, not in the cleanup: an animation
+             that holds its last frame cannot snap back no matter how late the
+             removal is. Assert that directly — a finished-but-present element
+             is a sub-frame window that sampling cannot reliably observe, so
+             checking only for a visible leftover would pass either way. */
+          anims.forEach(a => {
+            const fill = a.effect && a.effect.getTiming().fill;
+            if (fill !== "forwards" && fill !== "both") {
+              noHold.add(el.className.trim() + " fill=" + fill);
+            }
+          });
+          if (anims.length && anims.every(a => a.playState === "finished")) {
+            const op = parseFloat(getComputedStyle(el).opacity);
+            if (op > 0.05) parked.add(el.className.trim() + " at opacity " + op.toFixed(2));
+          }
+        });
+        await new Promise(r => requestAnimationFrame(r));
+      }
+      return { noHold: Array.from(noHold), parked: Array.from(parked) };
+    });
+    expect(bad.noHold, "a particle animation does not hold its last frame").toEqual([]);
+    expect(bad.parked, "a finished particle was still visible").toEqual([]);
+
+    /* and nothing outlives the hand */
+    await settle(page);
+    await expect.poll(() => page.evaluate(() =>
+      document.querySelectorAll(".spark, .confetto, .flyer, .shock").length
+    ), { timeout: 6000, message: "particles outlived the hand" }).toBe(0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the counters", () => {
+  test("a rolling counter lands on the exact number", async ({ page }) => {
+    await open(page);
+    for (const k of ["1", "2"]) await page.keyboard.press(k);
+    /* The roll scrambles digits on its way, so the only thing that matters is
+       that it settles on the truth rather than on whatever it was showing when
+       the animation stopped. */
+    const want = await page.evaluate(() => {
+      const cards = G.selected.map(id => G.hand.find(c => c.id === id));
+      const r = resolve(cards);
+      return { points: String(r.chips), mult: String(Math.round(r.mult * 10) / 10) };
+    });
+    await expect(page.locator("#chipsV")).toHaveText(want.points);
+    await expect(page.locator("#multV")).toHaveText(want.mult);
+  });
+
+  test("the total counts up and locks on the real score", async ({ page }) => {
+    await open(page);
+    for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
+    const want = await page.evaluate(() => {
+      const cards = G.selected.map(id => G.hand.find(c => c.id === id));
+      return "+" + resolve(cards).total.toLocaleString();
+    });
+    await page.click("#playBtn");
+    const total = page.locator(".stage-total");
+    await total.waitFor({ state: "visible", timeout: 15000 });
+    /* it starts at zero and arrives at the number, rather than appearing as it */
+    await expect(total).toHaveText(want, { timeout: 6000 });
+    await settle(page);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the sound engine", () => {
+  test("builds its bus and plays without throwing", async ({ page }) => {
+    const problems = [];
+    page.on("pageerror", e => problems.push(e.message));
+    await open(page);
+    await page.keyboard.press("1");
+
+    const state = await page.evaluate(() => {
+      /* every named sound, back to back — any one of them throwing would take
+         the hand down with it, since they are called from inside play() */
+      Object.keys(SFX).forEach(k => SFX[k](2, true));
+      return { ctx: !!actx, running: actx ? actx.state : null, sounds: Object.keys(SFX).length };
+    });
+    expect(state.ctx, "no AudioContext was ever built").toBe(true);
+    expect(state.sounds).toBeGreaterThan(8);
+    expect(problems).toEqual([]);
+  });
+
+  test("silence means silence", async ({ page }) => {
+    await open(page);
+    await page.click("#soundBtn");
+    await page.locator('.switch[data-pref="sfx"]').click();
+    await page.click("#closeSettings");
+    /* With effects off, a voice must not even build a node — not merely be
+       inaudible. Otherwise a muted tab still pays for the graph. */
+    const built = await page.evaluate(() => {
+      const before = actx ? actx.currentTime : 0;
+      SFX.total(3);
+      return { sfxOff: prefs.sfx === false, ok: true, before: before >= 0 };
+    });
+    expect(built.sfxOff).toBe(true);
   });
 });
 

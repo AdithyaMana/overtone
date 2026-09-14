@@ -68,6 +68,13 @@ now states the rule where the eye already is: the demanded overtones as large ic
 - The idle hint stopped repeating the +25 rule the stage now states, and carries the question a
   new player actually has instead: *how many should I take?*
 
+**The copy got read out loud.** Once the vocabulary was fixed, the sentences still were not: they
+were drafted, not spoken. Long clauses strung on em-dashes, three parallel items where two would
+do, "which is why" doing the work a full stop should. A pass over every player-facing string
+shortened the sentences, used contractions, and put one idea on each line. *"Every word carries
+overtones — the little tags along the bottom of the card"* became *"See the little tags along the
+bottom of each card? Those are its overtones."* Same fact; one of them sounds like a person.
+
 **The board stopped using words nobody had been taught.** The scoring readout was two unlabelled
 numbers, a blue one and a red one, and the game called them *chips* and *mult*. "Chips" is a poker
 word; this is not poker, and it bought the game nothing that "points" would not. So: **points ×
@@ -350,12 +357,38 @@ bottom edge below the top of the control row, all three buttons in the viewport.
 to scroll is a decision you cannot make.
 
 **Impact.** Numbers used to simply change in the tally, which asks a player to take on trust that
-the card and the counter are related. Now the points **leave the word that earned them** and land
-on the counter, which makes them pop. Around that: a square shockwave off the total, screen shake
-in three tiers scaled to the hand's size against the round's target, the theme ducking under the
-moment, a ROUND CLEAR stamp and confetti, and a matching red beat for running out of plays. All of
-it is flat and hard-edged — the sheet's no-gradient, zero-blur rule holds for motion too — and all
-of it is off under `prefers-reduced-motion`.
+the card and the counter are related. Now the points **leave the word that earned them** and arc
+onto the counter. The counters themselves stopped tweening: they *settle*, digits scrambling and
+locking left to right like a mechanical counter landing, and the total counts up from zero rather
+than appearing as a finished number. A tween shows you the result; a settle shows you the event.
+
+Around that: a square shockwave off the total, screen shake in three tiers scaled to the hand's
+size against the round's target, the theme ducking under the moment, a ROUND CLEAR stamp and
+confetti, and a matching red beat for running out of plays. All of it is flat and hard-edged — the
+sheet's no-gradient, zero-blur rule holds for motion too — and all of it is off under
+`prefers-reduced-motion`.
+
+**A bug a player found before a test did.** Every one of those particles was written as
+`el.animate(frames, opts)` with a separate, slightly longer `setTimeout` to remove the element. A
+Web Animation with no `fill` reverts its element to the element's own static style the instant it
+finishes — so in the gap between the two, every particle snapped back to its start position at
+full opacity and sat there. The sparks ran 700–1220ms and were removed at 1300ms: half a second of
+a solid square parked dead centre of the board after every single hand. Nobody reported "your
+animations lack a fill mode"; the report was *"there's a weird dot left over for a second in the
+middle"*, which is exactly the right way to report it.
+
+**The sound was the weakest thing in the build, and it was one line.** Every effect went through a
+single function that made one oscillator, so everything in the game beeped — selection, scoring,
+buying, dying. A hit that reads as physical is three layers landing on the same frame: a noise
+transient for the attack you feel, a pitched body that bends *downward* (that fall is what the ear
+reads as landing rather than sounding), and a sub sine underneath for weight. Chip hardware faked
+all three with two square channels and a noise channel, which is exactly the budget to work in
+here. The scoring sound now climbs a whole-tone ladder as a chain runs, so a nine-event hand
+*builds*, and a multiplier event gets a saw growl under it so it is audibly not a point. A `tanh`
+soft clipper on the bus means four layers at once thicken instead of crackling.
+
+The theme came down with it, from 0.32 to 0.15. Music that competes with the feedback is not
+atmosphere, it is masking.
 
 **Vibration, honestly.** Selecting buzzes 11ms, a Lens firing 11ms, a big hand a three-beat
 pattern, a cleared round a five-beat one. On Android. **iOS Safari does not implement

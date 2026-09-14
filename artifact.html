@@ -264,10 +264,13 @@ button{ font-family: inherit; color: inherit; }
   font-size: 9.5px; letter-spacing: .11em; color: var(--text-faint);
   text-align:center; margin-bottom: 4px; line-height:1;
 }
-.tally.pulse .chips{ animation: pop .22s cubic-bezier(.2,1.6,.4,1); }
-.tally.pulsem .multv{ animation: popBig .26s cubic-bezier(.2,1.8,.4,1); }
-@keyframes pop{ 0%{transform:scale(1)} 45%{transform:scale(1.18)} 100%{transform:scale(1)} }
-@keyframes popBig{ 0%{transform:scale(1)} 40%{transform:scale(1.3)} 100%{transform:scale(1)} }
+/* a counter that is settling takes a hit, so the eye goes to the one that moved */
+.tally .chips.roll, .tally .multv.roll{ animation: rollHit .19s cubic-bezier(.2,1.8,.4,1); }
+@keyframes rollHit{
+  0%{ transform: scale(1); }
+  40%{ transform: scale(1.16) translateY(-2px); }
+  100%{ transform: scale(1); }
+}
 
 .meters{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .meter{ padding: 8px 6px; text-align:center; }
@@ -352,8 +355,15 @@ button{ font-family: inherit; color: inherit; }
 .stage-total{
   font-size: 52px; font-weight:700; color: var(--gold);
   text-shadow: 4px 4px 0 var(--edge);
+  /* tabular figures, or a rolling counter jitters its own width every frame */
   font-variant-numeric: tabular-nums;
   animation: slam .34s cubic-bezier(.2,1.5,.4,1);
+}
+.stage-total.landed-total{ animation: totalLock .26s cubic-bezier(.2,1.9,.35,1); }
+@keyframes totalLock{
+  0%{ transform: scale(1.22); }
+  55%{ transform: scale(.97); }
+  100%{ transform: scale(1); }
 }
 @keyframes slam{ 0%{transform:scale(2.2);opacity:0} 60%{transform:scale(.93);opacity:1} 100%{transform:none} }
 .shake{ animation: shake .32s ease-in-out; --amp: 1; }
@@ -397,9 +407,9 @@ button{ font-family: inherit; color: inherit; }
    the one piece of motion that explains the arithmetic: a number does not
    simply appear in the tally, it arrives from the word that earned it. */
 .flyer{
-  position: fixed; width: 15px; height: 15px; z-index: 55;
+  position: fixed; width: 16px; height: 16px; z-index: 55;
   pointer-events: none; background: var(--chips);
-  box-shadow: 0 2px 0 var(--chips-d);
+  box-shadow: 0 0 0 2px var(--edge), 0 3px 0 var(--chips-d);
 }
 .flyer.m{ background: var(--mult); box-shadow: 0 2px 0 var(--mult-d); }
 .flyer.r{ background: var(--gold); box-shadow: 0 2px 0 var(--gold-d); }
@@ -1153,7 +1163,7 @@ button{ font-family: inherit; color: inherit; }
         <div class="controls">
           <button class="btn primary" id="playBtn" type="button" disabled>Play</button>
           <button class="btn danger" id="discardBtn" type="button" disabled>Discard</button>
-          <button class="btn interp" id="interpBtn" type="button">&#9670; Add word</button>
+          <button class="btn interp" id="interpBtn" type="button">+ Add word</button>
         </div>
       </div>
     </main>
@@ -1631,29 +1641,221 @@ function buzz(pattern){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
 
-/* ---------- audio: synthesised effects, one streamed theme ---------- */
-let actx = null;
-function tone(freq, dur, type, gain){
-  if(!prefs.sfx) return;
+/* ---------- sound ----------
+   The first version played one oscillator per event, which is exactly why
+   every sound in the game was a beep. A hit that reads as physical is three
+   layers arriving on the same frame:
+
+     1. a noise transient, 20-60ms, for the attack you feel;
+     2. a pitched body that bends downward, which is what the ear hears as
+        something landing rather than something sounding;
+     3. a sub sine under it for weight.
+
+   Chip hardware faked all three with two square channels and a noise channel,
+   so that is the shape of this: squares, saws, a noise buffer, hard envelopes
+   with no tail, and a soft clipper on the bus so stacked layers saturate like
+   a console instead of crackling. */
+let actx = null, bus = null, noiseBuf = null;
+
+function audio(){
+  if(actx){
+    if(actx.state === "suspended"){ try{ actx.resume(); }catch(e){} }
+    return actx;
+  }
   try{
-    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state === "suspended") actx.resume();
-    const o = actx.createOscillator(), g = actx.createGain();
-    o.type = type || "triangle";
-    o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, actx.currentTime);
-    g.gain.exponentialRampToValueAtTime(gain || 0.09, actx.currentTime + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + (dur||0.14));
-    o.connect(g); g.connect(actx.destination);
-    o.start(); o.stop(actx.currentTime + (dur||0.14) + 0.02);
+    const AC = window.AudioContext || window.webkitAudioContext;
+    actx = new AC();
+    bus = actx.createGain();
+    bus.gain.value = 0.9;
+
+    /* tanh soft clip: four layers at once should thicken, not clip */
+    const shaper = actx.createWaveShaper();
+    const n = 1024, curve = new Float32Array(n);
+    for(let i = 0; i < n; i++){ const x = i * 2 / n - 1; curve[i] = Math.tanh(x * 1.7); }
+    shaper.curve = curve; shaper.oversample = "2x";
+    bus.connect(shaper); shaper.connect(actx.destination);
+
+    const len = Math.floor(actx.sampleRate * 0.5);
+    noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for(let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }catch(e){ actx = null; }
+  return actx;
+}
+
+/* One pitched voice. f0 -> f1 over dur, hard attack, exponential decay. */
+function voice(o){
+  if(!prefs.sfx || !audio()) return;
+  try{
+    const t = actx.currentTime + (o.at || 0);
+    const dur = o.dur || 0.1;
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    osc.type = o.type || "square";
+    osc.frequency.setValueAtTime(o.f0, t);
+    if(o.f1 && o.f1 !== o.f0){
+      osc.frequency.exponentialRampToValueAtTime(Math.max(8, o.f1), t + dur);
+    }
+    if(o.detune) osc.detune.setValueAtTime(o.detune, t);
+
+    const peak = o.gain === undefined ? 0.1 : o.gain;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + (o.attack || 0.004));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    let node = osc;
+    if(o.lp){
+      const f = actx.createBiquadFilter();
+      f.type = "lowpass"; f.frequency.setValueAtTime(o.lp, t);
+      node.connect(f); node = f;
+    }
+    node.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(t + dur + 0.04);
   }catch(e){}
 }
+
+/* The attack: filtered noise with a falling cutoff. */
+function hit(o){
+  if(!prefs.sfx || !audio()) return;
+  try{
+    const t = actx.currentTime + (o.at || 0);
+    const dur = o.dur || 0.05;
+    const src = actx.createBufferSource();
+    src.buffer = noiseBuf;
+    const f = actx.createBiquadFilter();
+    f.type = o.type || "bandpass";
+    f.frequency.setValueAtTime(o.f0 || 2400, t);
+    if(o.f1) f.frequency.exponentialRampToValueAtTime(Math.max(40, o.f1), t + dur);
+    f.Q.value = o.q === undefined ? 1 : o.q;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(o.gain === undefined ? 0.12 : o.gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(bus);
+    src.start(t); src.stop(t + dur + 0.03);
+  }catch(e){}
+}
+
+/* Equal temperament from a root, so the scoring ladder stays musical however
+   long the chain runs. */
+function semi(root, n){ return root * Math.pow(2, n / 12); }
+
+const SFX = {
+  /* picking up a card: a short blip that climbs with each one you add */
+  pick: function(n){
+    const f = semi(523, (n || 1) * 4);
+    voice({ f0: f, f1: f * 1.5, dur: 0.06, gain: 0.075 });
+    hit({ f0: 5000, f1: 2200, dur: 0.025, gain: 0.045, q: 0.6 });
+  },
+  drop: function(){
+    voice({ f0: 440, f1: 220, dur: 0.075, gain: 0.06 });
+  },
+  deny: function(){
+    voice({ f0: 160, f1: 92, dur: 0.17, gain: 0.1 });
+    hit({ f0: 900, f1: 180, dur: 0.1, gain: 0.07, q: 1.5 });
+  },
+  button: function(){
+    voice({ f0: 700, f1: 950, dur: 0.035, gain: 0.05 });
+    hit({ f0: 4200, f1: 2000, dur: 0.018, gain: 0.035, q: 0.8 });
+  },
+
+  /* The coin. Two square steps, the second held — the shape every arcade
+     machine used, because it cuts through anything playing under it. Climbs a
+     whole-tone ladder so a long chain builds instead of repeating. */
+  score: function(i, isMult){
+    const step = Math.min(i || 0, 16) * 2;
+    const root = isMult ? 392 : 523;
+    const f = semi(root, step);
+    voice({ f0: f, dur: 0.042, gain: 0.085 });
+    voice({ f0: f * 1.5, dur: 0.12, gain: 0.085, at: 0.042 });
+    hit({ f0: 5400, f1: 2800, dur: 0.02, gain: 0.045, q: 0.6 });
+    /* a multiplier event gets a growl under it so it is audibly not a chip */
+    if(isMult){
+      voice({ f0: f / 2, f1: f / 3.2, dur: 0.16, type: "sawtooth", gain: 0.07, lp: 1500 });
+    }
+  },
+
+  /* a Lens firing: a saw stab that dives, with a sub under it */
+  lens: function(){
+    voice({ f0: 920, f1: 210, dur: 0.18, type: "sawtooth", gain: 0.1, lp: 2800 });
+    voice({ f0: 115, f1: 58, dur: 0.22, type: "sine", gain: 0.2 });
+    hit({ f0: 6500, f1: 900, dur: 0.07, gain: 0.08, q: 0.5 });
+  },
+
+  /* The total. A kick, a chord and a crash on the same frame, sized to the
+     hit — level 3 gets the full stack. */
+  total: function(level){
+    const L = Math.max(1, level || 1);
+    voice({ f0: 160, f1: 42, dur: 0.3, type: "sine", gain: 0.38 });
+    [523, 659, 784, 1047].slice(0, 1 + L).forEach(function(f, i){
+      voice({ f0: f, dur: 0.3 + i * 0.05, gain: 0.09, at: i * 0.014,
+              detune: i % 2 ? 8 : -8 });
+    });
+    hit({ f0: 7000, f1: 1100, dur: 0.14 + L * 0.06, gain: 0.09, type: "highpass", q: 0.4 });
+  },
+
+  /* the round falling: an arpeggio that lands on a held chord */
+  clear: function(){
+    [523, 659, 784, 1047, 1319].forEach(function(f, i){
+      voice({ f0: f, dur: 0.1, gain: 0.085, at: i * 0.065 });
+    });
+    const at = 0.33;
+    [1047, 1319, 1568].forEach(function(f, i){
+      voice({ f0: f, dur: 0.55, gain: 0.08, at: at, detune: i === 1 ? 9 : -9 });
+    });
+    voice({ f0: 131, f1: 62, dur: 0.45, type: "sine", gain: 0.32, at: at });
+    hit({ f0: 9000, f1: 1600, dur: 0.35, gain: 0.085, type: "highpass", q: 0.4, at: at });
+  },
+
+  /* out of plays: four steps down, detuned, with the floor dropping out */
+  fail: function(){
+    [392, 330, 262, 196].forEach(function(f, i){
+      voice({ f0: f, f1: f * 0.93, dur: 0.24, type: "sawtooth", gain: 0.1,
+              at: i * 0.125, lp: 1300 });
+    });
+    voice({ f0: 95, f1: 36, dur: 0.8, type: "sine", gain: 0.3, at: 0.42 });
+    hit({ f0: 1400, f1: 120, dur: 0.5, gain: 0.06, q: 0.8, at: 0.42 });
+  },
+
+  buy: function(){
+    voice({ f0: 784, dur: 0.045, gain: 0.09 });
+    voice({ f0: 1047, dur: 0.045, gain: 0.09, at: 0.05 });
+    voice({ f0: 1568, dur: 0.18, gain: 0.09, at: 0.1, detune: 5 });
+    voice({ f0: 196, f1: 130, dur: 0.14, type: "sine", gain: 0.2 });
+    hit({ f0: 6500, f1: 3000, dur: 0.05, gain: 0.06, q: 0.6 });
+  },
+  reroll: function(){
+    voice({ f0: 300, f1: 760, dur: 0.11, gain: 0.07 });
+    hit({ f0: 3200, f1: 700, dur: 0.09, gain: 0.06, q: 1.2 });
+  },
+  discard: function(){
+    hit({ f0: 2800, f1: 420, dur: 0.15, gain: 0.13, q: 0.7 });
+    voice({ f0: 200, f1: 105, dur: 0.11, gain: 0.05 });
+  },
+  /* a word coming back from the Interpreter */
+  reveal: function(){
+    [440, 659, 880].forEach(function(f, i){
+      voice({ f0: f, dur: i === 2 ? 0.3 : 0.09, gain: 0.08, at: i * 0.095 });
+    });
+    voice({ f0: 220, f1: 140, dur: 0.25, type: "sine", gain: 0.16, at: 0.19 });
+    hit({ f0: 7000, f1: 2400, dur: 0.12, gain: 0.05, type: "highpass", q: 0.5, at: 0.19 });
+  },
+  runWon: function(){
+    [523, 659, 784, 1047, 1319, 1568].forEach(function(f, i){
+      voice({ f0: f, dur: 0.11, gain: 0.09, at: i * 0.075 });
+    });
+    voice({ f0: 1047, dur: 0.9, gain: 0.09, at: 0.46, detune: -10 });
+    voice({ f0: 1568, dur: 0.9, gain: 0.09, at: 0.46, detune: 10 });
+    voice({ f0: 131, f1: 65, dur: 0.8, type: "sine", gain: 0.34, at: 0.46 });
+  }
+};
 
 /* The theme. 2MB has no business blocking the first frame, and no browser
    will play it before a gesture anyway — so it is fetched on the first tap
    and never before. */
 const MUSIC_SRC = "audio/theme.mp3";
-const MUSIC_VOL = 0.32;
+/* The theme is scenery, not the show. It sat at .32 and swallowed the effects
+   it is supposed to sit under. */
+const MUSIC_VOL = 0.15;
 let music = null, musicFade = null;
 
 function musicFadeTo(target, ms){
@@ -1691,20 +1893,31 @@ function musicStop(){
 /* Drop the theme under a big moment so the moment is audible. */
 function musicDuck(ms){
   if(!music || music.paused) return;
-  musicFadeTo(MUSIC_VOL * 0.35, 90);
-  setTimeout(function(){ if(prefs.music) musicFadeTo(MUSIC_VOL, 700); }, ms || 700);
+  musicFadeTo(MUSIC_VOL * 0.25, 70);
+  setTimeout(function(){ if(prefs.music) musicFadeTo(MUSIC_VOL, 800); }, ms || 700);
 }
 
-/* Browsers gate audio behind a real gesture, so the theme starts on the first
-   one the player makes, whatever it was. */
-let gestureSeen = false;
+/* Browsers gate audio behind a real gesture, and they do not all agree on
+   which events count — a pointerdown that never becomes a click is not always
+   enough, and an iframed page can need the gesture to land inside the frame.
+   So this does not fire once and hope: it tries on every interaction until the
+   element is genuinely playing, and only then stops listening. */
+const GESTURES = ["pointerdown", "pointerup", "touchend", "click", "keydown"];
 function firstGesture(){
-  if(gestureSeen) return;
-  gestureSeen = true;
+  /* An AudioContext created before a gesture starts suspended; this is the
+     moment it is allowed to resume, and the effects need it as much as the
+     theme does. */
+  audio();
+  if(!prefs.music) return;
   musicStart();
+  if(music && !music.paused) dropGestureHooks();
 }
-["pointerdown", "keydown", "touchstart"].forEach(function(ev){
-  window.addEventListener(ev, firstGesture, { once: true, passive: true });
+function dropGestureHooks(){
+  GESTURES.forEach(function(ev){ window.removeEventListener(ev, firstGesture, true); });
+}
+GESTURES.forEach(function(ev){
+  /* capture, so a handler that stops propagation cannot swallow it */
+  window.addEventListener(ev, firstGesture, { capture: true, passive: true });
 });
 
 /* ---------- game state ---------- */
@@ -1921,7 +2134,7 @@ async function play(){
     /* the number leaves the word that earned it and lands on the counter */
     chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, gap - 20);
     setTally(ev.chips, ev.mult);
-    tone(300 + Math.min(e,18)*42, 0.1, ev.cls==="m" ? "sawtooth" : "triangle", 0.06);
+    if(ev.k === "lens") SFX.lens(); else SFX.score(e, ev.cls === "m");
     await sleep(gap);
   }
 
@@ -1934,10 +2147,9 @@ async function play(){
 
   const totalEl = document.createElement("div");
   totalEl.className = "stage-total";
-  totalEl.textContent = "+" + res.total.toLocaleString();
+  totalEl.textContent = "+0";
   stageCards.parentNode.insertBefore(totalEl, document.getElementById("stageHint"));
-  tone(660, .18, "triangle", .1); setTimeout(function(){ tone(880,.3,"triangle",.09); }, 90);
-
+  rollTotal(totalEl, res.total);
   const stageEl = document.getElementById("stage");
   /* G.roundScore already includes res.total by this line, so the old
      "roundScore + total >= target" test counted this hand twice and washed the
@@ -1946,6 +2158,7 @@ async function play(){
   /* How hard the hand landed, measured against what the round asked for. */
   const weight = res.total / G.target;
   const level = (cleared || weight >= 1) ? 3 : weight >= 0.6 ? 2 : weight >= 0.28 ? 1 : 0;
+  SFX.total(level);
   if(level){
     quake(level);
     shock(stageEl);
@@ -1983,9 +2196,8 @@ async function celebrate(){
   flash(false);
   stamp("ROUND CLEAR", false, 1150);
   confetti();
-  tone(523,.14,"triangle",.09);
-  setTimeout(function(){ tone(659,.14,"triangle",.09); }, 110);
-  setTimeout(function(){ tone(784,.34,"triangle",.1); }, 220);
+  musicDuck(1200);
+  SFX.clear();
   buzz([18,60,24,40,70]);
   await sleep(980);
 }
@@ -1993,19 +2205,19 @@ async function lament(){
   flash(true);
   stamp("OUT OF PLAYS", true, 1150);
   quake(3);
-  tone(200,.3,"sawtooth",.08);
-  setTimeout(function(){ tone(140,.5,"sawtooth",.07); }, 180);
+  musicDuck(1400);
+  SFX.fail();
   buzz([90,70,150]);
   await sleep(980);
 }
 
 function setTally(c, m){
-  const ce = document.getElementById("chipsV"), me = document.getElementById("multV"), t = document.getElementById("tally");
-  const mRounded = Math.round(m*10)/10;
-  if(ce.textContent !== String(c)){ t.classList.remove("pulse"); void t.offsetWidth; t.classList.add("pulse"); }
-  if(me.textContent !== String(mRounded)){ t.classList.remove("pulsem"); void t.offsetWidth; t.classList.add("pulsem"); }
-  countTo(ce, c, "chips");
-  countTo(me, mRounded, "mult");
+  /* The pulse classes used to live here, driven by a string comparison against
+     the DOM. countTo knows whether the value actually moved, so the punch
+     belongs there — and two animations fighting over the same element was
+     never going to end well. */
+  countTo(document.getElementById("chipsV"), c, "chips");
+  countTo(document.getElementById("multV"), Math.round(m*10)/10, "mult");
 }
 function floatLabel(host, txt, cls){
   if(!host) return;
@@ -2030,7 +2242,7 @@ function discardSel(){
   G.selected = [];
   G.discards--;
   draw(HAND_SIZE - G.hand.length);
-  tone(220, .09, "square", .05);
+  SFX.discard();
   buzz([9,26,9]);
   render();
 }
@@ -2071,10 +2283,10 @@ function openShop(reward){
   const html = ''
     + '<h2>The Bookseller</h2>'
     + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
-    + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one — from here the targets climb faster than any deck can add.</p>')
-    + '<p>Next round is <b>' + nextDemand.n + '</b>. It wants '
+    + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one. From here the targets climb faster than any deck can keep up with.</p>')
+    + '<p>Next up is <b>' + nextDemand.n + '</b>. It wants '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
-    + ' words, and you need <b>' + TARGETS[G.round].toLocaleString() + '</b> points to clear it.</p>'
+    + ', and you\'ll need <b>' + TARGETS[G.round].toLocaleString() + '</b> points.</p>'
     /* The exponential is the whole reason to shop, and it is invisible from
        inside a single round. Say it out loud, in numbers. */
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
@@ -2086,7 +2298,7 @@ function openShop(reward){
     + '<button class="btn ghost" id="rerollBtn" type="button">Reroll $1</button>'
     + '<div class="purse">Purse $' + G.bank + '</div>'
     + '<button class="btn ' + (G.lenses.length ? 'primary' : 'danger') + '" id="leaveShop" type="button">'
-    + (G.lenses.length ? 'To the table →' : 'Leave with no Lens') + '</button>'
+    + (G.lenses.length ? 'Back to the table →' : 'Leave with no Lens') + '</button>'
     + '</div>';
   showPanel(html);
 
@@ -2100,13 +2312,13 @@ function openShop(reward){
       const lt = LENS_TAG[o.lens.id];
       const n = lt ? deckCount(lt) : 0;
       const fit = (lt && n >= 5)
-        ? '<div class="fit">Fits your deck &mdash; ' + n + ' ' + TAGS[lt][0] + ' words</div>'
+        ? '<div class="fit">Good fit &mdash; you hold ' + n + ' ' + TAGS[lt][0] + ' words</div>'
         : '';
       b.innerHTML = '<div class="on">' + o.lens.n + '</div><div class="od">' + o.lens.d + '</div>'
                   + fit
                   + '<div class="oc">' + (o.bought ? "acquired" : "$" + o.cost) + '</div>';
     } else {
-      b.innerHTML = '<div class="on">TWO NEW WORDS</div><div class="od">Adds two new words to your deck for the rest of the run.</div>'
+      b.innerHTML = '<div class="on">TWO NEW WORDS</div><div class="od">Two fresh words, yours for the rest of the run.</div>'
                   + '<div class="oc">' + (o.bought ? "acquired" : "$" + o.cost) + '</div>';
     }
     b.onclick = function(){ buy(idx, reward); };
@@ -2116,7 +2328,7 @@ function openShop(reward){
   document.getElementById("rerollBtn").disabled = G.bank < 1;
   document.getElementById("rerollBtn").onclick = function(){
     if(G.bank < 1) return;
-    G.bank -= 1; G.offers = rollOffers(); tone(320,.08,"square",.05); openShop(reward);
+    G.bank -= 1; G.offers = rollOffers(); SFX.reroll(); openShop(reward);
   };
   document.getElementById("leaveShop").onclick = function(){
     G.offers = null; coachFinish(); hidePanel(); startRound();
@@ -2140,7 +2352,7 @@ function buy(idx, reward){
   }
   G.bank -= o.cost;
   o.bought = true;
-  tone(520,.1,"triangle",.07); setTimeout(function(){ tone(780,.16,"triangle",.06); }, 80);
+  SFX.buy();
   buzz([10,30,18]);
   openShop(reward);
 }
@@ -2201,14 +2413,15 @@ function houseAppraise(word){
 
 function openInterpreter(){
   if(G.interpreterUsed){
-    toast("The Interpreter answers once per run.");
+    toast("The Interpreter only answers once a run.");
     return;
   }
   showPanel(''
     + '<h2>The Interpreter</h2>'
     + '<div class="sub">One word, once per run</div>'
-    + '<p>Type <b>any word at all</b> — your dog\'s name, your job title, the worst thing that happened to you this week. '
-    + 'It gets appraised for its overtones and shuffled into your deck as a real card, scoring by the same rules as everything else.</p>'
+    + '<p>Type in <b>any word you like</b>. Your dog\'s name, your job title, the worst thing that happened to you this week.</p>'
+    + '<p>It gets read for its overtones and shuffled into your deck as a real card, '
+    + 'scoring by exactly the same rules as everything else.</p>'
     + '<input id="interpInput" maxlength="20" autocomplete="off" spellcheck="false" placeholder="type a word…">'
     + '<div class="appraisal" id="appraisal"></div>'
     + '<div class="rowend">'
@@ -2278,13 +2491,11 @@ async function runAppraisal(){
   say.innerHTML = escapeHtml(note) + '<span class="src">' + escapeHtml(src) + '</span>';
   out.appendChild(say);
 
-  tone(440,.12,"triangle",.08);
-  setTimeout(function(){ tone(660,.12,"triangle",.07); }, 100);
-  setTimeout(function(){ tone(880,.26,"triangle",.07); }, 210);
+  SFX.reveal();
 
   go.textContent = "Into the deck →";
   go.disabled = false;
-  go.onclick = function(){ hidePanel(); render(); toast(word + " is in your deck."); };
+  go.onclick = function(){ hidePanel(); render(); toast(word + " is in the deck."); };
 }
 
 /* ---------- run end ---------- */
@@ -2317,8 +2528,8 @@ function endRun(won){
     +   '<div class="stat"><div class="k">Reached</div><div class="v">' + Math.min(G.round+1, ROUNDS) + ' / ' + ROUNDS + '</div></div>'
     +   '<div class="stat"><div class="k">Best mult</div><div class="v">×' + (G.best.mult||1) + '</div></div>'
     + '</div>'
-    + (isRecord ? '<p style="color:var(--gold)"><b>A personal best.</b></p>' : '')
-    + (unlocked ? '<div class="unlock"><div class="k">Memory — carried into your next run</div><div class="v">'
+    + (isRecord ? '<p style="color:var(--gold)"><b>That is a personal best.</b></p>' : '')
+    + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
         + unlocked.n + '</div><div class="d">' + unlocked.d + '</div></div>' : '')
     + '<div class="share" id="shareBox">' + escapeHtml(share) + '</div>'
     + '<div class="rowend">'
@@ -2337,8 +2548,7 @@ function endRun(won){
   document.getElementById("againSeed").onclick = function(){ hidePanel(); newRun(G.seed); };
   document.getElementById("againNew").onclick = function(){ hidePanel(); newRun("free-" + Math.random().toString(36).slice(2,8)); };
 
-  tone(won?520:180, .3, won?"triangle":"sawtooth", .09);
-  if(won) setTimeout(function(){ tone(784,.5,"triangle",.09); }, 180);
+  if(won) SFX.runWon(); else SFX.fail();
 }
 
 function shareText(won){
@@ -2449,6 +2659,30 @@ function iconSpan(tag){
 /* Cards already seen in hand, so a re-render does not re-deal them. */
 const SEEN = {};
 
+/* Run a throwaway element's animation and take the element away the moment it
+   ends. `fill: "forwards"` holds the last frame so nothing can snap back
+   while we wait, and the timeout is only a net for browsers that never fire
+   onfinish (a backgrounded tab, mainly). */
+function animateOut(el, frames, opts){
+  let gone = false;
+  const drop = function(){
+    if(gone) return;
+    gone = true;
+    try{ el.remove(); }catch(e){}
+  };
+  const ms = (opts.duration || 400) + (opts.delay || 0);
+  try{
+    const a = el.animate(frames, Object.assign({ fill: "forwards" }, opts));
+    a.onfinish = drop;
+    a.oncancel = drop;
+  }catch(e){
+    /* no WAAPI: do not leave the element sitting there */
+    setTimeout(drop, 0);
+    return;
+  }
+  setTimeout(drop, ms + 260);
+}
+
 const REDUCED = (function(){
   try{ return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
   catch(e){ return false; }
@@ -2468,16 +2702,13 @@ function confetti(n){
     document.body.appendChild(el);
     const rise = 250 + Math.random()*400;
     const drift = (Math.random()-.5)*280;
-    try{
-      el.animate([
-        { transform:"translate(0,0) rotate(0deg)", opacity:1 },
-        { transform:"translate("+(drift*.6).toFixed(0)+"px,"+(-rise).toFixed(0)+"px) rotate("
-          +(Math.random()*640-320).toFixed(0)+"deg)", opacity:1, offset:.5 },
-        { transform:"translate("+(drift*1.5).toFixed(0)+"px,140px) rotate("
-          +(Math.random()*900-450).toFixed(0)+"deg)", opacity:0 }
-      ], { duration: 1150 + Math.random()*750, easing:"cubic-bezier(.2,.7,.4,1)" });
-    }catch(e){}
-    setTimeout(function(){ try{ el.remove(); }catch(e){} }, 2000);
+    animateOut(el, [
+      { transform:"translate(0,0) rotate(0deg)", opacity:1 },
+      { transform:"translate("+(drift*.6).toFixed(0)+"px,"+(-rise).toFixed(0)+"px) rotate("
+        +(Math.random()*640-320).toFixed(0)+"deg)", opacity:1, offset:.5 },
+      { transform:"translate("+(drift*1.5).toFixed(0)+"px,140px) rotate("
+        +(Math.random()*900-450).toFixed(0)+"deg)", opacity:0 }
+    ], { duration: 1150 + Math.random()*750, easing:"cubic-bezier(.2,.7,.4,1)" });
   }
 }
 
@@ -2494,14 +2725,11 @@ function burst(host, n){
     host.appendChild(el);
     const ang = Math.random()*Math.PI*2;
     const dist = 60 + Math.random()*170;
-    try{
-      el.animate([
-        { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
-        { transform: "translate(-50%,-50%) translate(" + (Math.cos(ang)*dist).toFixed(0)
-          + "px," + (Math.sin(ang)*dist + 70).toFixed(0) + "px) scale(0)", opacity: 0 }
-      ], { duration: 700 + Math.random()*520, easing: "cubic-bezier(.2,.7,.3,1)" });
-    }catch(e){}
-    setTimeout(function(){ try{ el.remove(); }catch(e){} }, 1300);
+    animateOut(el, [
+      { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
+      { transform: "translate(-50%,-50%) translate(" + (Math.cos(ang)*dist).toFixed(0)
+        + "px," + (Math.sin(ang)*dist + 70).toFixed(0) + "px) scale(0)", opacity: 0 }
+    ], { duration: 700 + Math.random()*520, easing: "cubic-bezier(.2,.7,.3,1)" });
   }
 }
 
@@ -2520,20 +2748,20 @@ function chipFly(fromEl, toId, cls, ms){
   n.className = "flyer " + (cls || "c");
   n.style.left = x0 + "px"; n.style.top = y0 + "px";
   document.body.appendChild(n);
-  const dur = Math.max(150, Math.min(260, ms || 240));
-  try{
-    n.animate([
-      { transform: "translate(-50%,-50%) scale(.5) rotate(0deg)", opacity: .2 },
-      { transform: "translate(-50%,-50%) translate(" + (dx * .4).toFixed(0) + "px,"
-        + (dy * .4 - 34).toFixed(0) + "px) scale(1.25) rotate(140deg)", opacity: 1, offset: .45 },
-      { transform: "translate(-50%,-50%) translate(" + dx.toFixed(0) + "px," + dy.toFixed(0)
-        + "px) scale(.45) rotate(320deg)", opacity: .85 }
-    ], { duration: dur, easing: "cubic-bezier(.3,.05,.25,1)" });
-  }catch(e){}
+  const dur = Math.max(160, Math.min(280, ms || 250));
+  /* Arc up and over rather than travelling in a straight line — a straight
+     line between two boxes reads as a UI transition, an arc reads as a thing
+     being thrown. */
+  animateOut(n, [
+    { transform: "translate(-50%,-50%) scale(.45) rotate(0deg)", opacity: 0 },
+    { transform: "translate(-50%,-50%) translate(" + (dx * .28).toFixed(0) + "px,"
+      + (dy * .28 - 40).toFixed(0) + "px) scale(1.35) rotate(180deg)", opacity: 1, offset: .4 },
+    { transform: "translate(-50%,-50%) translate(" + dx.toFixed(0) + "px," + dy.toFixed(0)
+      + "px) scale(.3) rotate(400deg)", opacity: 0 }
+  ], { duration: dur, easing: "cubic-bezier(.34,.02,.24,1)" });
   setTimeout(function(){
-    try{ n.remove(); }catch(e){}
     to.classList.remove("landed"); void to.offsetWidth; to.classList.add("landed");
-  }, dur);
+  }, dur - 30);
 }
 
 /* A square ring thrown out from the middle of the stage. */
@@ -2542,13 +2770,10 @@ function shock(host){
   const s = document.createElement("i");
   s.className = "shock";
   host.appendChild(s);
-  try{
-    s.animate([
-      { transform: "translate(-50%,-50%) scale(.35)", opacity: 1 },
-      { transform: "translate(-50%,-50%) scale(9)", opacity: 0 }
-    ], { duration: 520, easing: "cubic-bezier(.15,.75,.3,1)" });
-  }catch(e){}
-  setTimeout(function(){ try{ s.remove(); }catch(e){} }, 560);
+  animateOut(s, [
+    { transform: "translate(-50%,-50%) scale(.35)", opacity: 1 },
+    { transform: "translate(-50%,-50%) scale(9)", opacity: 0 }
+  ], { duration: 520, easing: "cubic-bezier(.15,.75,.3,1)" });
 }
 
 /* One flat frame of colour across the whole screen. */
@@ -2584,20 +2809,73 @@ function quake(level){
   quake._t = setTimeout(function(){ app.classList.remove("shake", "big", "huge"); }, 600);
 }
 
-/* Tween a counter instead of snapping it. Kept well under the gap between
-   scoring events so the numbers never lag the sound. */
+/* ---------- counters that land instead of sliding ----------
+   The first version tweened linearly from the old number to the new one over
+   110ms, which reads as a number quietly changing — you see the result, never
+   the event. This settles like a mechanical counter instead: the digits
+   scramble, then lock into place left to right, and the field takes a hit on
+   the way. The scramble costs nothing (it is the same rAF loop) and it is the
+   difference between a readout and a payout. */
+function rollFrame(endStr, k){
+  /* k is 0..1. Digits lock left to right, all of them by 78%. */
+  const lock = Math.floor(endStr.length * Math.min(1, k / 0.78));
+  let out = "";
+  for(let i = 0; i < endStr.length; i++){
+    const ch = endStr[i];
+    if(i < lock || ch < "0" || ch > "9") out += ch;
+    else out += String((Math.random() * 10) | 0);
+  }
+  return out;
+}
+
 const COUNT = {};
 function countTo(el, to, key){
   const from = COUNT[key] === undefined ? to : COUNT[key];
   COUNT[key] = to;
-  if(REDUCED || from === to){ el.textContent = to; return; }
-  const t0 = performance.now(), dur = 110;
+  const end = String(to);
+  if(REDUCED || from === to){ el.textContent = end; return; }
+
+  /* Long enough to read as a roll, short enough to be finished before the next
+     scoring beat lands (the gap between events is 130ms at its tightest). */
+  const dur = 125;
+  const t0 = performance.now();
+  cancelAnimationFrame(el._roll);
+  el.classList.remove("roll"); void el.offsetWidth; el.classList.add("roll");
+
   (function step(now){
     const k = Math.min(1, (now - t0) / dur);
-    const v = from + (to - from) * (1 - Math.pow(1 - k, 3));
-    el.textContent = (Math.abs(to - Math.round(v)) < 0.05) ? to : Math.round(v);
-    if(k < 1) requestAnimationFrame(step);
-    else el.textContent = to;
+    if(k < 1){
+      const v = from + (to - from) * (1 - Math.pow(1 - k, 4));
+      let s = String(Math.round(v * 10) / 10);
+      while(s.length < end.length) s = " " + s;
+      el.textContent = rollFrame(s.length === end.length ? s : end, k);
+      el._roll = requestAnimationFrame(step);
+    } else {
+      el.textContent = end;
+      el.classList.remove("roll");
+    }
+  })(t0);
+}
+
+/* The big one. The total is the payoff of the whole hand, so it counts up from
+   zero with the same settle rather than simply appearing. */
+function rollTotal(el, to){
+  const end = "+" + to.toLocaleString();
+  if(REDUCED){ el.textContent = end; return; }
+  const dur = Math.min(620, 260 + Math.log10(Math.max(10, to)) * 120);
+  const t0 = performance.now();
+  (function step(now){
+    const k = Math.min(1, (now - t0) / dur);
+    if(k < 1){
+      const v = Math.round(to * (1 - Math.pow(1 - k, 3)));
+      let s = "+" + v.toLocaleString();
+      while(s.length < end.length) s = s.replace("+", "+0");
+      el.textContent = rollFrame(s.length === end.length ? s : end, k);
+      requestAnimationFrame(step);
+    } else {
+      el.textContent = end;
+      el.classList.add("landed-total");
+    }
   })(t0);
 }
 
@@ -2675,13 +2953,13 @@ function cardEl(c, staticCard){
 function toggleSel(id){
   if(G.animating) return;
   const i = G.selected.indexOf(id);
-  if(i >= 0){ G.selected.splice(i,1); tone(240,.06,"sine",.04); buzz(6); }
+  if(i >= 0){ G.selected.splice(i,1); SFX.drop(); buzz(6); }
   else{
     if(G.selected.length >= MAX_PLAY){
-      toast("Three words at a time — drop one first.");
-      tone(180,.1,"square",.05); buzz([8,45,8]); return;
+      toast("Three at a time. Drop one first.");
+      SFX.deny(); buzz([8,45,8]); return;
     }
-    G.selected.push(id); tone(420 + G.selected.length*90, .07, "sine", .05); buzz(11);
+    G.selected.push(id); SFX.pick(G.selected.length); buzz(11);
   }
   if(G.coachStep === "pick" && G.selected.length) G.coachStep = "play";
   else if(G.coachStep === "play" && !G.selected.length) G.coachStep = "pick";
@@ -2703,60 +2981,59 @@ function toggleSel(id){
 const TUT = [
   { label: "Overtone",
     text: function(){
-      return "Every word carries <b>overtones</b> &mdash; the little tags along "
-           + "the bottom of the card. Each round asks for two of them, and words "
-           + "that carry them are worth points."
-           + '<span class="do">Seven words, four plays. Let\u2019s take one round together.</span>'; } },
+      return "See the little tags along the bottom of each card? Those are its "
+           + "<b>overtones</b>. Every round asks for two of them, and words that "
+           + "carry them are worth points."
+           + '<span class="do">Seven words, four plays. Let\u2019s do one round together.</span>'; } },
 
   { sel: ".blind", pos: "right", label: "What this round wants",
     text: function(){
-      return "This round is <b>" + G.demand.n + "</b>. It wants "
+      return "This one is <b>" + G.demand.n + "</b>, and it wants "
            + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-           + " words. Every matching tag on a word you play is worth "
-           + "<b>+25 points</b> &mdash; and a word carrying both tags pays twice."
-           + '<span class="do">You need ' + G.target.toLocaleString()
-           + " points to clear it.</span>"; } },
+           + ". Every matching tag you play is <b>+25 points</b>, and a word carrying "
+           + "both of them pays twice."
+           + '<span class="do">Get to ' + G.target.toLocaleString()
+           + " and you\u2019ve cleared it.</span>"; } },
 
   { sel: "#hand", pos: "top", label: "Pick a word",
     text: function(){
       return "The words that can score here have a <b>gold stripe</b> across the top, "
-           + "and their matching tags are lit gold."
-           + '<span class="do">Tap one of the gold-striped words.</span>'; },
+           + "and their matching tags are lit up gold."
+           + '<span class="do">Tap one of the gold-striped ones.</span>'; },
     done: function(){ return G.selected.length >= 1; } },
 
   { sel: "#hand", pos: "top", label: "How many to take",
     text: function(){
-      return "<b>Take three whenever you can.</b> Every word adds its own points, so "
-           + "three words score roughly three times one &mdash; and a word that "
-           + "doesn\u2019t match still adds its own value, so a third word is almost "
-           + "never a mistake.<br><br>"
-           + "Clearing a round with plays and discards left over pays you <b>more money</b> "
-           + "at the shop, so finishing fast is worth real Lenses later."
+      return "<b>Take three when you can.</b> Each word adds its own points, so three "
+           + "score about three times as much as one. Even a word that matches nothing "
+           + "still adds its value, so a third card is rarely a bad idea.<br><br>"
+           + "And if you clear a round with plays and discards to spare, you get "
+           + "<b>more money</b> for it. Finishing fast buys better Lenses."
            + '<span class="do">Tap a second word.</span>'; },
     done: function(){ return G.selected.length >= 2; } },
 
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
-      return "Your hand is worth <b>points × multiplier</b>. Matching tags add points; "
-           + "the multiplier is stuck at 1 until you own a Lens. The board shows what "
-           + "you would score <b>before</b> you commit &mdash; so try swapping a word and "
-           + "watch the number move."; } },
+      return "Your hand is worth <b>points \u00d7 multiplier</b>. Matching tags add points. "
+           + "The multiplier sits at 1 until you own a Lens.<br><br>"
+           + "The board works this out before you commit, so swap a word and watch the "
+           + "number move."; } },
 
   { sel: "#playBtn", pos: "top", label: "Play it",
     text: function(){
-      return "Playing costs one of your four plays. <b>Discard</b> throws words away "
-           + "and draws replacements instead, three times a round."
-           + '<span class="do">Press PLAY.</span>'; },
+      return "Playing uses one of your four plays. <b>Discard</b> throws words back and "
+           + "deals you new ones instead, three times a round."
+           + '<span class="do">Hit PLAY.</span>'; },
     done: function(){ return G.plays < 4; } },
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
-      return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b> &mdash; "
-           + "a rule that bends the scoring. Words <b>add</b> points; Lenses "
-           + "<b>multiply</b> them, and the targets climb faster than any deck can add.<br><br>"
-           + "Some Lenses want fewer words: <b>ASCETIC</b> pays ×5 for playing exactly "
-           + "one. Until you own one of those, three is the answer."
-           + '<span class="do">That\u2019s the whole game. Go and clear ' + G.demand.n + ".</span>"; } }
+      return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>: a rule "
+           + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
+           + "and the targets climb faster than any deck can keep up with.<br><br>"
+           + "A few Lenses want fewer words. <b>ASCETIC</b> pays \u00d75 if you play exactly "
+           + "one. Until you own something like that, three is the answer."
+           + '<span class="do">That\u2019s the whole game. Go clear ' + G.demand.n + ".</span>"; } }
 ];
 
 let tutStep = -1, tutWatch = null;
@@ -2881,16 +3158,16 @@ function renderTut(){
    board, while they're doing the thing. It runs once, during round 1.      */
 /* The stage itself now states the +25 rule, so this carries the one players
    actually miss: order is a decision. */
-const IDLE_HINT = "Pick up to 3 words, then press PLAY.";
+const IDLE_HINT = "Pick up to 3 words, then hit PLAY.";
 function idleHint(){
   return orderMatters()
-    ? IDLE_HINT + " Your Lenses read the words left to right, so the order changes the score."
-    : IDLE_HINT + " Three words score more than one.";
+    ? IDLE_HINT + " Your Lenses read left to right, so the order changes the score."
+    : IDLE_HINT + " Three words beat one.";
 }
 const COACH = {
   pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
-  play:  "Now press PLAY — the board shows what you'd score before you commit.",
-  score: "Points × Multiplier. Matching tags add points; Lenses multiply them."
+  play:  "Hit PLAY. The board has already worked out what you'd get.",
+  score: "That's points × multiplier. Tags add the points, Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -2930,9 +3207,9 @@ function renderPreview(){
     });
     const txt = document.createElement("div");
     txt.className = "dc-text";
-    txt.innerHTML = 'This round wants '
+    txt.innerHTML = 'Wants '
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-      + ' words. Every matching tag you play is <b>+25 points</b>.';
+      + '. Every matching tag you play is <b>+25 points</b>.';
     call.appendChild(icons);
     call.appendChild(txt);
     sc.appendChild(call);
@@ -2965,9 +3242,9 @@ function renderPreview(){
       && c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
   });
   hint.innerHTML = '<span class="hand-name">' + resonanceName(hits) + '</span><br>'
-    + 'Would score <b>' + res.total.toLocaleString() + '</b> points'
-    + (spare ? ' &middot; you can still add ' + room + ' more word' + (room > 1 ? 's' : '') : '')
-    + (orderMatters() ? '<br><span class="ord">Your Lenses read left to right &mdash; try a different order</span>' : '');
+    + 'Worth <b>' + res.total.toLocaleString() + '</b> points'
+    + (spare ? ' &middot; room for ' + room + ' more' : '')
+    + (orderMatters() ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>' : '');
 }
 
 function renderDemand(){
@@ -2999,7 +3276,7 @@ function renderRail(){
   if(G.lenses.length === 0){
     const e = document.createElement("div");
     e.className = "rail-empty";
-    e.textContent = "NO LENSES YET — clear this round and you can buy one. Lenses multiply your score.";
+    e.textContent = "NO LENSES YET. Clear this round and you can buy one — they're what multiplies your score.";
     rail.appendChild(e);
     return;
   }
@@ -3052,7 +3329,7 @@ function renderControls(){
   document.getElementById("playBtn").disabled = G.animating || G.selected.length===0 || G.plays<=0;
   document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
-  document.getElementById("interpBtn").textContent = G.interpreterUsed ? "◆ Word added" : "◆ Add word";
+  document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";
   document.getElementById("bankLabel").textContent = "$" + G.bank;
   document.getElementById("seedLabel").textContent = (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase();
 }
@@ -3097,10 +3374,10 @@ function showSettings(){
   }
   showPanel('<h2>Sound &amp; feel</h2>'
     + '<div class="sub">Saved on this device</div>'
-    + row("music", "Music", "The theme, looping under the game.")
-    + row("sfx", "Sound effects", "Clicks, scoring, and the noise a big hand makes.")
-    + row("haptics", "Vibration", "A short buzz on every scoring beat. Android phones only — "
-        + "browsers on iPhone do not offer it.")
+    + row("music", "Music", "The track that loops under the game.")
+    + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
+    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry \u2014 "
+        + "browsers on iPhone don\u2019t allow it.")
     + '<div class="rowend"><span></span>'
     + '<button class="btn primary" id="closeSettings" type="button">Back to the game</button></div>');
 
@@ -3112,7 +3389,7 @@ function showSettings(){
       b.setAttribute("aria-pressed", v ? "true" : "false");
       b.textContent = v ? "ON" : "OFF";
       if(k === "music"){ v ? musicStart() : musicStop(); }
-      if(k === "sfx" && v) tone(660, .1, "triangle", .07);
+      if(k === "sfx" && v) SFX.buy();
       if(k === "haptics" && v) buzz(18);
       syncSoundBtn();
     };
@@ -3140,28 +3417,28 @@ function showHelp(){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Four things, then you are fine</div>'
+    + '<div class="sub">Four things and you are fine</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p><b>Match what the round wants.</b> Every round names two overtones &mdash; the '
-    +     'small tags along the bottom of each word. Tags that match light up '
-    +     '<b class="gold">gold</b>, and every gold tag you play is <b>+25 points</b>. '
-    +     'A word carrying both tags pays twice.</p></div>'
+    +     '<p><b>Match what the round wants.</b> Every round names two overtones. They are the '
+    +     'small tags along the bottom of each word. The ones that match light up '
+    +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>. '
+    +     'A word carrying both pays twice.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div>'
-    +     '<p><b>Take three words, nearly always.</b> Each word adds its own points, and a '
-    +     'word that matches nothing still adds its value &mdash; so a third word is almost '
-    +     'never a mistake. Clearing a round with plays and discards to spare pays you '
-    +     '<b>more money</b>, and money buys Lenses. Play fewer only when a Lens pays you to: '
+    +     '<p><b>Take three words, nearly always.</b> Each one adds its own points, and even a '
+    +     'word that matches nothing still adds its value, so a third card is rarely a mistake. '
+    +     'Clear a round with plays and discards to spare and you get paid <b>more money</b> for '
+    +     'it, which is how you afford better Lenses. Play fewer only when a Lens pays you to: '
     +     '<b>ASCETIC</b> gives &times;5 for exactly one word, <b>ANTONYM ENGINE</b> wants a '
-    +     'specific pair.</p></div>'
+    +     'specific pair side by side.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>You score points &times; multiplier.</b> Words add points. The multiplier sits '
-    +     'at 1 and does not move until a Lens moves it &mdash; which is why round 8 asks for '
-    +     TARGETS[ROUNDS-1].toLocaleString() + ' and round 1 asks for ' + TARGETS[0] + '.</p></div>'
+    +     '<p><b>Your score is points &times; multiplier.</b> Words add points. The multiplier sits '
+    +     'at 1 and stays there until a Lens moves it. That is the whole reason round 1 asks for '
+    +     TARGETS[0] + ' and round 8 asks for ' + TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
-    +     'They are the engine, and they are the reason two runs are never the same.</p></div>'
+    +     'They are the engine, and they are why no two runs feel the same.</p></div>'
     + '</div>'
 
     + '<div class="worked">'
@@ -3171,22 +3448,23 @@ function showHelp(){
     +     '<div class="tags">' + exTags + '</div></div>'
     +   '</div>'
     +   '<div class="worked-sum">'
-    +     'Say the round wants <b>HEAT</b>.<br>'
-    +     'FURNACE is worth <b>' + ex.base + '</b> points on its own, and its gold HEAT tag '
-    +     'adds <b>25</b> more.<br>'
-    +     'Hold <b>PYROMANIAC</b> (+45 points on every HEAT word) and the same card is '
-    +     '<b>' + withLens + '</b>.'
+    +     'Say this round wants <b>HEAT</b>.<br>'
+    +     'FURNACE is worth <b>' + ex.base + '</b> on its own, and its gold HEAT tag adds '
+    +     'another <b>25</b>.<br>'
+    +     'Now hold <b>PYROMANIAC</b>, which pays +45 on every HEAT word, and the same card '
+    +     'is <b>' + withLens + '</b>.'
     +     '<span class="worked-tot">' + withLens + ' \u00d7 1 = ' + withLens + ' points</span>'
     +   '</div>'
     + '</div>'
 
     + '<div class="sub" style="margin:0 0 7px">Does the order I tap them in matter?</div>'
-    + '<p>Not at first. With no Lenses the points are simply added up, so any order gives the '
-    + 'same number. It starts to matter the moment you own a Lens that <b>reads position</b> '
-    + '&mdash; CARNIVORE eats the word to its left, LEXICOGRAPHER pays for your leftmost word '
-    + '&mdash; or when you hold one Lens that <b>adds</b> to the multiplier and another that '
-    + '<b>multiplies</b> it, because (1+2)&times;3 and (1&times;3)+2 are different scores from '
-    + 'the same three words. Put the adders first. The board tells you when this is live.</p>'
+    + '<p>Not at first. With no Lenses the points just get added up, so any order gives you the '
+    + 'same number.</p>'
+    + '<p>It starts to matter once you own a Lens that <b>reads position</b>. CARNIVORE eats the '
+    + 'word to its left. LEXICOGRAPHER pays for whichever word you put first. It also matters if '
+    + 'you hold one Lens that <b>adds</b> to the multiplier and another that <b>multiplies</b> it, '
+    + 'because (1+2)&times;3 is 9 and (1&times;3)+2 is 5 from the very same three cards. Put the '
+    + 'adders first. The board will tell you when any of this is live.</p>'
 
     + '<div class="sub" style="margin:0 0 7px">The nineteen overtones</div>'
     + '<div class="legend">' + legend + '</div>'

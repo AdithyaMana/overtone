@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**196 tests, 0 failures.** 83 engine + 113 E2E. The engine tier uses Node’s built-in runner and needs no
+**206 tests, 0 failures.** 83 engine + 123 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -134,10 +134,37 @@ the two real bugs the suite caught, is in [`docs/tests/test-summary.md`](docs/te
 
 ## Sound, vibration and motion
 
-The theme is a 96kbps mono-ish MP3 at ~2MB, and it is **never fetched before the player touches
-something**: no browser will play audio before a gesture anyway, so putting it on the critical
-path would only slow the first frame for nothing. `audio/theme.mp3` is re-encoded from a 6.6MB
-320kbps source that stays out of the repo (`.gitignore`); regenerate it with:
+### The effects
+
+The first version played one oscillator per event, which is exactly why every sound in the game
+was a beep. A hit that reads as physical is three layers landing on the same frame:
+
+1. a **noise transient**, 20–60ms, for the attack you feel;
+2. a **pitched body that bends downward** — that fall is what the ear hears as something
+   *landing* rather than something *sounding*;
+3. a **sub sine** under it for weight.
+
+Chip hardware faked all three with two square channels and a noise channel, so that is the shape
+of `SFX` in `index.html`: squares and saws, one noise buffer, hard envelopes with no tail, and a
+`tanh` soft clipper on the bus so four layers at once saturate like a console instead of
+crackling. The scoring sound climbs a whole-tone ladder as a chain runs, so a long hand builds
+instead of repeating, and a multiplier event gets a saw growl under it so it is audibly not a
+point.
+
+### The theme
+
+A 96kbps MP3 at ~2MB, **never fetched before the player touches something**: no browser will play
+audio before a gesture anyway, so putting it on the critical path would only slow the first frame
+for nothing. It sits at `MUSIC_VOL = 0.15` and ducks to a quarter of that under a big hand — it
+is scenery, not the show, and at its first setting it swallowed the effects it is supposed to sit
+under.
+
+Browsers do not agree on which events count as a gesture, and an iframed page can need the
+gesture to land inside the frame, so the start is not a one-shot: it retries on every interaction,
+in the capture phase, until the element is genuinely playing, and only then unhooks.
+
+`audio/theme.mp3` is re-encoded from a 6.6MB 320kbps source that stays out of the repo
+(`.gitignore`); regenerate it with:
 
 ```bash
 ffmpeg -i "bg music.mp3" -codec:a libmp3lame -b:a 96k -ar 44100 -ac 2 -map_metadata -1 audio/theme.mp3
@@ -151,7 +178,23 @@ depends on a buzz to be understood; it is confirmation, never information, and t
 says so rather than quietly shipping a dead switch.
 
 `prefers-reduced-motion` kills every animation, the flying points, the confetti and the screen
-shake, and short-circuits the counter tweens so the numbers settle synchronously.
+shake, and short-circuits the counter rolls so the numbers settle synchronously.
+
+### One bug worth knowing about if you touch the particles
+
+Every throwaway particle — sparks, confetti, the flying points, the shockwave — used to be
+written as `el.animate(frames, opts)` with a separate, slightly longer `setTimeout` to remove
+the element. **A Web Animation with no `fill` reverts its element to the element's own static
+style the instant it finishes.** So in the gap between the two, every particle snapped back to
+its start position at full opacity and sat there. The sparks were the visible case: 700–1220ms of
+animation, removed at 1300ms, leaving a solid square parked dead centre of the board for up to
+half a second after every hand.
+
+They all go through `animateOut()` now, which sets `fill: "forwards"` and removes the element on
+`onfinish`, with the timeout kept only as a net for browsers that never fire it. A test samples
+every frame of the scoring window and fails if any particle's animation does not hold its last
+frame — and it was checked against the broken version, because a regression test that passes
+either way is worse than none.
 
 ## Playing on a phone
 
