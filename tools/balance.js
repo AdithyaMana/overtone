@@ -196,6 +196,40 @@ function shop(policy) {
     G.bank -= pick.o.cost;
     pick.o.bought = true;
   }
+
+  /* A player reading the Bookseller's reality check. If the deck cannot reach
+     the next target however it is played, the only move left is to sell
+     something that is costing more than it pays -- which is exactly what the
+     warning now tells them. Modelled here so the fairness numbers reflect a
+     player who HAS that information rather than one who does not. */
+  if (policy === "value" && G.round < api.ROUNDS) {
+    for (let bail = 0; bail < 3; bail++) {
+      const shape = api.roundShape(G.round);
+      if (api.deckCeiling(G.round) >= shape.target) break;
+      /* Sell the Lens whose removal most RAISES the ceiling, and only if it
+         raises it at all. The first version of this just dumped the flawed one
+         whenever the warning fired, which is what a player does if they read
+         "sell something" literally -- and it tanked the win rate, because
+         stripping the engine is usually worse than the drawback. A warning is
+         only as good as the move it suggests. */
+      let idx = -1, gain = 0;
+      for (let i = 0; i < G.lenses.length; i++) {
+        const held = G.lenses[i];
+        G.lenses.splice(i, 1);
+        const without = api.deckCeiling(G.round);
+        G.lenses.splice(i, 0, held);
+        if (without - api.deckCeiling(G.round) > gain) {
+          gain = without - api.deckCeiling(G.round);
+          idx = i;
+        }
+      }
+      if (idx < 0) break;
+      const sold = G.lenses[idx];
+      G.lenses.splice(idx, 1);
+      delete G.lensState[sold.id];
+      G.bank += Math.max(1, Math.ceil(sold.cost / 2));
+    }
+  }
   G.offers = null;
 }
 
@@ -385,7 +419,93 @@ function curve() {
   console.log("  flat p80 per round gives a ~17% win rate.");
 }
 
-if (ARGS.includes("--curve")) curve();
+
+/* Is a round you are about to play actually completable?
+ *
+ * "Impossible" has to mean something precise, so: take the WHOLE deck, not the
+ * hand you happened to draw, and play the best `plays` hands it contains with
+ * this loadout. That is a ceiling no real draw can beat. If the ceiling is
+ * under the target, the round was lost when you bought the Lens, not when you
+ * played the card — and that is a design bug rather than a difficulty.
+ */
+function ceilingFor() {
+  const G = api.G;
+  const pool = G.deck.concat(G.discard, G.hand);
+  const cap = api.maxPlay();
+  const used = new Set();
+  let total = 0;
+  for (let p = 0; p < G.plays; p++) {
+    let best = null;
+    /* top 8 by face value is plenty to find the ceiling and keeps this cheap */
+    const avail = pool.filter(c => !used.has(c)).sort((a, b) => b.base - a.base).slice(0, 8);
+    const pick = (cards) => {
+      if (cards.length && cards.length <= cap) {
+        const r = api.resolve(cards);
+        if (!best || r.total > best.total) best = { total: r.total, cards: cards.slice() };
+      }
+      if (cards.length >= cap) return;
+      avail.forEach(c => { if (cards.indexOf(c) < 0) pick(cards.concat([c])); });
+    };
+    pick([]);
+    if (!best) break;
+    best.cards.forEach(c => used.add(c));
+    total += best.total;
+  }
+  return total;
+}
+
+function fairness() {
+  const n = Math.max(80, Math.floor(RUNS / 3));
+  let rounds = 0, impossible = 0, impossibleFlawed = 0, flawedRounds = 0;
+  const worst = [];
+  for (let s = 0; s < n; s++) {
+    api.newRun("fair-" + s);
+    const G = api.G;
+    for (let round = 0; round < api.ROUNDS; round++) {
+      const ceiling = ceilingFor();
+      const holdsFlaw = G.lenses.some(l => l.flaw);
+      rounds++;
+      if (holdsFlaw) flawedRounds++;
+      if (ceiling < G.target) {
+        impossible++;
+        if (holdsFlaw) impossibleFlawed++;
+        if (worst.length < 6) {
+          worst.push("round " + (round + 1) + "  ceiling " + Math.round(ceiling)
+            + " vs target " + G.target + "  holding ["
+            + G.lenses.map(l => l.n + (l.flaw ? "*" : "")).join(", ") + "]");
+        }
+      }
+      if (!playRound("human")) break;
+      let reward = 4 + G.plays + G.discards;
+      G.lenses.forEach(l => { if (l.onReward) reward = l.onReward(reward); });
+      G.bank += Math.max(0, Math.round(reward));
+      G.round++;
+      if (G.round >= api.ROUNDS) break;
+      shop("value");
+      api.startRound();
+    }
+  }
+  console.log("=".repeat(64));
+  console.log("CAN THE ROUND BE WON AT ALL?  ·  " + n + " runs");
+  console.log("=".repeat(64));
+  console.log("");
+  console.log("  Ceiling = the best score the WHOLE deck could produce this round,");
+  console.log("  with perfect draws and perfect ordering. Below the target means the");
+  console.log("  round was lost at the shop, not at the table.");
+  console.log("");
+  console.log("  rounds played                 " + rounds);
+  console.log("  ceiling under target          " + impossible + "  (" + pct(impossible, rounds) + ")");
+  console.log("  ...of those, holding a flaw   " + impossibleFlawed);
+  console.log("  rounds holding a flawed Lens  " + flawedRounds + "  (" + pct(flawedRounds, rounds) + ")");
+  if (worst.length) {
+    console.log("");
+    console.log("  examples:");
+    worst.forEach(w => console.log("    " + w));
+  }
+}
+
+if (ARGS.includes("--fair")) fairness();
+else if (ARGS.includes("--curve")) curve();
 else if (ARGS.includes("--lenses")) lensPower();
 else if (ARGS.includes("--stacks")) stacks();
 else {

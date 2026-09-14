@@ -111,7 +111,7 @@ function load(){
     get G(){ return G; },
     resolve, newRun, startRound, draw, toggleSel, winRound, rollOffers,
     makeCard, houseAppraise, deckCount, resonanceName, shareText, endRun, store,
-    handSize, maxPlay, sellValue, sellLens,
+    handSize, maxPlay, roundShape, deckCeiling, sellValue, sellLens,
     ORDEALS, ORDEAL_ROUNDS,
     buy, openShop, coachDone, coachFinish, coachSet,
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,

@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**268 tests, 0 failures.** 102 engine + 166 E2E. The engine tier uses Node’s built-in runner and needs no
+**278 tests, 0 failures.** 102 engine + 176 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -228,6 +228,39 @@ wall rather than on a slightly larger number.
 
 Round 1 is never an Ordeal — the tutorial runs there, and meeting a rule-breaking round while
 still learning the rules would be indefensible. There is a test for it.
+
+## Can a round always be won?
+
+No, and that is deliberate — but it is now always visible one round ahead.
+
+`npm run balance -- --fair` answers the question properly. For every round a run
+reaches it computes the **ceiling**: the best score the *whole deck* could produce with
+perfect draws, perfect ordering and every play spent. Nothing a real hand does can beat it, so a
+target above the ceiling is a target no sequence of plays reaches.
+
+| | rounds the deck cannot reach, however played |
+|---|---|
+| holding a flawed Lens | **15.6%** |
+| holding none | 7.7% |
+
+A flawed Lens roughly doubles it. The 7.7% floor is a build that fell off the curve, which is the
+genre working. A losing build is fine; an **invisible** losing build is not — so the Bookseller now
+does the arithmetic out loud:
+
+- **The true target.** It used to print `TARGETS[round]` straight, so with THE CURSE it said
+  11,500 and the round then demanded 23,000 — the game lying at the exact moment you are deciding
+  what to buy.
+- **The true shape.** "You will have 3 plays, 2 discards, a hand of 4" whenever a Lens or the
+  coming Ordeal has bent the round.
+- **The reality check.** *"Played perfectly, your deck makes about 3,854 next round. It asks for
+  47,000. No order of play gets there."* Red when it is short, and it names the two ways out: buy
+  something that changes it, or sell a Lens costing more than it pays.
+
+One honest finding from the simulator: **selling rarely rescues a run.** Modelling a player who
+sells whenever the warning fires made things *worse* — stripping the engine costs more than the
+drawback did. Selling only helps when removing that Lens actually raises the ceiling, which is
+uncommon. So the flawed Lenses are a bet you commit to rather than a trap you escape, and the
+weight sits where it should: on the purchase.
 
 ## Playing on a phone
 

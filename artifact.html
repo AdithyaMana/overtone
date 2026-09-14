@@ -540,15 +540,23 @@ button{ font-family: inherit; color: inherit; }
 .card .art{
   position: relative;
   border-radius: 5px; height: 56px;
-  /* One row, two children, space between them. The badge used to be absolutely
-     positioned over this box while the icons were centred in it, which meant
-     nothing in the layout prevented a third icon from running underneath the
-     number — and on a 30px phone plate, it did. */
-  display:flex; align-items:center; justify-content:center;
-  gap: 5px; padding: 0 5px;
+  /* One row, two siblings. The badge used to be absolutely positioned over this
+     box while the icons were centred in it, so nothing in the layout prevented
+     a third icon from running underneath the number — and on a 30px phone
+     plate, it did, three separate times.
+
+     .icons takes the slack, which pins the value to the right edge where a
+     card's value belongs and centres the icons in what is left. Centring the
+     whole row instead left the number floating mid-plate, reading as a fourth
+     icon rather than as a value. */
+  display:flex; align-items:center;
+  gap: 4px; padding: 0 5px;
   box-shadow: 0 3px 0 rgba(0,0,0,.22);
 }
-.card .art .icons{ display:flex; align-items:center; gap: 5px; min-width: 0; }
+.card .art .icons{
+  display:flex; align-items:center; justify-content:center;
+  flex: 1 1 auto; min-width: 0; gap: 5px;
+}
 .ms{
   font-family: "Material Symbols Rounded";
   font-weight: normal; font-style: normal; line-height: 1;
@@ -584,7 +592,7 @@ button{ font-family: inherit; color: inherit; }
   min-width: 0;
 }
 .card .base{
-  flex: none;
+  flex: none; align-self: flex-start; margin-top: 3px;
   font-size: 11px; font-weight:700; color:#FFF;
   background: rgba(0,0,0,.55); border-radius: 4px; padding: 0 4px;
   font-variant-numeric: tabular-nums; line-height: 1.45;
@@ -663,6 +671,21 @@ button{ font-family: inherit; color: inherit; }
 }
 .offer.flawed{ background: var(--blind); box-shadow: 0 4px 0 var(--blind-d); }
 .offer.flawed .od{ color: #FFE2DE; }
+/* the arithmetic a player should not have to do in their head */
+.reality{
+  background: var(--inset); border-radius: 8px; padding: 11px 13px; margin: 0 0 14px;
+  box-shadow: 0 3px 0 var(--edge);
+}
+.reality.short{ background: var(--blind); box-shadow: 0 4px 0 var(--blind-d); }
+.reality .rk{
+  font-family: var(--f-display); font-size: 11px; letter-spacing:.06em;
+  color: var(--green);
+}
+.reality.short .rk{ color: #FFF; text-shadow: var(--drop-sm); }
+.reality .rv{ font-size: 13px; line-height:1.55; color: var(--text-dim); margin-top: 4px; }
+.reality .rv b{ color: #FFF; }
+.reality.short .rv{ color: #FFE2DE; }
+
 .ordeal-warn{
   background: var(--blind); border-radius: 8px; padding: 11px 13px; margin: 0 0 14px;
   box-shadow: 0 4px 0 var(--blind-d);
@@ -671,6 +694,9 @@ button{ font-family: inherit; color: inherit; }
   font-family: var(--f-display); font-size: 12px; color:#FFF; text-shadow: var(--drop-sm);
 }
 .ordeal-warn .od{ font-size: 13px; line-height:1.5; color:#FFE2DE; margin-top: 4px; }
+
+.panel p.shape{ color: var(--text-dim); font-size: 13.5px; }
+.panel p.shape b{ color: var(--gold); }
 
 .cost-warn{
   align-self:flex-start; font-family: var(--f-display); font-size:10px;
@@ -2265,6 +2291,73 @@ function handSize(){
   return Math.max(4, n);
 }
 
+/* What a round will ACTUALLY ask for and hand you, once the Lenses you hold
+   and the Ordeal you are about to meet have taken their cut. Runs the same
+   hooks startRound does, against a throwaway object.
+
+   The shop used to quote TARGETS[round] straight, which is a lie the moment
+   you own THE CURSE: it said 11,500 and the round demanded 23,000. You cannot
+   ask someone to shop wisely against a number that is not true. */
+function roundShape(round){
+  const probe = { target: TARGETS[round], plays: 4, discards: 3, round: round };
+  if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
+  const o = G && G.ordealOrder ? G.ordealOrder[round] : null;
+  if(o && o.round) o.round(probe);
+  let hand = HAND_SIZE;
+  if(G && G.lenses) G.lenses.forEach(function(l){ if(l.hand) hand += l.hand; });
+  if(o && o.hand) hand += o.hand;
+  return {
+    target: Math.max(1, Math.round(probe.target)),
+    plays: Math.max(1, probe.plays),
+    discards: Math.max(0, probe.discards),
+    hand: Math.max(4, hand),
+    maxPlay: o && o.maxPlay ? Math.min(MAX_PLAY, o.maxPlay) : MAX_PLAY
+  };
+}
+
+/* The best a deck could possibly do in a given round: the whole deck available,
+   drawn perfectly, ordered perfectly, every play spent. No real round beats
+   this, so a target above it is a target that cannot be met.
+
+   Scores against the round's OWN Demand and Ordeal, not the current one, since
+   the point is to look forward from the shop. Restores everything it borrows. */
+function deckCeiling(round){
+  if(!G) return 0;
+  const keepDemand = G.demand, keepOrdeal = G.ordeal, keepDiscards = G.discards;
+  const shape = roundShape(round);
+  const d = G.demandOrder[round];
+  G.demand = { n: d.n, tags: d.tags.slice() };
+  G.ordeal = (G.ordealOrder && G.ordealOrder[round]) || null;
+  G.discards = shape.discards;
+
+  const pool = G.deck.concat(G.discard, G.hand)
+    .slice().sort(function(a,b){ return b.base - a.base; }).slice(0, 9);
+  const used = [];
+  let total = 0;
+  for(let p = 0; p < shape.plays; p++){
+    let best = null;
+    const avail = pool.filter(function(c){ return used.indexOf(c) < 0; });
+    (function walk(cards){
+      if(cards.length){
+        if(cards.length > shape.maxPlay) return;
+        const r = resolve(cards);
+        if(!best || r.total > best.total) best = { total:r.total, cards:cards.slice() };
+      }
+      if(cards.length >= shape.maxPlay) return;
+      for(let i = 0; i < avail.length; i++){
+        if(cards.indexOf(avail[i]) >= 0) continue;
+        walk(cards.concat([avail[i]]));
+      }
+    })([]);
+    if(!best) break;
+    best.cards.forEach(function(c){ used.push(c); });
+    total += best.total;
+  }
+
+  G.demand = keepDemand; G.ordeal = keepOrdeal; G.discards = keepDiscards;
+  return Math.round(total);
+}
+
 /* How many words this round will let you play at once. */
 function maxPlay(){
   if(G && G.ordeal && G.ordeal.maxPlay) return Math.min(MAX_PLAY, G.ordeal.maxPlay);
@@ -2617,13 +2710,28 @@ function openShop(reward){
   if(!G.offers) G.offers = rollOffers();
   const nextDemand = G.demandOrder[G.round];
   const nextOrdeal = (G.ordealOrder && G.ordealOrder[G.round]) || null;
+  const next = roundShape(G.round);
   const html = ''
     + '<h2>The Bookseller</h2>'
     + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
     + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one. From here the targets climb faster than any deck can keep up with.</p>')
     + '<p>Next up is <b>' + nextDemand.n + '</b>. It wants '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
-    + ', and you\'ll need <b>' + TARGETS[G.round].toLocaleString() + '</b> points.</p>'
+    + ', and you\'ll need <b>' + next.target.toLocaleString() + '</b> points'
+    + (next.target !== TARGETS[G.round]
+        ? ' &mdash; <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
+          + '\u00d7 the usual</b>, because of what you are holding' : '')
+    + '.</p>'
+    /* And the shape of it, whenever your Lenses or the Ordeal have bent it.
+       Buying a Lens that costs you a play should show you that cost here,
+       before you commit, not on the board a minute later. */
+    + (next.plays !== 4 || next.discards !== 3 || next.hand !== HAND_SIZE || next.maxPlay !== MAX_PLAY
+        ? '<p class="shape">You will have <b>' + next.plays + '</b> play'
+          + (next.plays === 1 ? '' : 's') + ', <b>' + next.discards + '</b> discard'
+          + (next.discards === 1 ? '' : 's') + ', a hand of <b>' + next.hand + '</b>'
+          + (next.maxPlay !== MAX_PLAY ? ', and <b>' + next.maxPlay + '</b> words a play' : '')
+          + '.</p>'
+        : '')
     /* Naming the Ordeal here is the whole point of it being on a fixed round:
        you get to spend money answering it, rather than discovering it. */
     + (nextOrdeal
@@ -2634,9 +2742,29 @@ function openShop(reward){
     /* The exponential is the whole reason to shop, and it is invisible from
        inside a single round. Say it out loud, in numbers. */
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
-    + TARGETS[ROUNDS-1].toLocaleString() + '</b> &mdash; <b>'
-    + Math.round(TARGETS[ROUNDS-1] / TARGETS[G.round]) + '\u00d7</b> this one.<br>'
+    + roundShape(ROUNDS-1).target.toLocaleString() + '</b> &mdash; <b>'
+    + (function(){ /* rounded, this printed "1x this one" late in a run, where the real
+         ratio is 1.19 — a line whose whole job is to make the climb feel steep,
+         reporting no climb at all. */
+        const r = roundShape(ROUNDS-1).target / next.target;
+        return (r < 3 ? r.toFixed(1) : Math.round(r)); })() + '×</b> this one.<br>'
     + '<b>Words add points. Lenses multiply them.</b></p>'
+    + (function(){
+        /* Perfect draws and perfect ordering, against what the round will
+           really ask. If this is short, no sequence of plays gets there and
+           the honest move is to sell something. */
+        const can = deckCeiling(G.round);
+        const short = can < next.target;
+        return '<div class="reality' + (short ? ' short' : '') + '">'
+          + '<div class="rk">' + (short ? 'THIS DOES NOT REACH' : 'YOU CAN MAKE THIS')
+          + '</div><div class="rv">'
+          + 'Played perfectly, your deck makes about <b>' + can.toLocaleString()
+          + '</b> next round. It asks for <b>' + next.target.toLocaleString() + '</b>.'
+          + (short
+              ? ' <b>No order of play gets there.</b> Buy something that changes it, or sell a Lens that is costing you more than it pays.'
+              : '')
+          + '</div></div>';
+      })()
     + '<div class="offers" id="offers"></div>'
     + (G.lenses.length
         ? '<div class="sub" style="margin:16px 0 7px">Your Lenses &mdash; '

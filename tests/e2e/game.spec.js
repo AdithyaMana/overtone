@@ -801,6 +801,98 @@ test.describe("throwaway motion cleans up after itself", () => {
 });
 
 /* ------------------------------------------------------------------ */
+test.describe("the Bookseller tells the truth", () => {
+  async function shopAt(page, round, ids, ordealId) {
+    return page.evaluate(({ round, ids, ordealId }) => {
+      G.round = round;
+      G.lenses = ids.map(id => LENSES.find(l => l.id === id));
+      G.lensState = {};
+      if (ordealId) G.ordealOrder[round] = ORDEALS.find(o => o.id === ordealId);
+      G.bank = 12; G.offers = null;
+      openShop(9);
+      return { raw: TARGETS[round], shape: roundShape(round) };
+    }, { round, ids, ordealId });
+  }
+
+  test("it quotes the target you will actually face, not the one on the table",
+    async ({ page }) => {
+      await open(page);
+      /* THE CURSE doubles every target. The shop used to print TARGETS[round]
+         straight, so it said 11,500 and the round then demanded 23,000 — the
+         game lying at the exact moment you are deciding what to buy. */
+      const r = await shopAt(page, 4, ["curse"]);
+      expect(r.shape.target).toBe(r.raw * 2);
+      await expect(page.locator("#panel")).toContainText(r.shape.target.toLocaleString());
+      await expect(page.locator("#panel")).toContainText("the usual");
+    });
+
+  test("it states the shape of the round, not just its number", async ({ page }) => {
+    await open(page);
+    /* THE WAGER takes a play, THE FAMINE three cards and a discard. Buying a
+       Lens that costs you a play should show that cost here, before you
+       commit, rather than on the board a minute later. */
+    const r = await shopAt(page, 4, ["wager", "famine"]);
+    expect(r.shape.plays).toBe(3);
+    expect(r.shape.hand).toBe(4);
+    const shape = page.locator(".panel p.shape");
+    await expect(shape).toContainText("3");
+    await expect(shape).toContainText("hand of 4");
+  });
+
+  test("it says plainly when the deck cannot reach the next target", async ({ page }) => {
+    await open(page);
+    /* A losing build is the genre. An INVISIBLE losing build is a bug: the
+       measurement said 15.6% of rounds held while holding a flawed Lens cannot
+       be won by any sequence of plays. */
+    await page.evaluate(() => {
+      G.round = 6;                       // a 23,500 target
+      G.lenses = [LENSES.find(l => l.id === "curse")];   // doubled to 47,000
+      G.lensState = {}; G.bank = 12; G.offers = null;
+      openShop(9);
+    });
+    const reality = page.locator(".reality");
+    await expect(reality).toBeVisible();
+    await expect(reality).toHaveClass(/short/);
+    await expect(reality).toContainText("THIS DOES NOT REACH");
+    await expect(reality).toContainText("No order of play gets there");
+    await expect(reality).toContainText("sell a Lens");
+  });
+
+  test("and says so when the deck is fine", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      /* Round 1's 250, which a bare deck clears at about x1.4. Round 2 is
+         deliberately NOT a safe example: a Lens-less deck tops out around 334
+         against a 700 target, which is the shop teaching itself and not a bug. */
+      G.round = 0; G.lenses = []; G.lensState = {}; G.bank = 12; G.offers = null;
+      openShop(9);
+    });
+    const reality = page.locator(".reality");
+    await expect(reality).toBeVisible();
+    await expect(reality).not.toHaveClass(/short/);
+    await expect(reality).toContainText("YOU CAN MAKE THIS");
+  });
+
+  test("the reality check does not disturb the round it is looking past",
+    async ({ page }) => {
+      await open(page);
+      /* deckCeiling borrows G.demand, G.ordeal and G.discards to score against
+         a future round. Leaving any of them changed would corrupt the board. */
+      const same = await page.evaluate(() => {
+        const before = JSON.stringify({
+          demand: G.demand, ordeal: G.ordeal && G.ordeal.id, discards: G.discards
+        });
+        deckCeiling(5); deckCeiling(7);
+        const after = JSON.stringify({
+          demand: G.demand, ordeal: G.ordeal && G.ordeal.id, discards: G.discards
+        });
+        return before === after;
+      });
+      expect(same, "deckCeiling left the board changed").toBe(true);
+    });
+});
+
+/* ------------------------------------------------------------------ */
 test.describe("Ordeals", () => {
   async function enterOrdeal(page, id) {
     return page.evaluate(id => {
