@@ -255,10 +255,21 @@ left-to-right resolution so every trigger gets its own moment and its own sound;
 break stated rules rather than tuning them; a shop between escalating antes; and the central
 lesson that **exponential targets versus an exponential engine** is a better tension than
 linear difficulty.
+*Also borrowed — the presentation.* The look is deliberately in Balatro's register: a dark
+blue-slate felt table under CRT scanlines and a vignette, chunky slabs with a hard bottom edge
+that depress when pressed, a pixel display face, and above all the **blue chips / red mult**
+pairing carrying the loudest colour in the UI. The structural steal is the left-hand blind
+panel — Demand badge, "score at least", round score, the chips × mult readout, plays and
+discards, money — with the board to its right: Lens row on top, resolution stage in the middle,
+a fanned hand at the bottom. Plays are announced with named shapes (`DOUBLE RESONANCE`,
+`OVERTONE CASCADE`) the way Balatro names poker hands, which teaches players to aim for a shape
+instead of squinting at individual tags.
+
 *Did differently:* Balatro's hand is poker, so the skill floor is a memorised ranking table.
 Overtone's "hand" is meaning, which every player already has. And card *order* matters here in
 a way it mostly doesn't there, which turns each play into a small ordering puzzle on top of a
-selection puzzle.
+selection puzzle. The card faces carry words and overtones rather than rank and suit, so they
+run slightly larger and lean on type instead of pips — no art required either way.
 
 **Wordle / NYT Games** — the retention and distribution reference.
 *Borrowed:* the shared daily seed; a plain-text share block small enough to paste into a
