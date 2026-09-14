@@ -57,7 +57,7 @@ attention actually goes rather than where the layout assumes it goes.
 holding one small line of text — while the round’s rule lived in the far sidebar. A new player
 had to connect “gold tags on cards” to “PAYS FOR” on the opposite side of the screen. The stage
 now states the rule where the eye already is: the demanded overtones as large icons, and
-**+25 chips for each one you play**. Three smaller fixes came with it:
+**+25 points for every matching tag you play**. Three smaller fixes came with it:
 
 - Cards that carry at least one matching overtone get a gold top edge, so the hand sorts itself
   into useful / not useful before anything is read. This removes noise, not depth — the actual
@@ -65,8 +65,44 @@ now states the rule where the eye already is: the demanded overtones as large ic
 - Selected cards are **numbered 1-2-3**. The game had been stating “resolves left to right” in
   words while giving the player no way to see what order they had picked. A stated rule that is
   never shown is not a rule, it is trivia.
-- The idle hint stopped repeating the +25 rule the stage now states, and carries the order rule
-  instead.
+- The idle hint stopped repeating the +25 rule the stage now states, and carries the question a
+  new player actually has instead: *how many should I take?*
+
+**The board stopped using words nobody had been taught.** The scoring readout was two unlabelled
+numbers, a blue one and a red one, and the game called them *chips* and *mult*. "Chips" is a poker
+word; this is not poker, and it bought the game nothing that "points" would not. So: **points ×
+multiplier**, both labelled above the number they name. "RESONANCE +25" became "MATCH +25", and the
+hand shapes became MATCH / DOUBLE MATCH / TRIPLE MATCH, keeping OVERTONE CASCADE at the top end as
+the one flourish worth earning. "PAYS FOR" became "WANTS". Lens descriptions went from "+45 chips"
+to "+45 points", and the four most opaque were rewritten outright — CARNIVORE now says *eats the
+word to its LEFT*, ENTROPY says *play words longest to shortest*.
+
+The nouns the game keeps — Overtone, Lens, the Bookseller, the Interpreter — are the ones that
+carry the theme and are each explained the first time they appear. The ones it dropped carried
+nothing.
+
+**"How many words should I take?" had no answer anywhere in the game.** It is the single most
+frequent decision — four times a round, eight rounds — and the rules card did not address it. It
+turns out to have a clean answer that falls straight out of the scoring:
+
+*Take three whenever you can.* Points are summed, so three words score roughly three times one;
+a word that matches nothing still contributes its own base value, so a third word is almost never
+a mistake; and `reward = 4 + plays left + discards left`, so **clearing a round quickly is
+literally money**, which is Lenses, which is the whole engine. Fewer is right only when a Lens pays
+for it — ASCETIC gives ×5 for exactly one word, ANTONYM ENGINE wants a specific adjacent pair.
+
+That is now a dedicated tutorial step which will not let you past it until you have actually
+picked a second word, a numbered point on the rules card, and a contextual nudge on the board
+("you can still add 1 more word") when a fourth useful card is sitting in hand.
+
+**The board had also been lying about order since the first frame.** It told every player that
+words "resolve left to right, so the order matters". For a player with no Lenses that is simply
+false: points are summed and the multiplier never moves, so every permutation of the same three
+words scores identically. It becomes true two ways — a Lens that reads position (CARNIVORE,
+LEXICOGRAPHER, ANTONYM ENGINE, ENTROPY), or holding one Lens that *adds* to the multiplier
+alongside one that *multiplies* it, since `(1+2)×3 = 9` and `(1×3)+2 = 5` are different scores
+from the same cards. `orderMatters()` computes exactly that, and the line appears only when it
+returns true. A tutorial that teaches a rule the player cannot yet observe teaches distrust.
 
 **The Bookseller is the real cliff.** The simulation says a player who ignores the shop dies at
 round 3, so the shop has about fifteen seconds to teach that Lenses are the engine and not a
@@ -287,6 +323,53 @@ month three.
 
 Secondary, watched but not steering: Interpreter usage rate, share-copy rate, and the
 distribution of round-reached (I want a broad hump around 4–6, not a spike at 3 or a wall at 8).
+
+---
+
+## 6.5 The phone, the feel, and the theme
+
+**Portrait is a layout, not a scale factor.** The first phone build was the desktop layout with
+smaller numbers, and it failed in a specific way: 839px of content in an 812px viewport, so the
+hand's second row sat behind the pinned control bar. Three things fixed it, in order of how much
+they returned:
+
+1. **The card stopped carrying a desktop min-height.** An 80px-wide phone card was 121px tall for
+   93px of content — 28px of empty card, on seven cards, in two rows. Letting the content set the
+   height returned ~80px, which is more than the entire first-run coach bar costs.
+2. **The board stopped repeating the hand back.** When words are selected, the stage used to
+   redraw them at full size while the hand below was still showing the very same cards, selected,
+   raised and numbered 1‑2‑3. That is 240px of a 667px screen spent saying something twice. At
+   portrait width the preview is the number alone; the cards come back, big, during resolution —
+   when the hand folds away and the board takes the room.
+3. **The control row is pinned, not measured.** Phone heights vary far more than widths, and
+   pinning is the only version that cannot put PLAY below the fold on a device nobody tested.
+
+The invariant two tests now hold, at 393×727 and again at 375×667, is not "no scrollbar" — it is
+that **the decision and the move are on screen together**: all seven words visible, no card's
+bottom edge below the top of the control row, all three buttons in the viewport. A hand you have
+to scroll is a decision you cannot make.
+
+**Impact.** Numbers used to simply change in the tally, which asks a player to take on trust that
+the card and the counter are related. Now the points **leave the word that earned them** and land
+on the counter, which makes them pop. Around that: a square shockwave off the total, screen shake
+in three tiers scaled to the hand's size against the round's target, the theme ducking under the
+moment, a ROUND CLEAR stamp and confetti, and a matching red beat for running out of plays. All of
+it is flat and hard-edged — the sheet's no-gradient, zero-blur rule holds for motion too — and all
+of it is off under `prefers-reduced-motion`.
+
+**Vibration, honestly.** Selecting buzzes 11ms, a Lens firing 11ms, a big hand a three-beat
+pattern, a cleared round a five-beat one. On Android. **iOS Safari does not implement
+`navigator.vibrate` at all**, so on an iPhone every one of those is a silent no-op — which is why
+nothing in the game depends on a buzz to be understood. It confirms; it never informs. The
+settings panel says so rather than shipping a switch that quietly does nothing.
+
+**The theme.** One looping MP3, re-encoded from a 6.6MB 320kbps source down to ~2MB, and it is
+**never fetched before the player touches something**. No browser will play audio before a gesture
+anyway, so putting 2MB on the critical path would slow the first frame in exchange for nothing —
+a test asserts the request does not happen. Music, sound effects and vibration are three separate
+switches, because they fail differently: music is what people mute in public, effects are what
+they mute at work, vibration is what eats a battery. One mute button would have made at least two
+of those a worse trade than they need to be.
 
 ---
 

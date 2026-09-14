@@ -72,6 +72,8 @@
 /* the text face has real weights; the display face has one and ignores this */
 b, strong{ font-weight: 700; color: #FFF; }
 html,body{ margin:0; padding:0; }
+/* sparks and floats leave the stage now; they must never widen the document */
+body{ overflow-x: clip; }
 body{
   background: var(--bg);
   color: var(--text);
@@ -107,18 +109,46 @@ button{ font-family: inherit; color: inherit; }
               width .26s cubic-bezier(.2,.9,.3,1), height .26s cubic-bezier(.2,.9,.3,1);
 }
 .tut-box{
-  position: absolute; width: min(340px, calc(100vw - 24px));
-  background: var(--panel); border-radius: 9px; padding: 14px 16px;
-  box-shadow: 0 5px 0 var(--edge);
+  position: absolute; width: min(430px, calc(100vw - 20px));
+  background: var(--panel); border-radius: 10px; padding: 16px 18px;
+  box-shadow: 0 6px 0 var(--edge);
   pointer-events: auto;
 }
 .tut-step{
-  font-size: 11px; letter-spacing: .12em; color: var(--text-faint);
-  text-transform: uppercase; margin-bottom: 6px;
+  font-size: 11px; letter-spacing: .12em; color: var(--gold);
+  text-transform: uppercase; margin-bottom: 7px;
+  font-family: var(--f-display);
 }
-.tut-text{ font-size: 14px; line-height: 1.6; color: var(--text); }
+.tut-text{ font-size: 15px; line-height: 1.65; color: var(--text); }
 .tut-text b{ color: var(--gold); }
-.tut-row{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.tut-text .do{
+  display: block; margin-top: 10px; color: #FFF; font-weight: 700;
+  background: var(--inset); border-radius: 6px; padding: 8px 11px;
+  font-size: 14px;
+}
+.tut-dots{ display: flex; gap: 5px; flex: 1; justify-content: center; }
+.tut-dots i{ width: 7px; height: 7px; border-radius: 50%; background: var(--inset); }
+.tut-dots i.on{ background: var(--gold); }
+.tut-dots i.done{ background: var(--gold-d); }
+.tut-row{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 15px; }
+
+/* On a phone a floating card fights the thing it is pointing at for the same
+   250 square pixels. Dock it instead — full width, top or bottom, whichever
+   is further from the spotlight. */
+@media (max-width: 700px){
+  .tut-box{
+    left: 8px !important; right: 8px !important; width: auto !important;
+    top: auto !important;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    transform: none !important;
+    padding: 14px 15px;
+  }
+  .tut-box.dock-top{ top: 8px !important; bottom: auto !important; }
+  .tut-text{ font-size: 14px; line-height: 1.55; }
+  .tut-text .do{ font-size: 13.5px; padding: 7px 10px; margin-top: 8px; }
+  .tut-next{ padding: 11px 18px; }
+  .tut-skip{ padding: 11px 4px; }
+}
 .tut-skip{
   background: none; border: none; cursor: pointer; padding: 6px 2px;
   font-family: inherit; font-size: 12px; color: var(--text-faint);
@@ -159,8 +189,10 @@ button{ font-family: inherit; color: inherit; }
   padding: 7px 13px; font-size: 13px; font-weight:600; color: var(--text-dim);
   text-shadow: var(--drop-sm);
 }
-.chip-btn:hover{ background: var(--panel-2); color:#FFF; }
 .chip-btn:active{ transform: translateY(3px); box-shadow:none; }
+.chip-btn.icon{ min-width: 38px; font-size: 15px; line-height: 1; padding: 7px 10px; }
+.chip-btn.off{ color: var(--text-faint); opacity: .65; text-decoration: line-through; }
+.chip-btn .short{ display: none; }
 
 /* ---------- table ---------- */
 .table{ display:grid; grid-template-columns: 232px 1fr; gap: 12px; align-items:stretch; flex:1; }
@@ -210,9 +242,11 @@ button{ font-family: inherit; color: inherit; }
   text-shadow: var(--drop); line-height:1.15;
 }
 
-/* chips X mult — the two numbers the whole game is about */
+/* points x multiplier — the two numbers the whole game is about.
+   They used to sit unlabelled, which asked a new player to infer from colour
+   alone what the blue number and the red number were. */
 .tally{
-  display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:6px;
+  display:grid; grid-template-columns: 1fr auto 1fr; align-items:end; gap:6px;
   background: var(--inset); border-radius: 8px; padding: 9px 8px;
   box-shadow: 0 4px 0 var(--edge);
 }
@@ -224,7 +258,12 @@ button{ font-family: inherit; color: inherit; }
 }
 .tally .chips{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .tally .multv{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
-.tally .x{ font-size: 15px; font-weight:700; color: var(--text-faint); }
+.tally .x{ font-size: 15px; font-weight:700; color: var(--text-faint); text-align:center; padding-bottom: 11px; }
+.tcell{ min-width: 0; }
+.tk{
+  font-size: 9.5px; letter-spacing: .11em; color: var(--text-faint);
+  text-align:center; margin-bottom: 4px; line-height:1;
+}
 .tally.pulse .chips{ animation: pop .22s cubic-bezier(.2,1.6,.4,1); }
 .tally.pulsem .multv{ animation: popBig .26s cubic-bezier(.2,1.8,.4,1); }
 @keyframes pop{ 0%{transform:scale(1)} 45%{transform:scale(1.18)} 100%{transform:scale(1)} }
@@ -269,6 +308,12 @@ button{ font-family: inherit; color: inherit; }
 }
 .lens .d{ font-size: 11px; line-height:1.4; color:#2A1C46; margin-top:3px; }
 .lens.fired{ animation: lensFire .5s cubic-bezier(.2,1.3,.3,1); }
+.lens.fired::after{
+  content:""; position:absolute; inset:0; border-radius:7px;
+  background: var(--gold); animation: lensWash .5s steps(3) forwards;
+  pointer-events:none;
+}
+@keyframes lensWash{ 0%{opacity:.75} 100%{opacity:0} }
 @keyframes lensFire{
   0%{ transform: translateY(0) scale(1) rotate(0); }
   30%{ transform: translateY(-10px) scale(1.1) rotate(-3deg); }
@@ -279,18 +324,23 @@ button{ font-family: inherit; color: inherit; }
 
 /* the green table */
 .stage{
-  flex:1; min-height: 186px; position:relative;
+  flex:1; min-height: 212px; position:relative;
   background: var(--felt);
   border-radius: 8px;
   box-shadow: 0 4px 0 var(--felt-d), inset 0 0 0 3px rgba(0,0,0,.14);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap: 14px; padding: 16px; overflow:hidden;
+  gap: 14px; padding: 16px;
+  /* Floats rise above the cards they came from and the total is 52px tall;
+     clipping them here is what cut the scoring popup in half. */
+  overflow: visible;
 }
 .stage-cards{ display:flex; gap:10px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
 .stage-hint{
   font-size: 15px; font-weight:600; letter-spacing:.03em; color: #C9D7E0;
   text-align:center; max-width: 56ch; text-shadow: var(--drop-sm);
 }
+.stage-hint b{ color: var(--gold); }
+.stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens); }
 .stage-hint .hand-name{
   display:inline-block; font-size: 17px; font-weight:700;
   background: var(--inset); color:#FFF;
@@ -306,15 +356,21 @@ button{ font-family: inherit; color: inherit; }
   animation: slam .34s cubic-bezier(.2,1.5,.4,1);
 }
 @keyframes slam{ 0%{transform:scale(2.2);opacity:0} 60%{transform:scale(.93);opacity:1} 100%{transform:none} }
-.shake{ animation: shake .32s ease-in-out; }
+.shake{ animation: shake .32s ease-in-out; --amp: 1; }
+.shake.big{ --amp: 2; animation-duration: .42s; }
+.shake.huge{ --amp: 3.1; animation-duration: .54s; }
 @keyframes shake{
-  0%,100%{transform:translate(0,0)} 15%{transform:translate(-7px,3px)}
-  35%{transform:translate(7px,-3px)} 55%{transform:translate(-5px,-2px)}
-  75%{transform:translate(5px,2px)} 90%{transform:translate(-2px,1px)}
+  0%,100%{transform:translate(0,0)}
+  15%{transform:translate(calc(-7px * var(--amp)), calc(3px * var(--amp)))}
+  35%{transform:translate(calc(7px * var(--amp)), calc(-3px * var(--amp)))}
+  55%{transform:translate(calc(-5px * var(--amp)), calc(-2px * var(--amp)))}
+  75%{transform:translate(calc(5px * var(--amp)), calc(2px * var(--amp)))}
+  90%{transform:translate(calc(-2px * var(--amp)), calc(1px * var(--amp)))}
 }
 /* flat flash when the Demand falls, not a glow */
 .stage.clear::after{
   content:""; position:absolute; inset:0; pointer-events:none;
+  border-radius: 8px;   /* the stage no longer clips, so the wash clips itself */
   background: var(--green); animation: wash .55s steps(4) forwards;
 }
 @keyframes wash{ 0%{opacity:0} 30%{opacity:.55} 100%{opacity:0} }
@@ -324,6 +380,61 @@ button{ font-family: inherit; color: inherit; }
   position:absolute; left:50%; top:50%; width:7px; height:7px;
   background: var(--gold); pointer-events:none; z-index: 7;
 }
+.confetto{
+  position: fixed; bottom: -18px; width: 9px; height: 14px;
+  z-index: 56; pointer-events: none;
+}
+
+/* A square ring thrown out from the total. Flat, hard-edged, no blur — the
+   same rule the rest of the sheet keeps. */
+.shock{
+  position:absolute; left:50%; top:50%; width:26px; height:26px;
+  border: 5px solid var(--gold); transform: translate(-50%,-50%);
+  pointer-events:none; z-index: 6;
+}
+
+/* Points that leave the card they came from and land on the counter. This is
+   the one piece of motion that explains the arithmetic: a number does not
+   simply appear in the tally, it arrives from the word that earned it. */
+.flyer{
+  position: fixed; width: 15px; height: 15px; z-index: 55;
+  pointer-events: none; background: var(--chips);
+  box-shadow: 0 2px 0 var(--chips-d);
+}
+.flyer.m{ background: var(--mult); box-shadow: 0 2px 0 var(--mult-d); }
+.flyer.r{ background: var(--gold); box-shadow: 0 2px 0 var(--gold-d); }
+.landed{ animation: landed .18s cubic-bezier(.2,1.8,.4,1); }
+@keyframes landed{ 0%{transform:scale(1)} 45%{transform:scale(1.16)} 100%{transform:scale(1)} }
+
+/* the round-clear stamp: slams in, holds, goes */
+.stamp{
+  position: fixed; inset: 0; z-index: 58; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.stamp[hidden]{ display: none !important; }
+.stamp span{
+  font-family: var(--f-display);
+  font-size: clamp(30px, 9vw, 62px); letter-spacing: .04em; color: var(--card);
+  background: var(--green); border-radius: 10px; padding: 14px 30px;
+  box-shadow: 0 7px 0 var(--green-d);
+  text-shadow: var(--drop); text-align: center;
+  animation: stampIn .62s cubic-bezier(.15,1.7,.35,1) forwards;
+}
+.stamp.bad span{ background: var(--blind); box-shadow: 0 7px 0 var(--blind-d); }
+@keyframes stampIn{
+  0%{ transform: scale(3.2) rotate(-12deg); opacity: 0; }
+  38%{ transform: scale(.92) rotate(-3deg); opacity: 1; }
+  55%{ transform: scale(1.04) rotate(-3deg); }
+  100%{ transform: scale(1) rotate(-3deg); opacity: 1; }
+}
+
+/* one flat frame of colour over everything — a hit, not a glow */
+.flash{
+  position: fixed; inset: 0; z-index: 57; pointer-events: none;
+  background: var(--green); animation: flashOut .34s steps(3) forwards;
+}
+.flash.bad{ background: var(--blind); }
+@keyframes flashOut{ 0%{opacity:.6} 100%{opacity:0} }
 
 /* ---------- cards ---------- */
 .card{
@@ -347,17 +458,25 @@ button{ font-family: inherit; color: inherit; }
   0%,100%{ transform: translateY(0); }
   50%{ transform: translateY(-3px); }
 }
-.card:hover{
-  transform: translateY(calc(var(--dy, 0px) - 14px)) rotate(0deg) scale(1.06);
-  z-index: 5;
+@media (hover: hover) and (pointer: fine){
+  .card:hover{
+    transform: translateY(calc(var(--dy, 0px) - 14px)) rotate(0deg) scale(1.06);
+    z-index: 5;
+  }
+  .card.sel:hover{ transform: translateY(calc(var(--dy, 0px) - 32px)) rotate(0deg) scale(1.08); }
+  .card.static:hover{ transform: none; z-index: auto; }
+  .btn:hover:not(:disabled){ filter: brightness(1.12); }
+  .offer:hover:not(:disabled){ filter: brightness(1.12); }
+  .chip-btn:hover{ background: var(--panel-2); color:#FFF; }
 }
+/* touch gets a press state instead — immediate, and it never sticks */
+.card:active{ filter: brightness(.94); }
 .card.sel{
   transform: translateY(calc(var(--dy, 0px) - 26px)) rotate(var(--rot, 0deg)) scale(1.04);
   box-shadow: 0 0 0 3px var(--gold), 0 4px 0 var(--card-edge), 0 10px 18px rgba(0,0,0,.5);
   z-index: 4;
 }
-.card.sel:hover{ transform: translateY(calc(var(--dy, 0px) - 32px)) rotate(0deg) scale(1.08); }
-.card.static, .card.static:hover{ cursor:default; transform:none; z-index:auto; }
+.card.static{ cursor:default; transform:none; z-index:auto; }
 .card.deal{ animation: dealIn .32s cubic-bezier(.2,.95,.3,1) backwards; animation-delay: calc(var(--i,0) * 48ms); }
 @keyframes dealIn{
   0%{ opacity:0; transform: translate(-70px, 44px) rotate(-15deg) scale(.84); }
@@ -420,6 +539,12 @@ button{ font-family: inherit; color: inherit; }
 .card.interpreted::after{
   content:"\2666"; position:absolute; top:5px; left:6px; font-size:10px; color: var(--lens-d);
 }
+.card.picked .card-inner{ animation: pickPop .26s cubic-bezier(.2,1.9,.35,1); }
+@keyframes pickPop{
+  0%{ transform: translateY(0) scale(1); }
+  40%{ transform: translateY(-5px) scale(1.07); }
+  100%{ transform: translateY(0) scale(1); }
+}
 .card.scoring{ animation: scorePop .4s cubic-bezier(.2,1.5,.35,1); z-index: 6; }
 @keyframes scorePop{
   0%{ transform: translateY(0) scale(1); }
@@ -474,6 +599,15 @@ button{ font-family: inherit; color: inherit; }
   background: var(--gold); color:#12181C; border-radius:4px; padding:2px 7px;
 }
 
+/* while a hand is resolving, the board takes the room */
+#app.resolving .hand{ opacity: .26; transform: scale(.97); pointer-events: none; }
+.hand{
+  transition: opacity .2s ease, transform .22s ease,
+              max-height .24s ease, padding .24s ease;
+}
+#app.resolving .stage{ min-height: 280px; }
+.stage{ transition: min-height .24s cubic-bezier(.2,.9,.3,1); }
+
 /* ---------- hand + controls ---------- */
 .handwrap{ display:flex; flex-direction:column; gap: 22px; }
 .hand{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; min-height: 182px;
@@ -489,7 +623,6 @@ button{ font-family: inherit; color: inherit; }
   text-shadow: var(--drop);
   transition: background .12s ease, transform .06s ease, box-shadow .12s ease;
 }
-.btn:hover:not(:disabled){ filter: brightness(1.12); }
 .btn:active:not(:disabled){ transform: translateY(4px); box-shadow: none; }
 .btn:disabled{ opacity:.35; cursor:not-allowed; }
 .btn.primary{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 4px 0 var(--chips-d); }
@@ -531,7 +664,6 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 4px 0 var(--lens-d);
   transition: transform .07s ease, filter .12s ease;
 }
-.offer:hover:not(:disabled){ filter: brightness(1.12); }
 .offer:active:not(:disabled){ transform: translateY(4px); box-shadow: none; }
 .offer:disabled{ opacity:.4; cursor:not-allowed; }
 .offer .on{ font-size: 13px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm); }
@@ -590,6 +722,22 @@ button{ font-family: inherit; color: inherit; }
 .worked-sum{ font-size:13.5px; line-height:1.7; color: var(--text-dim); min-width: 210px; flex:1; }
 .worked-sum b{ color:#FFF; }
 .worked-tot{ display:block; margin-top:6px; font-size:18px; font-weight:700; color: var(--gold); }
+
+.setrow{
+  display:flex; align-items:center; justify-content:space-between; gap: 14px;
+  background: var(--inset); border-radius: 8px; padding: 12px 14px; margin-bottom: 9px;
+}
+.setrow .sl{ font-size: 14px; font-weight: 600; }
+.setrow .sd{ font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.switch{
+  flex: none; border: none; cursor: pointer; border-radius: 7px;
+  min-width: 74px; min-height: 40px; padding: 0 14px;
+  font-family: var(--f-display); font-size: 13px; letter-spacing: .04em;
+  background: var(--panel-2); color: var(--text-dim);
+  box-shadow: 0 3px 0 var(--edge); text-shadow: var(--drop-sm);
+}
+.switch[aria-pressed="true"]{ background: var(--green); color:#08241A; text-shadow:none; box-shadow: 0 3px 0 var(--green-d); }
+.switch:active{ transform: translateY(3px); box-shadow: none; }
 
 .kbd{
   display:inline-block; font-size:11.5px; font-weight:700; padding:2px 7px;
@@ -683,88 +831,241 @@ button{ font-family: inherit; color: inherit; }
   .meter.disc{ order:5; }
   .money{ order:6; }
   .runinfo{ grid-column: 1 / -1; order:7; }
-  .stage{ min-height: 150px; }
+  .stage{ min-height: 196px; }
 }
 
-/* ---------- phone: one screen, thumb-sized targets ---------- */
+/* ---------- phone, portrait: one screen, thumb-sized targets ----------
+   Written against 375x640 — smaller than any phone the game is likely to meet
+   — and every band except the stage and the hand is given a fixed budget, so
+   the two that carry the game are the two that get the slack.
+
+     header 32 · round 58 · score 56 · meters 34 · lenses 44
+     stage  flex, 118 floor · hand 2 rows · controls 56 pinned
+
+   The controls are pinned rather than measured: phone heights vary far more
+   than widths (a Pixel 5 is 117px shorter than an iPhone 14), and pinning is
+   the only version that cannot put PLAY below the fold on a device I have
+   not seen. */
 @media (max-width: 620px){
-  #app{ min-height: 100dvh; padding-inline: 9px; padding-block: 7px 8px; gap: 7px; }
-  .masthead{ gap: 8px; }
-  .wordmark{ font-size: 21px; text-shadow: 2px 2px 0 var(--edge); }
-  .chip-btn{ padding: 7px 10px; font-size: 12px; }
-
-  .sidebar{ gap: 7px; }
-  .blind{
-    padding: 8px 10px; text-align:left;
-    display:grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items:center;
+  html{ -webkit-text-size-adjust: 100%; }
+  body{ overscroll-behavior-y: contain; }
+  #app{
+    min-height: 100dvh; padding-inline: 9px; padding-block: 6px 0; gap: 6px;
   }
-  .blind-badge{ font-size: 14px; padding: 7px 9px; grid-column: 1; }
-  .blind-wants{ justify-content:flex-start; margin-top: 0; grid-column: 1; }
+  .masthead{ gap: 8px; }
+  .wordmark{ font-size: 19px; text-shadow: 2px 2px 0 var(--mult); }
+  .chip-btn{ padding: 8px 11px; font-size: 12px; min-height: 34px; }
+  .chip-btn .long{ display: none; }
+  .chip-btn .short{ display: inline; font-size: 15px; line-height: 1; }
+  .mast-actions{ gap: 6px; }
+
+  .table{ gap: 6px; }
+  .sidebar{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+  /* run info first, as one quiet line of context */
+  .runinfo{ grid-column: 1 / -1; order: 0; font-size: 10px; padding: 0 2px; }
+
+  /* what the round wants, and what it costs */
+  .blind{
+    grid-column: 1 / -1; order: 1;
+    padding: 7px 9px; text-align:left;
+    display:grid; grid-template-columns: 1fr auto; gap: 4px 9px; align-items:center;
+  }
+  .blind-badge{ font-size: 13px; padding: 6px 8px; grid-column: 1; }
+  .blind-wants{ justify-content:flex-start; margin-top: 0; grid-column: 1; gap: 4px; }
+  .blind-wants .w{ font-size: 10px; padding: 2px 6px; }
   .blind-req{ margin-top: 0; text-align:right; grid-column: 2; grid-row: 1 / span 2; }
-  .blind-req .k{ font-size: 10px; }
+  .blind-req .k{ font-size: 9.5px; line-height: 1.3; }
   .blind-req .v{ font-size: 21px; }
-  .progress{ grid-column: 1 / -1; margin-top: 1px; height: 7px; }
+  .progress{ grid-column: 1 / -1; margin-top: 0; height: 6px; }
 
-  .tally{ padding: 7px 6px; }
-  .tally .chips, .tally .multv{ font-size: 19px; padding: 6px 3px; }
-  .roundscore{ padding: 6px 4px; }
-  .roundscore .k, .meter .k{ font-size: 10px; }
-  .roundscore .v, .meter .v{ font-size: 17px; }
-  .meter{ padding: 6px 3px; }
-  .money{ padding: 6px 4px; font-size: 17px; }
-  .runinfo{ font-size: 10px; }
+  .tally{ grid-column: 1 / -1; order: 2; padding: 5px 6px 6px; }
+  .tally .chips, .tally .multv{ font-size: 20px; padding: 5px 3px; }
+  .tk{ font-size: 8.5px; margin-bottom: 2px; }
+  .tally .x{ padding-bottom: 7px; }
 
-  .lensbar{ padding: 7px 8px; }
-  .lensbar-head{ font-size: 11px; margin-bottom: 5px; }
-  .lensbar-head b{ font-size: 12px; }
-  .rail{ flex-wrap: nowrap; overflow-x: auto; min-height: 46px; padding-bottom: 2px; }
-  .lens{ flex: 0 0 auto; min-width: 106px; }
-  .rail-empty{ white-space: normal; }
+  /* score · plays · discards · purse, one thin strip */
+  .roundscore{ order: 3; }
+  .meter.plays{ order: 4; }
+  .meter.disc{ order: 5; }
+  .money{ order: 6; }
+  .roundscore, .meter, .money{ padding: 4px 3px; text-align:center; }
+  .roundscore .k, .meter .k{ font-size: 9px; letter-spacing: .03em; }
+  .roundscore .v, .meter .v, .money{ font-size: 16px; line-height: 1.25; }
+  .money{ padding-top: 13px; }
 
-  .stage{ min-height: 76px; padding: 9px; gap: 7px; }
-  .dc-icons .ms{ font-size: 34px; }
-  .dc-icons{ gap: 11px; }
-  .dc-text{ font-size: 12.5px; }
+  .lensbar{ padding: 5px 8px 6px; }
+  .lensbar-head{ font-size: 10px; margin-bottom: 3px; }
+  .lensbar-head b{ font-size: 11px; }
+  .rail{
+    flex-wrap: nowrap; overflow-x: auto; min-height: 42px; padding-bottom: 2px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .rail::-webkit-scrollbar{ display: none; }
+  .lens{ flex: 0 0 auto; min-width: 122px; max-width: 150px; padding: 6px 8px; }
+  .lens .n{ font-size: 11px; }
+  .lens .d{
+    font-size: 10px; line-height: 1.3;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .rail-empty{ white-space: normal; font-size: 11px; line-height: 1.35; }
+
+  /* The stage used to redraw the picked words at full size while the hand
+     was still showing the very same cards, selected, numbered and raised —
+     240px of portrait spent saying something twice, which is what pushed the
+     hand's second row under the pinned controls. The order badges are already
+     on the cards in hand, so the preview here is the number alone. During
+     resolution the hand folds away and the cards come back, big. */
+  #app:not(.resolving) #stageCards .card{ display: none; }
+  #app:not(.resolving) #stageCards{ gap: 0; }
+
+  /* the board: the one band allowed to grow */
+  .stage{ min-height: 118px; padding: 10px 9px; gap: 7px; }
+  #app.resolving .stage{ min-height: 42vh; }
+  #app.resolving .hand{
+    max-height: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; opacity: 0;
+  }
+  .dc-icons .ms{ font-size: 32px; }
+  .dc-icons{ gap: 12px; }
+  .dc-text{ font-size: 12.5px; line-height: 1.45; }
   .demand-call{ gap: 7px; }
   .pos{ width:19px; height:19px; font-size:11px; top:-7px; left:-5px; }
   .stage-hint{ font-size: 12.5px; }
-  .stage-hint .hand-name{ font-size: 13px; padding: 4px 10px; }
-  .stage-total{ font-size: 36px; }
-  .coach{ font-size: 12px; padding: 7px 11px; line-height: 1.35; }
+  .stage-hint .ord{ font-size: 11.5px; margin-top: 3px; }
+  .stage-hint .hand-name{ font-size: 13px; padding: 4px 11px; margin-bottom: 6px; }
+  .stage-total{ font-size: 42px; text-shadow: 3px 3px 0 var(--edge); }
+  .coach{ font-size: 11.5px; padding: 7px 11px; line-height: 1.3; max-width: none; }
 
-  .handwrap{ gap: 9px; }
-  .hand{ gap: 5px; min-height: 0; padding-top: 7px; padding-bottom: 7px; }
-  .card{ width: 68px; min-height: 114px; padding: 5px 4px; border-radius: 6px; }
-  .card .art{ height: 40px; border-radius: 4px; padding-top: 5px; }
-  .card .art .icons{ gap: 3px; }
+  /* the hand: all seven readable at once, in two rows, no scrolling */
+  .handwrap{ gap: 7px; }
+  .hand{
+    gap: 5px; min-height: 0; padding: 4px 0 2px;
+    align-items: flex-start;
+  }
+  /* No min-height: a card is as tall as a word, its plate and its tags, and
+     nothing else. The 110px floor here was a desktop number that added 40px of
+     empty card to every one of seven cards, twice over in two rows. */
+  .card{ width: 80px; min-height: 0; padding: 5px 4px; border-radius: 6px; }
+  .card-inner{ gap: 3px; }
+  .card .art{ height: 36px; border-radius: 4px; padding-top: 4px; }
+  .card .art .icons{ gap: 4px; }
   .card .art .ms{ font-size: 15px; }
   .card .w{ font-size: 11.5px; }
-  .card .base{ font-size: 10px; padding: 0 4px; }
-  .card .tg{ font-size: 7.5px; padding: 1px 3px; }
-  .card:hover{ transform: none; }
-  .card.sel{ transform: translateY(-10px) scale(1.03); }
-  .card.sel:hover{ transform: translateY(-10px) scale(1.03); }
+  .card .base{ font-size: 9.5px; padding: 0 4px; line-height: 1.4; }
+  .card .tags{ gap: 2px; }
+  .card .tg{ font-size: 7.5px; padding: 1px 3px; letter-spacing: 0; }
+  .card.sel{ transform: translateY(-9px) scale(1.03); }
   .hand .card .card-inner{ animation: none; }
 
-  /* Play/Discard/Interpret must never sit below the fold. Phone heights vary
-     far more than widths (a Pixel 5 is 117px shorter than an iPhone 14), so
-     pin the row to the bottom instead of trying to out-guess the tallest
-     device that still fits. */
+  /* PLAY must never be below the fold, on any phone, ever */
   .controls{
     gap: 7px;
     position: sticky; bottom: 0; z-index: 30;
-    margin-inline: -9px; padding: 7px 9px calc(7px + env(safe-area-inset-bottom, 0px));
+    margin-inline: -9px; padding: 8px 9px calc(8px + env(safe-area-inset-bottom, 0px));
     background: var(--bg);
     box-shadow: 0 -2px 0 var(--edge);
   }
-  .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 8px; font-size: 13px; letter-spacing: .02em; }
+  .btn{ flex: 1 1 0; min-height: 50px; padding: 12px 6px; font-size: 13px; letter-spacing: .02em; }
 
-  .panel{ padding: 16px; }
-  .panel h2{ font-size: 21px; }
+  .panel{ padding: 15px; max-height: calc(100dvh - 28px); }
+  .veil{ padding: 14px; }
+  .panel h2{ font-size: 20px; }
   .panel p, .helplist{ font-size: 13px; }
   .worked{ padding: 11px; gap: 11px; }
   .appraisal{ min-height: 0; flex-wrap: wrap; }
   #interpInput{ font-size: 18px; }
+  .offers{ grid-template-columns: 1fr; gap: 8px; }
+  .rowend{ gap: 8px; }
+  .rowend .btn{ flex: 1 1 140px; }
+}
+
+/* ---------- short phones ----------
+   667px tall and under (iPhone SE, and anything with a big browser chrome).
+   Everything loses a few pixels rather than one band losing all of them. */
+@media (max-width: 620px) and (max-height: 790px){
+  #app{ gap: 4px; padding-block: 5px 0; }
+  .table{ gap: 5px; }
+  .sidebar{ gap: 5px; }
+  .board{ gap: 5px; }
+  .masthead{ gap: 6px; }
+  .wordmark{ font-size: 15px; }
+  .chip-btn{ min-height: 30px; padding: 5px 9px; font-size: 11px; }
+  .chip-btn .short{ font-size: 13px; }
+  .runinfo{ font-size: 9px; }
+
+  .blind{ padding: 6px 8px; gap: 3px 8px; }
+  .blind-badge{ font-size: 12px; padding: 5px 7px; }
+  .blind-wants .w{ font-size: 9px; padding: 2px 5px; }
+  .blind-req .k{ font-size: 9px; }
+  .blind-req .v{ font-size: 18px; }
+  .progress{ height: 5px; }
+
+  .tally{ padding: 4px 5px 5px; }
+  .tally .chips, .tally .multv{ font-size: 18px; padding: 4px 3px; }
+  .tk{ font-size: 8px; margin-bottom: 1px; }
+  .tally .x{ padding-bottom: 6px; font-size: 13px; }
+
+  .roundscore, .meter, .money{ padding: 3px 3px; }
+  .roundscore .k, .meter .k{ font-size: 8.5px; }
+  .roundscore .v, .meter .v, .money{ font-size: 14px; }
+  .money{ padding-top: 10px; }
+
+  .lensbar{ padding: 4px 7px 5px; }
+  .lensbar-head{ font-size: 9px; margin-bottom: 2px; }
+  .rail{ min-height: 34px; }
+  .lens{ min-width: 112px; padding: 5px 7px; }
+  .lens .n{ font-size: 10px; }
+  .lens .d{ font-size: 9px; -webkit-line-clamp: 2; }
+  .rail-empty{ font-size: 10px; }
+
+  /* The board's prose repeats the plaque above it, so here it is the short
+     version of itself rather than a paragraph. */
+  .stage{ min-height: 68px; padding: 6px 7px; gap: 4px; }
+  .dc-icons .ms{ font-size: 25px; }
+  .dc-icons{ gap: 9px; }
+  .dc-text{ font-size: 11px; line-height: 1.35; }
+  .demand-call{ gap: 4px; }
+  .stage-hint{ font-size: 11px; line-height: 1.35; }
+  .stage-hint .hand-name{ font-size: 11.5px; padding: 3px 9px; margin-bottom: 4px; }
+  .stage-total{ font-size: 34px; }
+  .coach{ font-size: 10.5px; padding: 5px 9px; line-height: 1.28; }
+
+  /* the hand stays readable; everything around a word gives up its padding */
+  .handwrap{ gap: 5px; }
+  .hand{ padding: 2px 0 0; gap: 4px; }
+  .card{ width: 74px; min-height: 0; padding: 4px 3px; }
+  .card-inner{ gap: 3px; }
+  .card .art{ height: 30px; padding-top: 3px; }
+  .card .art .ms{ font-size: 12px; }
+  .card .art .icons{ gap: 3px; }
+  .card .w{ font-size: 10px; }
+  .card .base{ font-size: 8.5px; padding: 0 3px; line-height: 1.4; }
+  .card .tags{ gap: 2px; }
+  .card .tg{ font-size: 7px; padding: 0 3px; letter-spacing: 0; }
+  .card.sel{ transform: translateY(-7px) scale(1.03); }
+
+  .btn{ min-height: 44px; font-size: 11.5px; padding: 10px 5px; }
+  .controls{ padding: 6px 9px calc(6px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------- phone, landscape ----------
+   Short and wide. The sidebar can go back beside the board, and everything
+   vertical has to shrink or PLAY drops off a 380px-tall viewport. */
+@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
+  #app{ padding-block: 5px 0; gap: 5px; }
+  .masthead{ display: none; }
+  .table{ grid-template-columns: 190px 1fr; gap: 7px; }
+  .sidebar{ grid-template-columns: repeat(2, 1fr); }
+  .blind, .tally, .runinfo{ grid-column: 1 / -1; }
+  .stage{ min-height: 84px; }
+  #app.resolving .stage{ min-height: 150px; }
+  .lensbar{ padding: 5px 7px; }
+  .rail{ min-height: 38px; }
+  .card{ width: 72px; min-height: 106px; }
+  .card .art{ height: 34px; }
+  .btn{ min-height: 42px; padding: 9px 6px; }
+  .controls{ padding-block: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -779,8 +1080,12 @@ button{ font-family: inherit; color: inherit; }
   <header class="masthead">
     <h1 class="wordmark">OVER<span>TONE</span></h1>
     <div class="mast-actions">
-      <button class="chip-btn" id="helpBtn" type="button">How to play</button>
-      <button class="chip-btn" id="newRunBtn" type="button">New run</button>
+      <button class="chip-btn icon" id="soundBtn" type="button" aria-pressed="true"
+              aria-label="Sound and music" title="Sound and music">&#9834;</button>
+      <button class="chip-btn" id="helpBtn" type="button" aria-label="How to play"
+        ><span class="long">How to play</span><span class="short">?</span></button>
+      <button class="chip-btn" id="newRunBtn" type="button" aria-label="New run"
+        ><span class="long">New run</span><span class="short">&#8635;</span></button>
     </div>
   </header>
 
@@ -803,9 +1108,9 @@ button{ font-family: inherit; color: inherit; }
       </div>
 
       <div class="tally" id="tally">
-        <div class="chips" id="chipsV">0</div>
-        <div class="x">X</div>
-        <div class="multv" id="multV">1</div>
+        <div class="tcell"><div class="tk">POINTS</div><div class="chips" id="chipsV">0</div></div>
+        <div class="tcell"><div class="tk">&nbsp;</div><div class="x">&times;</div></div>
+        <div class="tcell"><div class="tk">MULTIPLIER</div><div class="multv" id="multV">1</div></div>
       </div>
 
       <div class="meters">
@@ -848,7 +1153,7 @@ button{ font-family: inherit; color: inherit; }
         <div class="controls">
           <button class="btn primary" id="playBtn" type="button" disabled>Play</button>
           <button class="btn danger" id="discardBtn" type="button" disabled>Discard</button>
-          <button class="btn interp" id="interpBtn" type="button">&#9670; Interpret</button>
+          <button class="btn interp" id="interpBtn" type="button">&#9670; Add word</button>
         </div>
       </div>
     </main>
@@ -862,15 +1167,18 @@ button{ font-family: inherit; color: inherit; }
 
 <div class="tut" id="tut" hidden>
   <div class="tut-hole" id="tutHole"></div>
-  <div class="tut-box" id="tutBox">
+  <div class="tut-box" id="tutBox" role="dialog" aria-live="polite" aria-label="How to play">
     <div class="tut-step" id="tutStep"></div>
     <div class="tut-text" id="tutText"></div>
     <div class="tut-row">
       <button class="tut-skip" id="tutSkip" type="button">Skip</button>
+      <div class="tut-dots" id="tutDots" aria-hidden="true"></div>
       <button class="btn primary tut-next" id="tutNext" type="button">Next</button>
     </div>
   </div>
 </div>
+
+<div class="stamp" id="stamp" hidden><span id="stampText"></span></div>
 
 <div class="toast" id="toast" hidden></div>
 
@@ -1162,68 +1470,68 @@ BLAZE HEA,BRI,DAN,LOU
 /* ---------- Lenses: rules that warp meaning ----------
    Each returns {chips, mult, xmult, label} or null.                */
 const LENSES = [
-  { id:"pyro", n:"PYROMANIAC", d:"Each HEAT word: +45 chips", cost:4,
+  { id:"pyro", n:"PYROMANIAC", d:"Each HEAT word: +45 points", cost:4,
     onCard:function(c){ return c.t.includes("HEA") ? {chips:45} : null; } },
-  { id:"zoo", n:"ZOOLOGIST", d:"Each ANIMAL word: +2 mult", cost:5,
+  { id:"zoo", n:"ZOOLOGIST", d:"Each ANIMAL word: +2 to the multiplier", cost:5,
     onCard:function(c){ return c.t.includes("ANI") ? {mult:2} : null; } },
-  { id:"doom", n:"DOOMSAYER", d:"Each DANGER word: +55 chips", cost:4,
+  { id:"doom", n:"DOOMSAYER", d:"Each DANGER word: +55 points", cost:4,
     onCard:function(c){ return c.t.includes("DAN") ? {chips:55} : null; } },
-  { id:"literal", n:"LITERALIST", d:"Concrete words: +1 mult. Abstract words give no chips.", cost:6,
+  { id:"literal", n:"LITERALIST", d:"Real, touchable words: +1 to the multiplier. ABSTRACT words score nothing.", cost:6,
     onCard:function(c){ return c.t.includes("ABS") ? {chips:-c.base, label:"voided"} : {mult:1}; } },
-  { id:"meta", n:"METAPHYSICIAN", d:"Each ABSTRACT word: +90 chips", cost:5,
+  { id:"meta", n:"METAPHYSICIAN", d:"Each ABSTRACT word: +90 points", cost:5,
     onCard:function(c){ return c.t.includes("ABS") ? {chips:90} : null; } },
-  { id:"carn", n:"CARNIVORE", d:"An ANIMAL word devours the word to its left: +its base chips", cost:6,
+  { id:"carn", n:"CARNIVORE", d:"An ANIMAL word eats the word to its LEFT and takes its points", cost:6,
     onCard:function(c,i,all){ if(!c.t.includes("ANI")||i===0) return null; return {chips: all[i-1].base, label:"devoured"}; } },
-  { id:"anton", n:"ANTONYM ENGINE", d:"A HOT word straight after a COLD one (or the reverse): +120 chips, ×2 mult", cost:7,
+  { id:"anton", n:"ANTONYM ENGINE", d:"A HEAT word straight after a COLD one (or the reverse): +120 points and multiplier ×2", cost:7,
     onCard:function(c,i,all){
       if(i===0) return null;
       const p=all[i-1];
       const a=c.t.includes("HEA")&&p.t.includes("COL"), b=c.t.includes("COL")&&p.t.includes("HEA");
       return (a||b) ? {chips:120, xmult:2} : null; } },
-  { id:"entropy", n:"ENTROPY", d:"If every word is shorter than the one before it: ×2 mult per word", cost:7,
+  { id:"entropy", n:"ENTROPY", d:"Play words in order longest to shortest: multiplier ×2 for each one", cost:7,
     onCard:function(c,i,all){
       for(let j=1;j<all.length;j++) if(all[j].w.length >= all[j-1].w.length) return null;
       return all.length>1 ? {xmult:2} : null; } },
-  { id:"echo", n:"ECHO", d:"+35 chips for every overtone two played words share", cost:6,
+  { id:"echo", n:"ECHO", d:"+35 points for every tag that two of your played words share", cost:6,
     onPlay:function(all){
       let n=0;
       for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++)
         n += all[i].t.filter(function(t){ return all[j].t.includes(t); }).length;
       return n ? {chips:35*n, label:"×"+n+" shared"} : null; } },
-  { id:"syn", n:"SYNESTHETE", d:"Words that are both LOUD and BRIGHT: ×3 mult", cost:6,
+  { id:"syn", n:"SYNESTHETE", d:"Words that are both LOUD and BRIGHT: multiplier ×3", cost:6,
     onCard:function(c){ return (c.t.includes("LOU")&&c.t.includes("BRI")) ? {xmult:3} : null; } },
-  { id:"poly", n:"POLYGLOT", d:"Words with 4 or more overtones: +70 chips", cost:5,
+  { id:"poly", n:"POLYGLOT", d:"Words carrying 4 or more tags: +70 points", cost:5,
     onCard:function(c){ return c.t.length>=4 ? {chips:70} : null; } },
-  { id:"brut", n:"BRUTALIST", d:"Words of 4 letters or fewer: ×2 mult", cost:6,
+  { id:"brut", n:"BRUTALIST", d:"Words of 4 letters or fewer: multiplier ×2", cost:6,
     onCard:function(c){ return c.w.length<=4 ? {xmult:2} : null; } },
-  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 9 letters or more: +150 chips", cost:5,
+  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 9 letters or more: +150 points", cost:5,
     onCard:function(c){ return c.w.length>=9 ? {chips:150} : null; } },
-  { id:"glut", n:"GLUTTON", d:"Play exactly 3 words: ×2.5 mult", cost:6,
+  { id:"glut", n:"GLUTTON", d:"Play exactly 3 words: multiplier ×2.5", cost:6,
     onPlay:function(all){ return all.length===3 ? {xmult:2.5} : null; } },
-  { id:"asc", n:"ASCETIC", d:"Play exactly 1 word: ×5 mult", cost:6,
+  { id:"asc", n:"ASCETIC", d:"Play exactly 1 word: multiplier ×5", cost:6,
     onPlay:function(all){ return all.length===1 ? {xmult:5} : null; } },
-  { id:"reso", n:"RESONATOR", d:"The first word matching the Demand: ×2 mult", cost:5,
+  { id:"reso", n:"RESONATOR", d:"The first word that matches what the round wants: multiplier ×2", cost:5,
     onCard:function(c,i,all,ctx){
       if(ctx.resoUsed) return null;
       const hit = c.t.some(function(t){ return ctx.demand.tags.includes(t); });
       if(!hit) return null; ctx.resoUsed=true; return {xmult:2}; } },
-  { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 chips", cost:5,
+  { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 points", cost:5,
     onPlay:function(all){
       const n=all.some(function(c){return c.t.includes("NAT");}), t=all.some(function(c){return c.t.includes("TEC");});
       return (n&&t) ? {chips:250} : null; } },
-  { id:"lexi", n:"LEXICOGRAPHER", d:"+9 chips per letter of the leftmost word", cost:4,
+  { id:"lexi", n:"LEXICOGRAPHER", d:"+9 points for each letter of your LEFTMOST word", cost:4,
     onCard:function(c,i){ return i===0 ? {chips:9*c.w.length} : null; } },
-  { id:"hydro", n:"HYDROLOGIST", d:"Each WET word: +2 mult", cost:5,
+  { id:"hydro", n:"HYDROLOGIST", d:"Each WET word: +2 to the multiplier", cost:5,
     onCard:function(c){ return c.t.includes("WET") ? {mult:2} : null; } },
-  { id:"chron", n:"CHRONICLER", d:"Each TIME word: +80 chips", cost:4,
+  { id:"chron", n:"CHRONICLER", d:"Each TIME word: +80 points", cost:4,
     onCard:function(c){ return c.t.includes("TIM") ? {chips:80} : null; } },
-  { id:"night", n:"NIGHTWATCH", d:"Each DARK word: +1 mult", cost:4,
+  { id:"night", n:"NIGHTWATCH", d:"Each DARK word: +1 to the multiplier", cost:4,
     onCard:function(c){ return c.t.includes("DAR") ? {mult:1} : null; } },
-  { id:"miser", n:"MISER", d:"+40 chips for each discard you still have", cost:4,
+  { id:"miser", n:"MISER", d:"+40 points for every discard you have not used", cost:4,
     onPlay:function(all,ctx){ return ctx.discards ? {chips:40*ctx.discards, label:"×"+ctx.discards+" held"} : null; } },
-  { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +100 chips", cost:4,
+  { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +100 points", cost:4,
     onCard:function(c){ return c.t.includes("MON") ? {chips:100} : null; } },
-  { id:"phren", n:"PHRENOLOGIST", d:"Each MIND word: +2 mult", cost:5,
+  { id:"phren", n:"PHRENOLOGIST", d:"Each MIND word: +2 to the multiplier", cost:5,
     onCard:function(c){ return c.t.includes("MIN") ? {mult:2} : null; } }
 ];
 
@@ -1257,6 +1565,36 @@ const TARGETS = [200, 340, 520, 800, 1250, 2000, 3300, 5200];
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
+/* ---------- when order actually matters ----------
+   The board told every player from the first second that words "resolve left
+   to right, so the order matters". For a player with no Lenses that is simply
+   false: chips are summed and the multiplier never moves, so any order gives
+   the same number. It only becomes true two ways.
+
+     1. A Lens reads position — CARNIVORE eats the word to its left,
+        LEXICOGRAPHER pays for the leftmost word, ANTONYM ENGINE wants HOT
+        directly after COLD, ENTROPY wants each word shorter than the last.
+
+     2. You hold both a +mult Lens and a xmult Lens. The multiplier is one
+        running number, so (1+2)x3 = 9 and (1x3)+2 = 5 are different scores
+        from the same three words. Additive first, multiplicative last.
+
+   Say it when it is true and not before. */
+const ORDER_LENSES = { carn:1, anton:1, entropy:1, lexi:1 };
+const ADD_MULT = { zoo:1, literal:1, hydro:1, night:1, phren:1 };
+const X_MULT = { anton:1, entropy:1, syn:1, brut:1, glut:1, asc:1, reso:1 };
+function orderMatters(){
+  if(!G || !G.lenses || !G.lenses.length) return false;
+  let add = false, mul = false;
+  for(let i=0;i<G.lenses.length;i++){
+    const id = G.lenses[i].id;
+    if(ORDER_LENSES[id]) return true;
+    if(ADD_MULT[id]) add = true;
+    if(X_MULT[id]) mul = true;
+  }
+  return add && mul;
+}
+
 /* ---------- deterministic RNG (mulberry32) ---------- */
 function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -1271,9 +1609,32 @@ const store = {
   set:function(k,v){ try{ localStorage.setItem("overtone:"+k, JSON.stringify(v)); }catch(e){} }
 };
 
-/* ---------- audio: synthesised, no asset files ---------- */
+/* ---------- what the player can turn off ----------
+   Three separate switches, because they fail differently: music is the one
+   people mute in public, sound effects are the one people mute at work, and
+   vibration is the one that eats a battery. Lumping them behind a single
+   mute button makes at least two of those a worse trade than they need to be. */
+const prefs = {
+  sfx:     store.get("sfx", true),
+  music:   store.get("music", true),
+  haptics: store.get("haptics", true)
+};
+function setPref(k, v){ prefs[k] = v; store.set(k, v); }
+
+/* ---------- haptics ----------
+   Android honours this; iOS Safari does not implement navigator.vibrate at
+   all, so on an iPhone every call here is a silent no-op. That is a real gap
+   and not one a web build can close, so nothing in the game may depend on a
+   buzz to be understood — it is confirmation, never information. */
+function buzz(pattern){
+  if(!prefs.haptics) return;
+  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+}
+
+/* ---------- audio: synthesised effects, one streamed theme ---------- */
 let actx = null;
 function tone(freq, dur, type, gain){
+  if(!prefs.sfx) return;
   try{
     if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
     if(actx.state === "suspended") actx.resume();
@@ -1287,6 +1648,64 @@ function tone(freq, dur, type, gain){
     o.start(); o.stop(actx.currentTime + (dur||0.14) + 0.02);
   }catch(e){}
 }
+
+/* The theme. 2MB has no business blocking the first frame, and no browser
+   will play it before a gesture anyway — so it is fetched on the first tap
+   and never before. */
+const MUSIC_SRC = "audio/theme.mp3";
+const MUSIC_VOL = 0.32;
+let music = null, musicFade = null;
+
+function musicFadeTo(target, ms){
+  if(!music) return;
+  cancelAnimationFrame(musicFade);
+  const from = music.volume, t0 = performance.now();
+  (function step(now){
+    const k = Math.min(1, (now - t0) / ms);
+    try{ music.volume = Math.max(0, Math.min(1, from + (target - from) * k)); }catch(e){}
+    if(k < 1) musicFade = requestAnimationFrame(step);
+  })(t0);
+}
+
+function musicStart(){
+  if(!prefs.music) return;
+  if(!music){
+    try{
+      music = new Audio(MUSIC_SRC);
+      music.loop = true; music.preload = "auto"; music.volume = 0;
+    }catch(e){ music = null; return; }
+  }
+  try{
+    const p = music.play();
+    /* Autoplay policy, a missing file, a browser with no codec: all of them
+       land here, and none of them is worth breaking a hand of cards over. */
+    if(p && p.catch) p.catch(function(){});
+    musicFadeTo(MUSIC_VOL, 1600);
+  }catch(e){}
+}
+function musicStop(){
+  if(!music) return;
+  musicFadeTo(0, 320);
+  setTimeout(function(){ try{ if(!prefs.music) music.pause(); }catch(e){} }, 360);
+}
+/* Drop the theme under a big moment so the moment is audible. */
+function musicDuck(ms){
+  if(!music || music.paused) return;
+  musicFadeTo(MUSIC_VOL * 0.35, 90);
+  setTimeout(function(){ if(prefs.music) musicFadeTo(MUSIC_VOL, 700); }, ms || 700);
+}
+
+/* Browsers gate audio behind a real gesture, so the theme starts on the first
+   one the player makes, whatever it was. */
+let gestureSeen = false;
+function firstGesture(){
+  if(gestureSeen) return;
+  gestureSeen = true;
+  musicStart();
+}
+["pointerdown", "keydown", "touchstart"].forEach(function(ev){
+  window.addEventListener(ev, firstGesture, { once: true, passive: true });
+});
 
 /* ---------- game state ---------- */
 let G = null;
@@ -1428,7 +1847,7 @@ function resolve(cards){
     const hits = c.t.filter(function(t){ return G.demand.tags.includes(t); });
     for(let h=0;h<hits.length;h++){
       chips += 25;
-      events.push({ k:"card", i:i, cls:"r", txt:"RESONANCE +25", chips:chips, mult:mult });
+      events.push({ k:"card", i:i, cls:"r", txt:"MATCH +25", chips:chips, mult:mult });
     }
 
     for(let li=0; li<G.lenses.length; li++){
@@ -1470,6 +1889,11 @@ function sleep(ms){ return new Promise(function(r){ if(skipAnim) r(); else setTi
 async function play(){
   if(G.animating || G.selected.length===0 || G.plays<=0) return;
   G.animating = true; skipAnim = false;
+  buzz(18);
+  /* While a hand resolves, the board takes the room and the hand steps back.
+     On a phone this is the difference between the scoring readout fitting and
+     being cut in half. */
+  document.getElementById("app").classList.add("resolving");
   const cards = G.selected.map(function(id){ return G.hand.find(function(c){ return c.id===id; }); });
   const res = resolve(cards);
 
@@ -1493,7 +1917,9 @@ async function play(){
       setTimeout(function(){ host.classList.remove("scoring"); }, 320);
     }
     floatLabel(host || stageCards, ev.txt, ev.cls);
-    if(ev.k === "lens") flashLens(ev.lens);
+    if(ev.k === "lens"){ flashLens(ev.lens); buzz(11); }
+    /* the number leaves the word that earned it and lands on the counter */
+    chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, gap - 20);
     setTally(ev.chips, ev.mult);
     tone(300 + Math.min(e,18)*42, 0.1, ev.cls==="m" ? "sawtooth" : "triangle", 0.06);
     await sleep(gap);
@@ -1511,13 +1937,23 @@ async function play(){
   totalEl.textContent = "+" + res.total.toLocaleString();
   stageCards.parentNode.insertBefore(totalEl, document.getElementById("stageHint"));
   tone(660, .18, "triangle", .1); setTimeout(function(){ tone(880,.3,"triangle",.09); }, 90);
+
   const stageEl = document.getElementById("stage");
-  if(res.total >= G.target * 0.35){
-    stageEl.classList.add("shake");
-    burst(stageEl, res.total >= G.target ? 30 : 18);
+  /* G.roundScore already includes res.total by this line, so the old
+     "roundScore + total >= target" test counted this hand twice and washed the
+     board green on hands that had not cleared anything. */
+  const cleared = G.roundScore >= G.target;
+  /* How hard the hand landed, measured against what the round asked for. */
+  const weight = res.total / G.target;
+  const level = (cleared || weight >= 1) ? 3 : weight >= 0.6 ? 2 : weight >= 0.28 ? 1 : 0;
+  if(level){
+    quake(level);
+    shock(stageEl);
+    burst(stageEl, 14 + level * 12);
+    musicDuck(600 + level * 200);
+    buzz(level >= 3 ? [22,40,34,30,70] : level >= 2 ? [18,36,26] : 16);
   }
-  setTimeout(function(){ stageEl.classList.remove("shake"); }, 360);
-  if(G.roundScore + res.total >= G.target){
+  if(cleared){
     stageEl.classList.add("clear");
     setTimeout(function(){ stageEl.classList.remove("clear"); }, 760);
   }
@@ -1530,13 +1966,37 @@ async function play(){
 
   G.discard = G.discard.concat(cards);
   G.animating = false;
+  document.getElementById("app").classList.remove("resolving");
 
-  if(G.roundScore >= G.target){ winRound(); return; }
-  if(G.plays <= 0){ endRun(false); return; }
+  if(G.roundScore >= G.target){ await celebrate(); winRound(); return; }
+  if(G.plays <= 0){ await lament(); endRun(false); return; }
 
   draw(HAND_SIZE - G.hand.length);
-  document.getElementById("stageHint").textContent = IDLE_HINT;
+  document.getElementById("stageHint").textContent = idleHint();
   render();
+}
+
+/* The two beats that end a round. They are in play() rather than in
+   winRound()/endRun() on purpose: those two are called directly by tests and
+   by the shop, and neither should have to sit through a second of confetti. */
+async function celebrate(){
+  flash(false);
+  stamp("ROUND CLEAR", false, 1150);
+  confetti();
+  tone(523,.14,"triangle",.09);
+  setTimeout(function(){ tone(659,.14,"triangle",.09); }, 110);
+  setTimeout(function(){ tone(784,.34,"triangle",.1); }, 220);
+  buzz([18,60,24,40,70]);
+  await sleep(980);
+}
+async function lament(){
+  flash(true);
+  stamp("OUT OF PLAYS", true, 1150);
+  quake(3);
+  tone(200,.3,"sawtooth",.08);
+  setTimeout(function(){ tone(140,.5,"sawtooth",.07); }, 180);
+  buzz([90,70,150]);
+  await sleep(980);
 }
 
 function setTally(c, m){
@@ -1571,6 +2031,7 @@ function discardSel(){
   G.discards--;
   draw(HAND_SIZE - G.hand.length);
   tone(220, .09, "square", .05);
+  buzz([9,26,9]);
   render();
 }
 
@@ -1611,15 +2072,15 @@ function openShop(reward){
     + '<h2>The Bookseller</h2>'
     + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
     + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one — from here the targets climb faster than any deck can add.</p>')
-    + '<p>Next is <b>' + nextDemand.n + '</b>, which pays for '
-    + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" and ")
-    + '. Target <b>' + TARGETS[G.round].toLocaleString() + '</b>.</p>'
+    + '<p>Next round is <b>' + nextDemand.n + '</b>. It wants '
+    + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
+    + ' words, and you need <b>' + TARGETS[G.round].toLocaleString() + '</b> points to clear it.</p>'
     /* The exponential is the whole reason to shop, and it is invisible from
        inside a single round. Say it out loud, in numbers. */
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
     + TARGETS[ROUNDS-1].toLocaleString() + '</b> &mdash; <b>'
     + Math.round(TARGETS[ROUNDS-1] / TARGETS[G.round]) + '\u00d7</b> this one.<br>'
-    + '<b>Lenses multiply. More words only add.</b></p>'
+    + '<b>Words add points. Lenses multiply them.</b></p>'
     + '<div class="offers" id="offers"></div>'
     + '<div class="rowend">'
     + '<button class="btn ghost" id="rerollBtn" type="button">Reroll $1</button>'
@@ -1645,7 +2106,7 @@ function openShop(reward){
                   + fit
                   + '<div class="oc">' + (o.bought ? "acquired" : "$" + o.cost) + '</div>';
     } else {
-      b.innerHTML = '<div class="on">TWO NEW WORDS</div><div class="od">Add two fresh words from the lexicon to your deck, permanently.</div>'
+      b.innerHTML = '<div class="on">TWO NEW WORDS</div><div class="od">Adds two new words to your deck for the rest of the run.</div>'
                   + '<div class="oc">' + (o.bought ? "acquired" : "$" + o.cost) + '</div>';
     }
     b.onclick = function(){ buy(idx, reward); };
@@ -1680,6 +2141,7 @@ function buy(idx, reward){
   G.bank -= o.cost;
   o.bought = true;
   tone(520,.1,"triangle",.07); setTimeout(function(){ tone(780,.16,"triangle",.06); }, 80);
+  buzz([10,30,18]);
   openShop(reward);
 }
 
@@ -1992,6 +2454,33 @@ const REDUCED = (function(){
   catch(e){ return false; }
 })();
 
+/* Paper off the bottom of the screen. Deliberately not sparks: sparks mean
+   "that hit", confetti means "that is over and you won". */
+function confetti(n){
+  if(REDUCED) return;
+  n = n || 46;
+  const cols = ["var(--gold)","var(--chips)","var(--mult)","var(--green)","var(--lens)"];
+  for(let i=0;i<n;i++){
+    const el = document.createElement("i");
+    el.className = "confetto";
+    el.style.background = cols[i % cols.length];
+    el.style.left = (5 + Math.random()*90) + "vw";
+    document.body.appendChild(el);
+    const rise = 250 + Math.random()*400;
+    const drift = (Math.random()-.5)*280;
+    try{
+      el.animate([
+        { transform:"translate(0,0) rotate(0deg)", opacity:1 },
+        { transform:"translate("+(drift*.6).toFixed(0)+"px,"+(-rise).toFixed(0)+"px) rotate("
+          +(Math.random()*640-320).toFixed(0)+"deg)", opacity:1, offset:.5 },
+        { transform:"translate("+(drift*1.5).toFixed(0)+"px,140px) rotate("
+          +(Math.random()*900-450).toFixed(0)+"deg)", opacity:0 }
+      ], { duration: 1150 + Math.random()*750, easing:"cubic-bezier(.2,.7,.4,1)" });
+    }catch(e){}
+    setTimeout(function(){ try{ el.remove(); }catch(e){} }, 2000);
+  }
+}
+
 /* A shower of sparks from the middle of the stage. */
 function burst(host, n){
   if(REDUCED || !host) return;
@@ -2014,6 +2503,85 @@ function burst(host, n){
     }catch(e){}
     setTimeout(function(){ try{ el.remove(); }catch(e){} }, 1300);
   }
+}
+
+/* Points leave the card that earned them and land on the counter. Without
+   this the tally simply changes number, and a player has to take on trust
+   that the two are related. */
+function chipFly(fromEl, toId, cls, ms){
+  if(REDUCED || !fromEl) return;
+  const to = document.getElementById(toId);
+  if(!to) return;
+  const a = fromEl.getBoundingClientRect(), b = to.getBoundingClientRect();
+  if(!a.width || !b.width) return;
+  const x0 = a.left + a.width / 2, y0 = a.top + a.height / 2;
+  const dx = (b.left + b.width / 2) - x0, dy = (b.top + b.height / 2) - y0;
+  const n = document.createElement("i");
+  n.className = "flyer " + (cls || "c");
+  n.style.left = x0 + "px"; n.style.top = y0 + "px";
+  document.body.appendChild(n);
+  const dur = Math.max(150, Math.min(260, ms || 240));
+  try{
+    n.animate([
+      { transform: "translate(-50%,-50%) scale(.5) rotate(0deg)", opacity: .2 },
+      { transform: "translate(-50%,-50%) translate(" + (dx * .4).toFixed(0) + "px,"
+        + (dy * .4 - 34).toFixed(0) + "px) scale(1.25) rotate(140deg)", opacity: 1, offset: .45 },
+      { transform: "translate(-50%,-50%) translate(" + dx.toFixed(0) + "px," + dy.toFixed(0)
+        + "px) scale(.45) rotate(320deg)", opacity: .85 }
+    ], { duration: dur, easing: "cubic-bezier(.3,.05,.25,1)" });
+  }catch(e){}
+  setTimeout(function(){
+    try{ n.remove(); }catch(e){}
+    to.classList.remove("landed"); void to.offsetWidth; to.classList.add("landed");
+  }, dur);
+}
+
+/* A square ring thrown out from the middle of the stage. */
+function shock(host){
+  if(REDUCED || !host) return;
+  const s = document.createElement("i");
+  s.className = "shock";
+  host.appendChild(s);
+  try{
+    s.animate([
+      { transform: "translate(-50%,-50%) scale(.35)", opacity: 1 },
+      { transform: "translate(-50%,-50%) scale(9)", opacity: 0 }
+    ], { duration: 520, easing: "cubic-bezier(.15,.75,.3,1)" });
+  }catch(e){}
+  setTimeout(function(){ try{ s.remove(); }catch(e){} }, 560);
+}
+
+/* One flat frame of colour across the whole screen. */
+function flash(bad){
+  if(REDUCED) return;
+  const f = document.createElement("div");
+  f.className = "flash" + (bad ? " bad" : "");
+  document.body.appendChild(f);
+  setTimeout(function(){ try{ f.remove(); }catch(e){} }, 360);
+}
+
+/* The big one: a word slammed across the middle of the screen. */
+function stamp(text, bad, ms){
+  const el = document.getElementById("stamp");
+  if(!el) return;
+  document.getElementById("stampText").textContent = text;
+  el.classList.toggle("bad", !!bad);
+  el.hidden = false;
+  clearTimeout(stamp._t);
+  stamp._t = setTimeout(function(){ el.hidden = true; }, ms || 1000);
+}
+
+/* Screen shake, scaled to the hit. */
+function quake(level){
+  if(REDUCED) return;
+  const app = document.getElementById("app");
+  if(!app) return;
+  app.classList.remove("shake", "big", "huge"); void app.offsetWidth;
+  app.classList.add("shake");
+  if(level >= 2) app.classList.add("big");
+  if(level >= 3) app.classList.add("huge");
+  clearTimeout(quake._t);
+  quake._t = setTimeout(function(){ app.classList.remove("shake", "big", "huge"); }, 600);
 }
 
 /* Tween a counter instead of snapping it. Kept well under the gap between
@@ -2044,6 +2612,7 @@ function cardEl(c, staticCard){
   const el = document.createElement("div");
   el.className = "card" + (staticCard ? " static" : "") + (c.interpreted ? " interpreted" : "");
   el.setAttribute("role", staticCard ? "img" : "button");
+  el.dataset.id = c.id;
   el.setAttribute("aria-label", c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", "));
   if(!staticCard) el.tabIndex = 0;
 
@@ -2106,14 +2675,22 @@ function cardEl(c, staticCard){
 function toggleSel(id){
   if(G.animating) return;
   const i = G.selected.indexOf(id);
-  if(i >= 0){ G.selected.splice(i,1); tone(240,.06,"sine",.04); }
+  if(i >= 0){ G.selected.splice(i,1); tone(240,.06,"sine",.04); buzz(6); }
   else{
-    if(G.selected.length >= MAX_PLAY){ toast("Three words at a time."); return; }
-    G.selected.push(id); tone(420 + G.selected.length*90, .07, "sine", .05);
+    if(G.selected.length >= MAX_PLAY){
+      toast("Three words at a time — drop one first.");
+      tone(180,.1,"square",.05); buzz([8,45,8]); return;
+    }
+    G.selected.push(id); tone(420 + G.selected.length*90, .07, "sine", .05); buzz(11);
   }
   if(G.coachStep === "pick" && G.selected.length) G.coachStep = "play";
   else if(G.coachStep === "play" && !G.selected.length) G.coachStep = "pick";
   renderHand(); renderControls(); renderPreview();
+  /* renderHand rebuilds the row, so the pop goes on after the rebuild. */
+  if(i < 0){
+    const el = document.querySelector('#hand .card[data-id="' + id + '"]');
+    if(el) el.classList.add("picked");
+  }
   /* coachSet lives in render(), which this path deliberately skips — without
      this the coach never leaves step one and the Play prompt never appears. */
   coachSet(G.coachStep);
@@ -2124,38 +2701,62 @@ function toggleSel(id){
    player to actually do the thing rather than read that they could — a
    tutorial you can finish without touching the game has taught nothing. */
 const TUT = [
-  { text: function(){
-      return "<b>Overtone</b> is a word game where meaning is the score. "
-           + "Every word carries overtones, and each round asks for some of them."; },
-    label: "Welcome" },
-
-  { sel: ".blind", pos: "right", label: "The Demand",
+  { label: "Overtone",
     text: function(){
-      return "This round is <b>" + G.demand.n + "</b>. It pays for "
-           + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" and ")
-           + " — 25 chips for every one you play."; } },
+      return "Every word carries <b>overtones</b> &mdash; the little tags along "
+           + "the bottom of the card. Each round asks for two of them, and words "
+           + "that carry them are worth points."
+           + '<span class="do">Seven words, four plays. Let\u2019s take one round together.</span>'; } },
 
-  { sel: "#hand", pos: "top", label: "Your hand",
+  { sel: ".blind", pos: "right", label: "What this round wants",
     text: function(){
-      return "Words that can score are marked with a gold edge, and the matching "
-           + "tags light up gold. <b>Tap two or three of them.</b>"; },
+      return "This round is <b>" + G.demand.n + "</b>. It wants "
+           + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
+           + " words. Every matching tag on a word you play is worth "
+           + "<b>+25 points</b> &mdash; and a word carrying both tags pays twice."
+           + '<span class="do">You need ' + G.target.toLocaleString()
+           + " points to clear it.</span>"; } },
+
+  { sel: "#hand", pos: "top", label: "Pick a word",
+    text: function(){
+      return "The words that can score here have a <b>gold stripe</b> across the top, "
+           + "and their matching tags are lit gold."
+           + '<span class="do">Tap one of the gold-striped words.</span>'; },
     done: function(){ return G.selected.length >= 1; } },
+
+  { sel: "#hand", pos: "top", label: "How many to take",
+    text: function(){
+      return "<b>Take three whenever you can.</b> Every word adds its own points, so "
+           + "three words score roughly three times one &mdash; and a word that "
+           + "doesn\u2019t match still adds its own value, so a third word is almost "
+           + "never a mistake.<br><br>"
+           + "Clearing a round with plays and discards left over pays you <b>more money</b> "
+           + "at the shop, so finishing fast is worth real Lenses later."
+           + '<span class="do">Tap a second word.</span>'; },
+    done: function(){ return G.selected.length >= 2; } },
 
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
-      return "Chips <b>×</b> mult. Matching tags add chips; Lenses multiply them. "
-           + "The board shows what you would score before you commit."; } },
+      return "Your hand is worth <b>points × multiplier</b>. Matching tags add points; "
+           + "the multiplier is stuck at 1 until you own a Lens. The board shows what "
+           + "you would score <b>before</b> you commit &mdash; so try swapping a word and "
+           + "watch the number move."; } },
 
-  { sel: "#playBtn", pos: "top", label: "Playing",
+  { sel: "#playBtn", pos: "top", label: "Play it",
     text: function(){
-      return "<b>Play them.</b> They resolve left to right in the order you tapped, "
-           + "so the order is part of the puzzle."; },
+      return "Playing costs one of your four plays. <b>Discard</b> throws words away "
+           + "and draws replacements instead, three times a round."
+           + '<span class="do">Press PLAY.</span>'; },
     done: function(){ return G.plays < 4; } },
 
-  { sel: ".lensbar", pos: "bottom", label: "What comes next",
+  { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
-      return "Beat the target and the Bookseller sells you a <b>Lens</b>. "
-           + "Lenses multiply — more words only add. That is the whole game."; } }
+      return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b> &mdash; "
+           + "a rule that bends the scoring. Words <b>add</b> points; Lenses "
+           + "<b>multiply</b> them, and the targets climb faster than any deck can add.<br><br>"
+           + "Some Lenses want fewer words: <b>ASCETIC</b> pays ×5 for playing exactly "
+           + "one. Until you own one of those, three is the answer."
+           + '<span class="do">That\u2019s the whole game. Go and clear ' + G.demand.n + ".</span>"; } }
 ];
 
 let tutStep = -1, tutWatch = null;
@@ -2179,6 +2780,7 @@ function startTutorial(force){
 }
 
 function tutAdvance(){
+  buzz(9);
   tutStep++;
   if(tutStep >= TUT.length){ endTutorial(true); return; }
   renderTut();
@@ -2207,16 +2809,40 @@ function renderTut(){
   /* a step that waits on the player gets no Next — doing it is the button */
   document.getElementById("tutNext").hidden = !!s.done;
 
+  const dots = document.getElementById("tutDots");
+  dots.innerHTML = "";
+  for(let i = 0; i < TUT.length; i++){
+    const d = document.createElement("i");
+    d.className = i === tutStep ? "on" : (i < tutStep ? "done" : "");
+    dots.appendChild(d);
+  }
+
+  /* Below this width the card is docked by CSS and only needs to be told
+     which end of the screen to sit at. */
+  const docked = window.innerWidth <= 700;
   const el = s.sel ? document.querySelector(s.sel) : null;
+  if(docked){
+    box.classList.remove("dock-top");
+    if(el){
+      const r = el.getBoundingClientRect();
+      /* sit at whichever end is further from the thing being pointed at */
+      if(r.top + r.height / 2 > window.innerHeight * 0.5) box.classList.add("dock-top");
+    }
+  }
   if(!el){
-    /* No target: park the cutout off-screen at zero size so its 9999px spread
-       still dims the whole board. Hiding it would leave the card floating over
-       an undimmed page. */
+    /* No target: a zero-size hole in the middle of the screen. It paints
+       nothing itself, and its 9999px spread dims everything.
+
+       Parking it off-screen at top:-9999px did not work and looked like it
+       should: a 9999px spread from a box at y=-9999 reaches exactly y=0, so
+       the shadow stopped at the top edge of the viewport and the welcome step
+       floated over a fully lit board. */
     hole.style.display = "block";
     hole.style.left = "50%";
-    hole.style.top = "-9999px";
+    hole.style.top = "50%";
     hole.style.width = "0px";
     hole.style.height = "0px";
+    if(docked) return;
     box.style.left = "50%";
     box.style.top = "50%";
     box.style.transform = "translate(-50%, -50%)";
@@ -2226,16 +2852,19 @@ function renderTut(){
   const r = el.getBoundingClientRect();
   const pad = 8;
   hole.style.display = "block";
+  hole.style.borderRadius = r.height > 120 ? "12px" : "10px";
   hole.style.left = (r.left - pad) + "px";
   hole.style.top = (r.top - pad) + "px";
   hole.style.width = (r.width + pad * 2) + "px";
   hole.style.height = (r.height + pad * 2) + "px";
 
+  if(docked) return;   /* CSS owns the position from here */
+
   box.style.transform = "none";
   const bw = box.offsetWidth, bh = box.offsetHeight, gap = 14;
   /* Side placement needs room the phone layout does not have, so narrow
      screens always get the card above or below the spotlight. */
-  const narrow = window.innerWidth < 820;
+  const narrow = window.innerWidth < 960;
   let left, top;
   if(s.pos === "right" && !narrow){ left = r.right + gap; top = r.top; }
   else if(s.pos === "top"){ left = r.left; top = r.top - gap - bh; }
@@ -2252,11 +2881,16 @@ function renderTut(){
    board, while they're doing the thing. It runs once, during round 1.      */
 /* The stage itself now states the +25 rule, so this carries the one players
    actually miss: order is a decision. */
-const IDLE_HINT = "Tap up to 3 words — they score left to right.";
+const IDLE_HINT = "Pick up to 3 words, then press PLAY.";
+function idleHint(){
+  return orderMatters()
+    ? IDLE_HINT + " Your Lenses read the words left to right, so the order changes the score."
+    : IDLE_HINT + " Three words score more than one.";
+}
 const COACH = {
-  pick:  "Gold tags match the Demand. Tap two or three words that have one.",
-  play:  "Now press PLAY — the stage shows what you'd score before you commit.",
-  score: "That's Chips × Mult. Gold tags add chips; Lenses multiply them."
+  pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
+  play:  "Now press PLAY — the board shows what you'd score before you commit.",
+  score: "Points × Multiplier. Matching tags add points; Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -2273,8 +2907,8 @@ function coachSet(step){
 
 /* Named like a poker hand, so the player learns to aim for a shape rather
    than squint at tags. */
-const RESO_NAMES = ["NO RESONANCE","RESONANCE","DOUBLE RESONANCE","TRIPLE RESONANCE",
-                    "QUADRUPLE RESONANCE","OVERTONE CASCADE"];
+const RESO_NAMES = ["NO MATCHES","MATCH","DOUBLE MATCH","TRIPLE MATCH",
+                    "QUADRUPLE MATCH","OVERTONE CASCADE"];
 function resonanceName(n){ return RESO_NAMES[Math.min(n, RESO_NAMES.length - 1)]; }
 
 function renderPreview(){
@@ -2296,13 +2930,14 @@ function renderPreview(){
     });
     const txt = document.createElement("div");
     txt.className = "dc-text";
-    txt.innerHTML = G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" and ")
-      + ' &mdash; <b>+25 chips</b> for each one you play';
+    txt.innerHTML = 'This round wants '
+      + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
+      + ' words. Every matching tag you play is <b>+25 points</b>.';
     call.appendChild(icons);
     call.appendChild(txt);
     sc.appendChild(call);
     setTally(0, 1);
-    hint.textContent = IDLE_HINT;
+    hint.textContent = idleHint();
     return;
   }
 
@@ -2322,8 +2957,17 @@ function renderPreview(){
   const hits = cards.reduce(function(s, c){
     return s + c.t.filter(function(t){ return G.demand.tags.indexOf(t) >= 0; }).length;
   }, 0);
-  hint.innerHTML = '<span class="hand-name">' + resonanceName(hits) + '</span><br>Would score '
-    + res.total.toLocaleString() + '  ·  resolves left to right, so the order matters';
+  /* Say the number, then say the one thing that would make it bigger. A
+     player holding two words when a third is free should be told so. */
+  const room = MAX_PLAY - cards.length;
+  const spare = room > 0 && G.hand.some(function(c){
+    return G.selected.indexOf(c.id) < 0
+      && c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+  });
+  hint.innerHTML = '<span class="hand-name">' + resonanceName(hits) + '</span><br>'
+    + 'Would score <b>' + res.total.toLocaleString() + '</b> points'
+    + (spare ? ' &middot; you can still add ' + room + ' more word' + (room > 1 ? 's' : '') : '')
+    + (orderMatters() ? '<br><span class="ord">Your Lenses read left to right &mdash; try a different order</span>' : '');
 }
 
 function renderDemand(){
@@ -2333,7 +2977,7 @@ function renderDemand(){
   w.innerHTML = "";
   const lead = document.createElement("span");
   lead.style.cssText = "font-size:11px;letter-spacing:.08em;color:var(--text-faint);align-self:center;margin-right:1px";
-  lead.textContent = "PAYS FOR";
+  lead.textContent = "WANTS";
   w.appendChild(lead);
   G.demand.tags.forEach(function(t){
     const s = document.createElement("span");
@@ -2355,7 +2999,7 @@ function renderRail(){
   if(G.lenses.length === 0){
     const e = document.createElement("div");
     e.className = "rail-empty";
-    e.textContent = "NO LENSES — clear this Demand and the Bookseller will sell you one.";
+    e.textContent = "NO LENSES YET — clear this round and you can buy one. Lenses multiply your score.";
     rail.appendChild(e);
     return;
   }
@@ -2408,7 +3052,7 @@ function renderControls(){
   document.getElementById("playBtn").disabled = G.animating || G.selected.length===0 || G.plays<=0;
   document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
-  document.getElementById("interpBtn").textContent = G.interpreterUsed ? "◆ Interpreted" : "◆ Interpret";
+  document.getElementById("interpBtn").textContent = G.interpreterUsed ? "◆ Word added" : "◆ Add word";
   document.getElementById("bankLabel").textContent = "$" + G.bank;
   document.getElementById("seedLabel").textContent = (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase();
 }
@@ -2420,6 +3064,9 @@ function render(){
 
 /* ---------- panels ---------- */
 function showPanel(html){
+  /* The round-clear stamp outlives its animation by design; if a panel opens
+     underneath it (a skipped celebration, a fast reader) it has to go. */
+  document.getElementById("stamp").hidden = true;
   document.getElementById("panel").innerHTML = html;
   document.getElementById("veil").hidden = false;
 }
@@ -2431,6 +3078,45 @@ function toast(msg){
   t.textContent = msg; t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ t.hidden = true; }, 1900);
+}
+
+function syncSoundBtn(){
+  const b = document.getElementById("soundBtn");
+  if(!b) return;
+  const on = prefs.music || prefs.sfx;
+  b.classList.toggle("off", !on);
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+}
+
+function showSettings(){
+  function row(key, label, desc){
+    return '<div class="setrow"><div><div class="sl">' + label + '</div>'
+      + '<div class="sd">' + desc + '</div></div>'
+      + '<button class="switch" type="button" data-pref="' + key + '" aria-pressed="'
+      + (prefs[key] ? "true" : "false") + '">' + (prefs[key] ? "ON" : "OFF") + '</button></div>';
+  }
+  showPanel('<h2>Sound &amp; feel</h2>'
+    + '<div class="sub">Saved on this device</div>'
+    + row("music", "Music", "The theme, looping under the game.")
+    + row("sfx", "Sound effects", "Clicks, scoring, and the noise a big hand makes.")
+    + row("haptics", "Vibration", "A short buzz on every scoring beat. Android phones only — "
+        + "browsers on iPhone do not offer it.")
+    + '<div class="rowend"><span></span>'
+    + '<button class="btn primary" id="closeSettings" type="button">Back to the game</button></div>');
+
+  document.getElementById("closeSettings").onclick = hidePanel;
+  Array.prototype.forEach.call(document.querySelectorAll(".switch"), function(b){
+    b.onclick = function(){
+      const k = b.dataset.pref, v = !prefs[k];
+      setPref(k, v);
+      b.setAttribute("aria-pressed", v ? "true" : "false");
+      b.textContent = v ? "ON" : "OFF";
+      if(k === "music"){ v ? musicStart() : musicStop(); }
+      if(k === "sfx" && v) tone(660, .1, "triangle", .07);
+      if(k === "haptics" && v) buzz(18);
+      syncSoundBtn();
+    };
+  });
 }
 
 function showHelp(){
@@ -2454,19 +3140,28 @@ function showHelp(){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Three things, then you are fine</div>'
+    + '<div class="sub">Four things, then you are fine</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p><b>Match the Demand.</b> Each round pays for certain overtones — the small tags '
-    +     'along the bottom of every word. Tags that match light up <b class="gold">gold</b>, '
-    +     'and each gold tag pays <b>+25 chips</b>.</p></div>'
+    +     '<p><b>Match what the round wants.</b> Every round names two overtones &mdash; the '
+    +     'small tags along the bottom of each word. Tags that match light up '
+    +     '<b class="gold">gold</b>, and every gold tag you play is <b>+25 points</b>. '
+    +     'A word carrying both tags pays twice.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div>'
-    +     '<p><b>You score Chips × Mult.</b> Play up to three words. They resolve '
-    +     '<b>left to right</b>, so the order you tap them in is part of the puzzle.</p></div>'
+    +     '<p><b>Take three words, nearly always.</b> Each word adds its own points, and a '
+    +     'word that matches nothing still adds its value &mdash; so a third word is almost '
+    +     'never a mistake. Clearing a round with plays and discards to spare pays you '
+    +     '<b>more money</b>, and money buys Lenses. Play fewer only when a Lens pays you to: '
+    +     '<b>ASCETIC</b> gives &times;5 for exactly one word, <b>ANTONYM ENGINE</b> wants a '
+    +     'specific pair.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
+    +     '<p><b>You score points &times; multiplier.</b> Words add points. The multiplier sits '
+    +     'at 1 and does not move until a Lens moves it &mdash; which is why round 8 asks for '
+    +     TARGETS[ROUNDS-1].toLocaleString() + ' and round 1 asks for ' + TARGETS[0] + '.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">4</div>'
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
-    +     'They are the engine — later targets grow faster than any deck can add.</p></div>'
+    +     'They are the engine, and they are the reason two runs are never the same.</p></div>'
     + '</div>'
 
     + '<div class="worked">'
@@ -2476,17 +3171,26 @@ function showHelp(){
     +     '<div class="tags">' + exTags + '</div></div>'
     +   '</div>'
     +   '<div class="worked-sum">'
-    +     'Say the Demand pays for <b>HEAT</b>.<br>'
-    +     'FURNACE is worth <b>' + ex.base + '</b> by itself, and its gold HEAT tag adds <b>+25</b>.<br>'
-    +     'Equip <b>PYROMANIAC</b> (+45 on every HEAT word) and it is '
-    +     '<b>' + withLens + ' chips</b>.'
-    +     '<span class="worked-tot">' + withLens + ' × 1 = ' + withLens + '</span>'
+    +     'Say the round wants <b>HEAT</b>.<br>'
+    +     'FURNACE is worth <b>' + ex.base + '</b> points on its own, and its gold HEAT tag '
+    +     'adds <b>25</b> more.<br>'
+    +     'Hold <b>PYROMANIAC</b> (+45 points on every HEAT word) and the same card is '
+    +     '<b>' + withLens + '</b>.'
+    +     '<span class="worked-tot">' + withLens + ' \u00d7 1 = ' + withLens + ' points</span>'
     +   '</div>'
     + '</div>'
 
+    + '<div class="sub" style="margin:0 0 7px">Does the order I tap them in matter?</div>'
+    + '<p>Not at first. With no Lenses the points are simply added up, so any order gives the '
+    + 'same number. It starts to matter the moment you own a Lens that <b>reads position</b> '
+    + '&mdash; CARNIVORE eats the word to its left, LEXICOGRAPHER pays for your leftmost word '
+    + '&mdash; or when you hold one Lens that <b>adds</b> to the multiplier and another that '
+    + '<b>multiplies</b> it, because (1+2)&times;3 and (1&times;3)+2 are different scores from '
+    + 'the same three words. Put the adders first. The board tells you when this is live.</p>'
+
     + '<div class="sub" style="margin:0 0 7px">The nineteen overtones</div>'
     + '<div class="legend">' + legend + '</div>'
-    + '<p style="font-size:13px"><span class="kbd">1</span>–<span class="kbd">7</span> pick &middot; '
+    + '<p style="font-size:13px"><span class="kbd">1</span>&ndash;<span class="kbd">7</span> pick &middot; '
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
     + '<div class="rowend">'
@@ -2504,6 +3208,7 @@ document.getElementById("playBtn").onclick = play;
 document.getElementById("discardBtn").onclick = discardSel;
 document.getElementById("interpBtn").onclick = openInterpreter;
 document.getElementById("helpBtn").onclick = showHelp;
+document.getElementById("soundBtn").onclick = showSettings;
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel(); newRun("free-" + Math.random().toString(36).slice(2,8));
 };
@@ -2537,6 +3242,7 @@ document.addEventListener("keydown", function(e){
 /* ---------- boot ---------- */
 function start(restored){
   initIcons();
+  syncSoundBtn();
   newRun(null);
   /* A rules modal shown before the game has been seen is the worst moment to
      explain anything. First-timers get the spotlight tutorial on the real

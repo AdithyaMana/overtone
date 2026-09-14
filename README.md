@@ -2,10 +2,10 @@
 
 **A word roguelite where meaning is the physics.**
 
-Every word carries *overtones* — semantic tags like HEAT, MOTION, DANGER, TIME. Each round sets
-a Demand (`THE FURNACE — wants HEAT, DANGER`) and a target. You play up to three word-cards,
-they resolve left to right, and every overtone that matches pays out. Between rounds you buy
-**Lenses** that rewrite how meaning scores, until the numbers get silly.
+Every word carries *overtones* — semantic tags like HEAT, MOTION, DANGER, TIME. Each round wants
+two of them (`THE FURNACE — wants HEAT or DANGER`) and sets a target. You play up to three
+word-cards, they resolve left to right, and every overtone that matches pays out. Between rounds
+you buy **Lenses** that rewrite how meaning scores, until the numbers get silly.
 
 Each card shows the icons for its own overtones on a plate tinted by the most distinctive one,
 so the picture and the scoring rule are views of the same data. Nineteen icons cover all 249
@@ -22,13 +22,34 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
 
 ## Play
 
-- Pick up to **three** words that resonate with the Demand.
-- They score **chips × mult**, resolving **left to right** — so the order you pick them in matters.
+- Pick up to **three** words carrying what the round wants. Each matching tag is **+25 points**.
+- A hand scores **points × multiplier**. Words add points; only Lenses move the multiplier.
+- **Take three whenever you can.** A non-matching word still adds its own value, so a third word
+  is almost never a mistake — and clearing a round with plays and discards left pays more at the
+  shop. Play fewer only when a Lens pays you to (ASCETIC gives ×5 for exactly one word).
 - **Four plays, three discards** per round. Miss the target and the run ends.
 - Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
   multiplying will stall around round 4.
 
 `1`–`7` pick · `Enter` play · `D` discard · `Space` hurry the scoring · `Esc` close
+
+### Does the order matter?
+
+Not until it does, and the board only claims it when it is true.
+
+With no Lenses the points are summed and the multiplier never moves, so every order of the same
+three words scores the same number. It becomes real two ways:
+
+1. **A Lens reads position.** CARNIVORE eats the word to its left, LEXICOGRAPHER pays for your
+   leftmost word, ANTONYM ENGINE wants a HEAT word directly after a COLD one, ENTROPY wants each
+   word shorter than the one before it.
+2. **You hold one Lens that *adds* to the multiplier and another that *multiplies* it.** The
+   multiplier is a single running number, so `(1+2)×3 = 9` and `(1×3)+2 = 5` are different
+   scores from the same three cards. Put the adders first.
+
+`orderMatters()` in `index.html` computes exactly that, and the stage line appears only when it
+returns true. Telling a lens-less player on their first screen that order matters was a lie the
+board used to tell.
 
 ## Run it locally
 
@@ -45,6 +66,7 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | Path | What it is |
 |---|---|
 | `index.html` | The game. Standalone; source of truth. |
+| `audio/theme.mp3` | The looping theme. The only asset not inlined — fetched on the first tap, never on load. |
 | `DESIGN.md` | The full design writeup. |
 | `build-artifact.js` | Strips the HTML wrapper to produce `artifact.html` for the Claude Artifacts host. |
 | `artifact.html` | Generated — do not edit by hand. |
@@ -90,8 +112,9 @@ Hosted at **https://playovertone.web.app** (Firebase project `playovertone`).
 `overtone.web.app` was already taken globally — that subdomain belongs to whoever owns the
 Firebase project ID `overtone`.
 
-`tools/build-web.js` copies `index.html` into `public/` and serves the same page as `404.html`,
-so any URL lands in the game. Tests, tools and `node_modules` stay out of the deploy.
+`tools/build-web.js` copies `index.html` into `public/`, copies `audio/theme.mp3` next to it, and
+serves the same page as `404.html` so any URL lands in the game. Tests, tools and `node_modules`
+stay out of the deploy.
 
 ## Tests
 
@@ -100,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**137 tests, 0 failures.** The engine tier uses Node’s built-in runner and needs no
+**196 tests, 0 failures.** 83 engine + 113 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -108,6 +131,44 @@ opens by double-clicking `index.html`.
 `tests/harness.js` runs the real `index.html` script in a Node VM against a stubbed DOM, so
 engine tests exercise the code that actually ships rather than a copy. Full breakdown, plus
 the two real bugs the suite caught, is in [`docs/tests/test-summary.md`](docs/tests/test-summary.md).
+
+## Sound, vibration and motion
+
+The theme is a 96kbps mono-ish MP3 at ~2MB, and it is **never fetched before the player touches
+something**: no browser will play audio before a gesture anyway, so putting it on the critical
+path would only slow the first frame for nothing. `audio/theme.mp3` is re-encoded from a 6.6MB
+320kbps source that stays out of the repo (`.gitignore`); regenerate it with:
+
+```bash
+ffmpeg -i "bg music.mp3" -codec:a libmp3lame -b:a 96k -ar 44100 -ac 2 -map_metadata -1 audio/theme.mp3
+```
+
+Music, sound effects and vibration are three separate switches under the ♪ button, because they
+fail differently — music is what people mute in public, effects are what they mute at work, and
+vibration is what eats a battery. **Vibration is Android-only**: iOS Safari does not implement
+`navigator.vibrate` at all, so on an iPhone every `buzz()` is a silent no-op. Nothing in the game
+depends on a buzz to be understood; it is confirmation, never information, and the settings panel
+says so rather than quietly shipping a dead switch.
+
+`prefers-reduced-motion` kills every animation, the flying points, the confetti and the screen
+shake, and short-circuits the counter tweens so the numbers settle synchronously.
+
+## Playing on a phone
+
+Portrait is a first-class layout, not a squeezed desktop. The budget is written against
+**375×667** — smaller than any phone the game is likely to meet — and every band except the
+board and the hand gets a fixed allowance, so the two that carry the game get the slack:
+
+- The control row is **pinned to the bottom**, not measured. Phone heights vary far more than
+  widths (a Pixel 5 is 117px shorter than an iPhone 14), and pinning is the only version that
+  cannot put PLAY below the fold on a device nobody tested.
+- **All seven words are visible at once**, in two rows. A hand you have to scroll is a decision
+  you cannot make. Two E2E tests assert exactly this at 393×727 and 375×667: no card's bottom
+  edge may fall below the top of the control row.
+- **The board does not repeat the hand back.** At portrait width the stage's preview cards are
+  hidden — the order badges are already on the cards in hand — which returned 240px of a 667px
+  screen. While a hand resolves the cards fold away and the board takes the room, which is what
+  makes the scoring readout fit.
 
 ## Balance
 

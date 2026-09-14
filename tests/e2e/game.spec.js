@@ -22,6 +22,18 @@ async function open(page) {
   await expect(page.locator("#veil")).toBeHidden();
 }
 
+/* Portrait hides the stage's preview cards: the hand already shows the same
+   words, selected and numbered, and redrawing them cost 240px of a 667px
+   screen. They are still the right thing to measure in a geometry test — the
+   only cards on the page with transform:none — so tests that measure them ask
+   for them back. Without this they would measure a display:none element, which
+   is 0x0, and pass without testing anything. */
+async function measurableStageCards(page) {
+  await page.addStyleTag({
+    content: "#app:not(.resolving) #stageCards .card{ display:block !important }"
+  });
+}
+
 /* Wait for the scoring animation to finish rather than sleeping. */
 async function settle(page) {
   await page.waitForFunction(() => typeof G !== "undefined" && G && !G.animating);
@@ -55,7 +67,9 @@ test.describe("first visit", () => {
     await page.click("#helpBtn");
     const panel = page.locator("#panel");
     await expect(panel).toContainText("How Overtone works");
-    await expect(panel).toContainText("Chips × Mult");
+    await expect(panel).toContainText("points × multiplier");
+    /* the question the rules card never used to answer */
+    await expect(panel).toContainText("Take three words");
     /* the worked example and the overtone legend both carry the rules */
     await expect(panel.locator(".worked")).toBeVisible();
     await expect(panel.locator(".legend .leg")).toHaveCount(19);
@@ -74,7 +88,7 @@ test.describe("first visit", () => {
     await open(page);
     const call = page.locator(".demand-call");
     await expect(call).toBeVisible();
-    await expect(call).toContainText("+25 chips");
+    await expect(call).toContainText("+25 points");
     /* one icon per demanded overtone */
     const wanted = await page.evaluate(() => G.demand.tags.length);
     await expect(call.locator(".dc-icons .ms")).toHaveCount(wanted);
@@ -109,6 +123,12 @@ test.describe("playing a hand", () => {
     await open(page);
     for (const key of ["1", "2", "3"]) await page.keyboard.press(key);
 
+    /* the numbers are on the cards in hand at every width */
+    const held = page.locator("#hand .card.sel .pos");
+    await expect(held).toHaveCount(3);
+    await expect(held.nth(0)).toHaveText("1");
+
+    await measurableStageCards(page);
     await expect(page.locator("#stageCards .card")).toHaveCount(3);
     const badges = page.locator("#stageCards .pos");
     await expect(badges).toHaveCount(3);
@@ -120,7 +140,41 @@ test.describe("playing a hand", () => {
   test("names the shape of the hand", async ({ page }) => {
     await open(page);
     await page.locator("#hand .card.live").first().click();
-    await expect(page.locator(".hand-name")).toContainText("RESONANCE");
+    await expect(page.locator(".hand-name")).toContainText("MATCH");
+    await expect(page.locator("#stageHint")).toContainText("Would score");
+  });
+
+  test("does not claim the order matters before any Lens reads it", async ({ page }) => {
+    await open(page);
+    /* A lens-less player's points are simply summed, so every order gives the
+       same number — saying otherwise is a lie the board used to tell on the
+       first screen of the first run. */
+    await page.evaluate(() => { G.lenses = []; render(); });
+    await expect(page.locator("#stageHint")).not.toContainText("left to right");
+    await expect(page.locator(".stage-hint .ord")).toHaveCount(0);
+  });
+
+  test("says the order matters once a Lens actually reads position", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "carn")];   // eats the word to its LEFT
+      render();
+    });
+    await page.locator("#hand .card").first().click();
+    await expect(page.locator(".stage-hint .ord")).toContainText("left to right");
+  });
+
+  test("says it for a mixed +mult / ×mult pair too", async ({ page }) => {
+    await open(page);
+    const matters = await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "zoo")];              // +2 mult
+      const addOnly = orderMatters();
+      G.lenses.push(LENSES.find(l => l.id === "brut"));           // ×2 mult
+      return { addOnly, mixed: orderMatters() };
+    });
+    /* (1+2)×2 = 6 but (1×2)+2 = 4, from the very same three words */
+    expect(matters.addOnly).toBe(false);
+    expect(matters.mixed).toBe(true);
   });
 
   test("refuses a fourth card and says why", async ({ page }) => {
@@ -273,6 +327,55 @@ test.describe("layout", () => {
     expect(spread, "the hand wrapped to a second row at " + w + "px").toBeLessThan(60);
   });
 
+  test("all seven words and all three buttons are on screen at once",
+    async ({ page }, info) => {
+      test.skip(info.project.name !== "phone", "portrait budget");
+      await open(page);
+      /* The invariant is not "no scrollbar" — it is that the decision (which
+         words) and the move (which button) are both visible without scrolling.
+         The controls are pinned, so the failure mode is the hand's second row
+         sliding underneath them. */
+      /* Cards deal in from below over ~700ms, so a raw measurement here races
+         the animation and reports a row that is only transiently low. */
+      await expect.poll(() => page.evaluate(() => {
+        const ctl = document.querySelector(".controls").getBoundingClientRect();
+        return Array.from(document.querySelectorAll("#hand .card"))
+          .filter(c => c.getBoundingClientRect().bottom > ctl.top + 1).length;
+      }), { timeout: 4000, message: "hand cards are hidden behind the control row" }).toBe(0);
+      await expect(page.locator("#hand .card")).toHaveCount(7);
+      await expect(page.locator("#playBtn")).toBeInViewport();
+      await expect(page.locator("#discardBtn")).toBeInViewport();
+      await expect(page.locator("#interpBtn")).toBeInViewport();
+    });
+
+  test("holds on a 375x667 screen too", async ({ page }, info) => {
+    test.skip(info.project.name !== "phone", "portrait budget");
+    /* An iPhone SE is 145px shorter than the viewport this was designed
+       against, which is more than a whole row of cards. */
+    await page.setViewportSize({ width: 375, height: 667 });
+    await open(page);
+    await expect.poll(() => page.evaluate(() => {
+      const ctl = document.querySelector(".controls").getBoundingClientRect();
+      return Array.from(document.querySelectorAll("#hand .card"))
+        .filter(c => c.getBoundingClientRect().bottom > ctl.top + 1).length;
+    }), { timeout: 4000, message: "the hand does not fit an SE" }).toBe(0);
+
+    const sideways = await page.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(sideways).toBeLessThanOrEqual(1);
+    await expect(page.locator("#playBtn")).toBeInViewport();
+  });
+
+  test("the board does not repeat the hand back at portrait width",
+    async ({ page }, info) => {
+      test.skip(info.project.name !== "phone", "portrait layout");
+      await open(page);
+      for (const key of ["1", "2"]) await page.keyboard.press(key);
+      await expect(page.locator("#stageCards .card").first()).toBeHidden();
+      await expect(page.locator("#hand .card .pos")).toHaveCount(2);
+      await expect(page.locator("#stageHint")).toContainText("Would score");
+    });
+
   test("nothing on a card overlaps the icon plate", async ({ page }) => {
     await open(page);
     /* Measured on the stage cards, not the hand: hand cards are fanned and
@@ -281,6 +384,7 @@ test.describe("layout", () => {
        visually there. Stage cards carry transform:none and render the same
        markup. The value badge used to sit absolutely over the art, where a
        third overtone icon ran underneath it. */
+    await measurableStageCards(page);
     for (const key of ["1", "2", "3"]) await page.keyboard.press(key);
     await expect(page.locator("#stageCards .card")).toHaveCount(3);
 
@@ -302,6 +406,7 @@ test.describe("layout", () => {
 
   test("card words are not broken mid-word", async ({ page }) => {
     await open(page);
+    await measurableStageCards(page);
     for (const key of ["1", "2", "3"]) await page.keyboard.press(key);
     await expect(page.locator("#stageCards .card")).toHaveCount(3);
     /* A word that wraps is fine; a word that wraps because something else is
@@ -333,7 +438,7 @@ test.describe("first-run coaching", () => {
 
     /* step 1: pick */
     await expect(coach).toBeVisible();
-    await expect(coach).toContainText("Gold tags match the Demand");
+    await expect(coach).toContainText("what this round wants");
 
     /* step 2: play — and the button it points at is marked */
     await page.keyboard.press("1");
@@ -342,12 +447,12 @@ test.describe("first-run coaching", () => {
 
     /* deselecting walks it back rather than stranding the player */
     await page.keyboard.press("1");
-    await expect(coach).toContainText("Gold tags match the Demand");
+    await expect(coach).toContainText("what this round wants");
 
     /* step 3: read the result */
     await playAHand(page);
     if (!(await page.locator("#veil").isVisible())) {
-      await expect(coach).toContainText("Chips");
+      await expect(coach).toContainText("Points");
     }
   });
 
@@ -419,17 +524,19 @@ test.describe("the opening tutorial", () => {
   test("greets a first-time player instead of a rules modal", async ({ page }) => {
     await page.goto(GAME);
     await expect(page.locator("#tut")).toBeVisible();
-    await expect(page.locator("#tutText")).toContainText("Overtone");
-    await expect(page.locator("#tutStep")).toContainText("1 of 6");
+    await expect(page.locator("#tutStep")).toContainText("Overtone");
+    await expect(page.locator("#tutText")).toContainText("overtones");
+    await expect(page.locator("#tutStep")).toContainText("1 of 7");
+    await expect(page.locator("#tutDots i")).toHaveCount(7);
     /* the modal no longer opens itself */
     await expect(page.locator("#veil")).toBeHidden();
   });
 
   test("spotlights the real board, and lets the player touch it", async ({ page }) => {
     await page.goto(GAME);
-    await page.click("#tutNext");                       // -> the Demand
-    await expect(page.locator("#tutStep")).toContainText("2 of 6");
-    await expect(page.locator("#tutText")).toContainText("pays for");
+    await page.click("#tutNext");                       // -> what the round wants
+    await expect(page.locator("#tutStep")).toContainText("2 of 7");
+    await expect(page.locator("#tutText")).toContainText("wants");
 
     /* The cutout slides between targets on a CSS transition, so poll until it
        settles rather than measuring it mid-flight. */
@@ -442,25 +549,57 @@ test.describe("the opening tutorial", () => {
 
     /* the overlay must not swallow clicks — the next step needs a card tapped */
     await page.click("#tutNext");
-    await expect(page.locator("#tutStep")).toContainText("3 of 6");
+    await expect(page.locator("#tutStep")).toContainText("3 of 7");
     await expect(page.locator("#tutNext")).toBeHidden();  // doing it IS the button
     await page.locator("#hand .card").first().click();
     await expect(page.locator("#hand .card.sel")).toHaveCount(1);
-    await expect(page.locator("#tutStep")).toContainText("4 of 6");
+    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+  });
+
+  test("answers how many words to take, and makes you take a second", async ({ page }) => {
+    await page.goto(GAME);
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await page.locator("#hand .card").nth(0).click();
+
+    const text = page.locator("#tutText");
+    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await expect(text).toContainText("Take three whenever you can");
+    /* the two reasons, both of which are true of the actual scoring */
+    await expect(text).toContainText("three times one");
+    await expect(text).toContainText("more money");
+    await expect(page.locator("#tutNext")).toBeHidden();
+
+    /* and the step is only cleared by actually taking a second word */
+    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await page.locator("#hand .card").nth(1).click();
+    await expect(page.locator("#tutStep")).toContainText("5 of 7");
+  });
+
+  test("names the case for playing fewer, so the rule has an exception", async ({ page }) => {
+    await page.goto(GAME);
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await page.locator("#hand .card").nth(0).click();
+    await page.locator("#hand .card").nth(1).click();
+    await page.click("#tutNext");                      // -> play
+    await page.click("#playBtn");
+    await expect(page.locator("#tutStep")).toContainText("7 of 7");
+    await expect(page.locator("#tutText")).toContainText("ASCETIC");
   });
 
   test("advances off a real play, then finishes and stays gone", async ({ page }) => {
     await page.goto(GAME);
     /* straight to the play step */
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
-    await page.locator("#hand .card").first().click();
-    await expect(page.locator("#tutStep")).toContainText("4 of 6");
+    await page.locator("#hand .card").nth(0).click();
+    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await page.locator("#hand .card").nth(1).click();
+    await expect(page.locator("#tutStep")).toContainText("5 of 7");
     await page.click("#tutNext");
-    await expect(page.locator("#tutStep")).toContainText("5 of 6");
+    await expect(page.locator("#tutStep")).toContainText("6 of 7");
     await expect(page.locator("#tutNext")).toBeHidden();
 
     await page.click("#playBtn");
-    await expect(page.locator("#tutStep")).toContainText("6 of 6");
+    await expect(page.locator("#tutStep")).toContainText("7 of 7");
     await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();
 
@@ -484,16 +623,17 @@ test.describe("the opening tutorial", () => {
     await page.click("#tutSkip");
     /* they opted out of the overlay, not out of ever being helped */
     await expect(page.locator("#coach")).toBeVisible();
-    await expect(page.locator("#coach")).toContainText("Gold tags match the Demand");
+    await expect(page.locator("#coach")).toContainText("what this round wants");
   });
 
   test("finishing it retires the coach, which would only repeat itself", async ({ page }) => {
     await page.goto(GAME);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
-    await page.locator("#hand .card").first().click();
+    await page.locator("#hand .card").nth(0).click();
+    await page.locator("#hand .card").nth(1).click();
     await page.click("#tutNext");
     await page.click("#playBtn");
-    await expect(page.locator("#tutStep")).toContainText("6 of 6");
+    await expect(page.locator("#tutStep")).toContainText("7 of 7");
     await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();
     await expect(page.locator("#coach")).toBeHidden();
@@ -513,6 +653,144 @@ test.describe("the opening tutorial", () => {
     await page.click("#replayTut");
     await expect(page.locator("#veil")).toBeHidden();
     await expect(page.locator("#tut")).toBeVisible();
-    await expect(page.locator("#tutStep")).toContainText("1 of 6");
+    await expect(page.locator("#tutStep")).toContainText("1 of 7");
+  });
+
+  test("docks the card clear of the spotlight on a phone", async ({ page }, info) => {
+    test.skip(info.project.name !== "phone", "phone layout only");
+    await page.goto(GAME);
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await page.locator("#hand .card").nth(0).click();
+    await page.locator("#hand .card").nth(1).click();
+    await page.click("#tutNext");                                  // -> Play it
+
+    /* The spotlight sits on the pinned control row at the bottom, so the card
+       has to move to the top of the screen or it covers the button it is
+       telling the player to press. */
+    const clear = await page.evaluate(() => {
+      const box = document.getElementById("tutBox").getBoundingClientRect();
+      const btn = document.getElementById("playBtn").getBoundingClientRect();
+      return box.bottom <= btn.top + 1 || box.top >= btn.bottom - 1;
+    });
+    expect(clear, "the tutorial card is sitting on top of PLAY").toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("sound, vibration and motion", () => {
+  test("three separate switches, and they stick", async ({ page }) => {
+    await open(page);
+    await page.click("#soundBtn");
+    const panel = page.locator("#panel");
+    await expect(panel).toContainText("Sound & feel");
+    await expect(panel.locator(".switch")).toHaveCount(3);
+    /* the iPhone gap is stated rather than quietly shipped */
+    await expect(panel).toContainText("Android phones only");
+
+    const music = panel.locator('.switch[data-pref="music"]');
+    await expect(music).toHaveText("ON");
+    await music.click();
+    await expect(music).toHaveText("OFF");
+    await expect(page.locator("#soundBtn")).toHaveAttribute("aria-pressed", "true"); // sfx still on
+
+    await panel.locator('.switch[data-pref="sfx"]').click();
+    await expect(page.locator("#soundBtn")).toHaveAttribute("aria-pressed", "false");
+
+    await page.click("#closeSettings");
+    await page.reload();
+    if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+    await page.click("#soundBtn");
+    await expect(page.locator('.switch[data-pref="music"]')).toHaveText("OFF");
+  });
+
+  test("the theme starts on the first gesture, and loops", async ({ page }) => {
+    await open(page);                      // clicking Skip is the gesture
+    await page.locator("#hand .card").first().click();
+    const state = await page.evaluate(async () => {
+      await new Promise(r => setTimeout(r, 500));
+      return typeof music !== "undefined" && music
+        ? { loop: music.loop, src: music.src, vol: music.volume } : null;
+    });
+    expect(state, "no audio element was ever created").not.toBeNull();
+    expect(state.loop, "the theme does not loop").toBe(true);
+    expect(state.src).toContain("audio/theme.mp3");
+    /* Whether it is actually audible depends on the browser's autoplay policy,
+       which is not ours to assert — but the element must exist, point at the
+       right file and be set to loop, and a blocked play() must not throw. */
+  });
+
+  test("muting the music actually stops it", async ({ page }) => {
+    await open(page);
+    await page.locator("#hand .card").first().click();
+    await page.click("#soundBtn");
+    await page.locator('.switch[data-pref="music"]').click();
+    await page.click("#closeSettings");
+    await expect.poll(() => page.evaluate(() =>
+      typeof music !== "undefined" && music ? music.paused || music.volume < 0.02 : true
+    ), { timeout: 3000 }).toBe(true);
+  });
+
+  test("the theme is never fetched before the player touches anything", async ({ page }) => {
+    const asked = [];
+    page.on("request", r => { if (/theme\.mp3/.test(r.url())) asked.push(r.url()); });
+    await page.goto(GAME);
+    await expect(page.locator("#tut")).toBeVisible();
+    expect(asked, "2MB of audio was pulled before the first frame").toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the scoring readout", () => {
+  test("the board takes the room while a hand resolves", async ({ page }) => {
+    await open(page);
+    for (const k of ["1", "2"]) await page.keyboard.press(k);
+    const before = await page.locator("#stage").boundingBox();
+    await page.click("#playBtn");
+
+    await expect(page.locator("#app")).toHaveClass(/resolving/);
+    await expect.poll(async () => {
+      const b = await page.locator("#stage").boundingBox();
+      return b.height > before.height;
+    }, { timeout: 2000, message: "the stage never grew for the scoring" }).toBe(true);
+
+    await settle(page);
+    await expect(page.locator("#app")).not.toHaveClass(/resolving/);
+  });
+
+  test("the total is never cut off by the box it sits in", async ({ page }) => {
+    await open(page);
+    for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
+    await page.click("#playBtn");
+
+    const total = page.locator(".stage-total");
+    await total.waitFor({ state: "visible", timeout: 15000 });
+    const fits = await page.evaluate(() => {
+      const t = document.querySelector(".stage-total");
+      if (!t) return null;
+      const r = t.getBoundingClientRect();
+      return {
+        inViewport: r.top >= 0 && r.bottom <= window.innerHeight && r.left >= 0
+                    && r.right <= window.innerWidth,
+        hasSize: r.width > 20 && r.height > 20,
+        /* the old bug: overflow:hidden on a 76px-tall stage */
+        stageClips: getComputedStyle(document.getElementById("stage")).overflow === "hidden"
+      };
+    });
+    expect(fits.hasSize).toBe(true);
+    expect(fits.stageClips, "the stage is clipping its own scoring popup").toBe(false);
+    expect(fits.inViewport, "the total is off screen").toBe(true);
+    await settle(page);
+  });
+
+  test("the green wash only fires on a hand that actually cleared", async ({ page }) => {
+    await open(page);
+    /* A target far out of reach: one hand must not wash the board green.
+       The old test was roundScore + total >= target with roundScore already
+       carrying total, so it fired a full hand early. */
+    await page.evaluate(() => { G.target = 9999999; renderDemand(); });
+    for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
+    await page.click("#playBtn");
+    await settle(page);
+    await expect(page.locator("#stage")).not.toHaveClass(/clear/);
   });
 });

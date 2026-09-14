@@ -6,3 +6,6 @@ Thumbs.db
 public/
 firebase-debug.log
 .firebase/
+
+# the 6.6MB 320kbps source for audio/theme.mp3, which ships at 96kbps
+bg music.mp3

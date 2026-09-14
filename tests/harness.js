@@ -26,6 +26,7 @@ function makeEl(tag){
       contains(c){ return classes.has(c); }
     },
     _classes: classes,
+    dataset: {},
     textContent: "", innerHTML: "", value: "", title: "",
     hidden: false, disabled: false, tabIndex: 0, offsetWidth: 0,
     onclick: null, onkeydown: null,
@@ -71,6 +72,8 @@ function load(){
   const documentStub = {
     getElementById(id){ return byId[id] || (byId[id] = makeEl("div")); },
     createElement(tag){ return makeEl(tag); },
+    querySelector(){ return makeEl("div"); },
+    querySelectorAll(){ return []; },
     addEventListener(){},
     documentElement: makeEl("html"),
     body: makeEl("body"),
@@ -86,6 +89,8 @@ function load(){
       removeItem(k){ delete store[k]; },
       clear(){ for (const k in store) delete store[k]; }
     },
+    /* No vibrate: buzz() must stay a no-op rather than throwing, which is
+       also exactly what an iPhone gives it. */
     navigator: { clipboard: { writeText(){ return Promise.resolve(); } } },
     performance: { now: () => Date.now() },
     requestAnimationFrame(){ return 0; },
