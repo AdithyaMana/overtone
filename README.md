@@ -1,11 +1,11 @@
-# Logomancy
+# NecroCards
 
 **A word roguelite where meaning is the physics.**
 
 Every word carries *overtones* — semantic tags like HEAT, MOTION, DANGER, TIME. Each round sets
 a Demand (`THE FURNACE — wants HEAT, DANGER`) and a target. You play up to three word-cards,
 they resolve left to right, and every overtone that matches pays out. Between rounds you buy
-**Lenses** that rewrite how meaning scores, until the numbers get silly.
+**Sigils** that rewrite how meaning scores, until the numbers get silly.
 
 Every card’s emblem is generated from its own overtones — flames for HEAT, shards for COLD,
 an eye for ANIMAL — so the picture and the scoring rule are views of the same data. No image
@@ -27,7 +27,7 @@ enabled; until then, clone and open `index.html` directly (see below) — it nee
 - Pick up to **three** words that resonate with the Demand.
 - They score **chips × mult**, resolving **left to right** — so the order you pick them in matters.
 - **Four plays, three discards** per round. Miss the target and the run ends.
-- Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
+- Clear a round and the **Bookseller** sells you a Sigil. Sigils are the game; a deck that isn't
   multiplying will stall around round 4.
 
 `1`–`7` pick · `Enter` play · `D` discard · `Space` hurry the scoring · `Esc` close
@@ -40,7 +40,7 @@ No build step, no dependencies, no server:
 git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.html
 ```
 
-`index.html` is the whole game — engine, 249-word lexicon, 24 Lenses, and styles in one file.
+`index.html` is the whole game — engine, 249-word lexicon, 24 Sigils, and styles in one file.
 
 ## Repository
 

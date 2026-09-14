@@ -1,4 +1,4 @@
-# Logomancy — design writeup
+# NecroCards — design writeup
 
 A word roguelite where meaning is the physics.
 
@@ -6,11 +6,11 @@ A word roguelite where meaning is the physics.
 
 ## 1. The pitch
 
-**What it is.** Logomancy is a five-minute roguelite built on a scoring engine that runs on
+**What it is.** NecroCards is a five-minute roguelite built on a scoring engine that runs on
 *meaning* instead of spelling. Every word in the game carries **overtones** — semantic tags
 like HEAT, MOTION, DANGER, TIME. Each round sets a **Demand** (`THE FURNACE — wants HEAT,
 DANGER`) and a target score. You play up to three word-cards; they resolve left to right,
-paying out for every overtone that matches. Between rounds you buy **Lenses**, which rewrite
+paying out for every overtone that matches. Between rounds you buy **Sigils**, which rewrite
 how meaning scores: `CARNIVORE` lets an ANIMAL word devour the word to its left, `ANTONYM
 ENGINE` detonates when a hot word lands straight after a cold one, `ENTROPY` doubles
 everything if each word is shorter than the last.
@@ -20,10 +20,10 @@ product: people who play a word game every morning (Wordle, Connections, Context
 who play build-a-broken-engine roguelites (Balatro, Slay the Spire, Luck be a Landlord). Word
 games are almost entirely pure puzzles with no build variety and no run structure. Deckbuilders
 are almost entirely fantasy-combat-themed and demand a rules vocabulary before they're fun.
-Logomancy is a deckbuilder whose rules vocabulary is *the language you already speak*.
+NecroCards is a deckbuilder whose rules vocabulary is *the language you already speak*.
 
 **Why someone plays it.** Because sixty seconds in, you notice that AVALANCHE is COLD and
-MOTION and DANGER and LOUD all at once, that you happen to own two Lenses that both care about
+MOTION and DANGER and LOUD all at once, that you happen to own two Sigils that both care about
 that, and that the number at the bottom of the screen just did something obscene. The pleasure
 is not "I know a lot of words." It's "I found a hole in the rules." Vocabulary size is
 deliberately *not* the skill — overtones are printed on the card, so the tactical layer is
@@ -44,14 +44,14 @@ watch the engine resolve → spend the winnings on a rule that breaks the next r
 | 0:00–0:15 | One screen, no account, no install. A help card with three numbered points and a worked example showing the arithmetic on a real card. Seven word-cards face up, each with a generated emblem and its overtones printed along the bottom. |
 | 0:15–0:50 | Player clicks a card. The stage shows a live **"would score"** preview before committing — the game teaches its own maths without a tutorial. A one-line coach sits above the hand and advances with them: pick → play → read the result, then retires for good. They play. Cards resolve one at a time, each trigger popping a label and a rising tone. |
 | 0:50–1:20 | Round 1 target (200) falls in about two plays. Unspent plays convert to money, which quietly teaches efficiency. |
-| 1:20–1:50 | **The Bookseller.** Three offers. The first Lens purchase is the moment the game stops being a word puzzle and becomes a roguelite. |
+| 1:20–1:50 | **The Reliquary.** Three offers. The first Sigil purchase is the moment the game stops being a word puzzle and becomes a roguelite. |
 | 1:50–3:30 | Rounds 2–4. Somewhere here the first real combo fires and the screen shakes. Most first runs die around round 4–5. |
-| 3:30 | Death screen: total, best play, the Lens carried into the next run, and a copyable share block. |
+| 3:30 | Death screen: total, best play, the Sigil carried into the next run, and a copyable share block. |
 
 **What brings them back tomorrow.** Three separate hooks, deliberately layered so they don't
 depend on each other:
 
-1. **Memory** — the run-end screen hands you one Lens you actually used, permanently equipped
+1. **Memory** — the run-end screen hands you one Sigil you actually used, permanently equipped
    at the start of your next run. Run 2 is *mechanically visibly different* from run 1 within
    five seconds of starting it. This is the cheapest and most reliable retention lever a
    roguelite has.
@@ -85,13 +85,13 @@ unlimited version would turn the deck into a sandbox and flatten the difficulty 
 
 ### What sustains months
 
-- **Lens breadth.** 24 Lenses today; the shape supports 120+. Roguelite lifetime tracks almost
+- **Sigil breadth.** 24 Sigils today; the shape supports 120+. Roguelite lifetime tracks almost
   linearly with the number of build archetypes a player hasn't tried yet.
 - **Archetypes worth chasing.** The current set already implies them — a short-words build
   (`BRUTALIST` + `ENTROPY`), an abstraction build (`METAPHYSICIAN` + `LITERALIST` as a trap
-  pair), a single-card build (`ASCETIC` + `SESQUIPEDALIAN`). More Lenses means more of these.
+  pair), a single-card build (`ASCETIC` + `SESQUIPEDALIAN`). More Sigils means more of these.
 - **Lexicon packs** — a Cosmology set, a Culinary set, a Medical set. Each adds words *and* the
-  Demands and Lenses that make them sing. This is the content treadmill, and it's exactly the
+  Demands and Sigils that make them sing. This is the content treadmill, and it's exactly the
   thing an AI pipeline can produce at a rate no hand-authored word game can match.
 - **Weekly mutators** — "every word must be longer than the last", "abstract words are worth
   triple", "the Demand is hidden until your second play."
@@ -112,11 +112,11 @@ sells variety, expression, or a one-time unlock — never power, never patience.
 1. **Free forever, unlimited runs.** No energy, no lives, no timers, no "watch an ad to
    continue your run." Runs are the product; metering them poisons the only thing that
    retains.
-2. **One-time unlock, ~$5.** Free players get the first four Demands and roughly half the Lens
+2. **One-time unlock, ~$5.** Free players get the first four Demands and roughly half the Sigil
    pool — a complete, satisfying, genuinely replayable short game. The unlock opens the full
-   eight-Demand ladder and the whole Lens pool. This is the Balatro/Threes model: it converts
+   eight-Demand ladder and the whole Sigil pool. This is the Balatro/Threes model: it converts
    on *delight already delivered* rather than on frustration manufactured.
-3. **Lexicon packs, ~$3 each.** New words, new Demands, new Lenses. Sold as variety, balanced
+3. **Lexicon packs, ~$3 each.** New words, new Demands, new Sigils. Sold as variety, balanced
    to the same power curve, so a buyer gets more game rather than a stronger game. A pack that
    made you win more would break the leaderboard and the point.
 4. **Cosmetics.** Desk themes, card stocks, share-card styles. Pure vanity, and the share card
@@ -127,10 +127,10 @@ sells variety, expression, or a one-time unlock — never power, never patience.
 - **Energy or run limits** — meters the core loop, which is the only asset.
 - **Paid continues** on a lost run — sells relief from a failure the game manufactured, and
   destroys the meaning of a score.
-- **Power sold directly** (stronger Lenses, extra Interpreter charges that outscale) — kills
+- **Power sold directly** (stronger Sigils, extra Interpreter charges that outscale) — kills
   the daily leaderboard and turns build discovery into a purchase decision.
 - **Interstitial ads between rounds** — the loop's whole value is that it's a clean 90-second
-  escape. An ad at the Bookseller is a tax on the exact moment the game is working.
+  escape. An ad at the Reliquary is a tax on the exact moment the game is working.
 
 The honest tension worth naming: **extra Interpreter charges** are the most obviously
 monetisable thing in the game and the one I'd be most tempted by. I'd sell them only if the
@@ -219,9 +219,9 @@ visible by playing it a few times.
 
 ### What I'd test first
 
-**Test 1 — does the Bookseller land?** The entire game hinges on the player understanding, at
-around 1:20, that Lenses are the engine and not a bonus. I'd instrument: share of players who
-buy a Lens at their first shop, and share who die at round 3 having bought nothing. If a large
+**Test 1 — does the Reliquary land?** The entire game hinges on the player understanding, at
+around 1:20, that Sigils are the engine and not a bonus. I'd instrument: share of players who
+buy a Sigil at their first shop, and share who die at round 3 having bought nothing. If a large
 group is dying poor, the shop is failing to communicate, and the fix is a free forced Lens
 after round 1 rather than more tutorial text.
 
@@ -267,18 +267,27 @@ left-to-right resolution so every trigger gets its own moment and its own sound;
 break stated rules rather than tuning them; a shop between escalating antes; and the central
 lesson that **exponential targets versus an exponential engine** is a better tension than
 linear difficulty.
-*Also borrowed — the presentation.* The look is deliberately in Balatro's register: a dark
-blue-slate felt table under CRT scanlines and a vignette, chunky slabs with a hard bottom edge
-that depress when pressed, a pixel display face, and above all the **blue chips / red mult**
-pairing carrying the loudest colour in the UI. The structural steal is the left-hand blind
-panel — Demand badge, "score at least", round score, the chips × mult readout, plays and
-discards, money — with the board to its right: Lens row on top, resolution stage in the middle,
-a fanned hand at the bottom. Plays are announced with named shapes (`DOUBLE RESONANCE`,
-`LOGOMANCY CASCADE`) the way Balatro names poker hands, which teaches players to aim for a shape
-instead of squinting at individual tags.
+*Also borrowed — the presentation.* The look is Balatro's chassis dressed as a
+necromancer's table: chunky slabs with a hard bottom edge that depress when pressed, the
+**blue chips / red mult** pairing carrying the loudest colour in the UI, and the left-hand
+blind panel — Demand plaque, “score at least”, round score, chips × mult, plays, discards,
+money — with the board to its right. Plays are announced with named shapes (`DOUBLE
+RESONANCE`, `OVERTONE CASCADE`) the way Balatro names poker hands, which teaches players to aim
+for a shape instead of squinting at tags.
+
+*The fantasy half* is obsidian and arcane violet, tarnished gold, bone-parchment cards, and a
+gothic display face (Grenze Gotisch) over the pixel UI — gothic for names and headings, pixel
+for every number, so the readable parts stay readable. Embers drift up the background on a
+canvas layer.
+
+*The juice* is where a card game lives, so it got its own pass: cards deal in with a stagger
+(only newly drawn ones — the hand re-renders on every click), breathe on an inner layer so the
+idle motion never fights hover or select, and kick with a springy overshoot as they score.
+Counters tween rather than snap, Sigils lurch when they fire, the stage shakes and throws
+sparks on a big hit, and a green wash breaks over it when the Demand falls.
 
 *Did differently:* Balatro's hand is poker, so the skill floor is a memorised ranking table.
-Logomancy's "hand" is meaning, which every player already has. And card *order* matters here in
+NecroCards's "hand" is meaning, which every player already has. And card *order* matters here in
 a way it mostly doesn't there, which turns each play into a small ordering puzzle on top of a
 selection puzzle. The card faces carry words and overtones rather than rank and suit, so they
 run slightly larger and lean on type instead of pips — no art required either way.
@@ -287,7 +296,7 @@ run slightly larger and lean on type instead of pips — no art required either 
 *Borrowed:* the shared daily seed; a plain-text share block small enough to paste into a
 message; zero account, zero install, one screen.
 *Did differently:* Wordle is deliberately finite — one puzzle, then stop. That's excellent for
-habit and terrible for session length. Logomancy keeps the daily seed as a *comparison* surface
+habit and terrible for session length. NecroCards keeps the daily seed as a *comparison* surface
 but lets you play unlimited free runs, so it can be both a habit and a sitting.
 
 **Slay the Spire** — the run-structure reference.
@@ -300,14 +309,14 @@ blocks and shapes are fine."
 **Semantle / Contexto** — the proof that semantic distance is a legitimate mechanic.
 *Borrowed:* the core insight that meaning can be a scoring surface, not just a theme.
 *Did differently:* those games hide the semantic state and make you grind toward it one guess
-at a time, which is tense but slow and can feel like homework. Logomancy **prints the overtones
+at a time, which is tense but slow and can feel like homework. NecroCards **prints the overtones
 on the card**. Meaning becomes tactical information you act on immediately rather than hidden
 state you search for — which is what lets the loop run at roguelite speed.
 
 **Scrabble / Wordscapes** — the deliberate anti-reference.
 Both make vocabulary size and spelling the skill. That gates non-native speakers, rewards
 memorising two-letter word lists over actual thought, and makes losing feel like a verdict on
-your education. Logomancy removes spelling from the skill entirely: you never construct a word,
+your education. NecroCards removes spelling from the skill entirely: you never construct a word,
 you only choose and order ones you're shown.
 
 **Vampire Survivors** — borrowed exactly one lesson: if the numbers escalate hard enough and
