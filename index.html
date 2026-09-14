@@ -353,9 +353,9 @@ button{ font-family: inherit; color: inherit; }
 }
 .card .tags{ display:flex; flex-wrap:wrap; gap:3px; }
 .card .tg{
-  font-size: 9.5px; font-weight:600; letter-spacing:.02em;
-  padding: 1px 4px; border-radius: 3px;
-  background: #E4DDE6; color: var(--card-dim);
+  font-size: 10.5px; font-weight:600; letter-spacing:.02em;
+  padding: 2px 5px; border-radius: 3px;
+  background: #DCD4E0; color: #453F54;
 }
 .card .tg.match{ background: var(--gold); color:#1B1B3A; font-weight:700; }
 .card.interpreted{
@@ -562,6 +562,54 @@ button{ font-family: inherit; color: inherit; }
   text-shadow: var(--drop-sm);
 }
 .toast[hidden]{ display:none !important; }
+
+/* ---------- desktop: use the room, and stop the felt eating it ----------
+   #app is min-height:100vh with .table and .stage both flex:1, so on a tall
+   monitor the stage absorbed every spare pixel — a 500px empty slab that
+   pushed the hand away from the board and made all the type look small.
+   Let the content be its natural height and centre the whole thing. */
+@media (min-width: 1000px){
+  #app{ max-width: 1320px; gap: 14px; justify-content: center; }
+  .table{ flex: 0 0 auto; grid-template-columns: 268px 1fr; gap: 14px; }
+  .stage{ flex: 0 0 auto; min-height: 240px; }
+
+  /* bigger cards: the thing players actually read */
+  .card{ width: 122px; min-height: 194px; padding: 8px; }
+  .card .art{ height: 64px; }
+  .card .art .icons{ gap: 6px; }
+  .card .art .ms{ font-size: 25px; }
+  .card .w{ font-size: 18px; }
+  .card .tg{ font-size: 11px; }
+  .card .base{ font-size: 12px; }
+  .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 30px; }
+  .pos{ width: 26px; height: 26px; font-size: 14px; top: -10px; left: -8px; }
+
+  /* the round's rule, at the size it deserves */
+  .dc-icons .ms{ font-size: 54px; }
+  .dc-icons{ gap: 22px; }
+  .dc-text{ font-size: 17px; max-width: 46ch; }
+  .demand-call{ gap: 13px; }
+  .stage-hint{ font-size: 16px; }
+  .stage-hint .hand-name{ font-size: 19px; padding: 6px 20px; }
+
+  /* the sidebar has the width to be read at a glance */
+  .blind-badge{ font-size: 20px; padding: 12px 9px; }
+  .blind-wants .w{ font-size: 12px; padding: 3px 9px; }
+  .blind-req .v{ font-size: 34px; }
+  .blind-req .k, .roundscore .k, .meter .k{ font-size: 13px; }
+  .roundscore .v{ font-size: 30px; }
+  .tally .chips, .tally .multv{ font-size: 28px; padding: 10px 5px; }
+  .meter .v{ font-size: 27px; }
+  .money{ font-size: 28px; }
+
+  .lens{ min-width: 134px; max-width: 186px; padding: 8px 10px; }
+  .lens .n{ font-size: 13px; }
+  .lens .d{ font-size: 12px; }
+  .lensbar-head{ font-size: 13px; }
+
+  .btn{ font-size: 16px; padding: 13px 28px; }
+  .coach{ font-size: 15px; padding: 11px 22px; }
+}
 
 /* ---------- narrow: sidebar becomes a HUD strip ---------- */
 @media (max-width: 900px){

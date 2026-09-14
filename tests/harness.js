@@ -97,7 +97,7 @@ function load(){
   vm.runInContext(`globalThis.__api = {
     get G(){ return G; },
     resolve, newRun, startRound, draw, toggleSel, winRound, rollOffers,
-    makeCard, houseAppraise, deckCount, resonanceName, shareText,
+    makeCard, houseAppraise, deckCount, resonanceName, shareText, endRun, store,
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,
     LEXICON, LENSES, DEMANDS, TARGETS, TAGS, TAG_KEYS, ICONS, TAG_COLOR,
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES

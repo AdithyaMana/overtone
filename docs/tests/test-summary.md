@@ -1,6 +1,6 @@
 # Test Automation Summary — NecroCards
 
-**64 tests, 0 failures.** 28 engine tests + 36 E2E tests across two device profiles.
+**115 tests, 0 failures.** 65 engine tests + 50 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -33,7 +33,7 @@ It now runs on the harness too.
 
 ## Generated tests
 
-### Engine — `tests/logic.test.js` (28)
+### Engine — `tests/*.test.js` (65)
 
 | Suite | Covers |
 |---|---|
@@ -44,8 +44,10 @@ It now runs on the harness too.
 | run shape | targets climb monotonically; the climb is ≥15× so an engine is mandatory; a run starts fully resourced; **the first shop is always affordable**; no Demand repeats |
 | the Interpreter | the house appraiser always returns 1–4 valid overtones on junk input; appraisal is stable; known vocabulary is read from its shape; an interpreted word is scorable |
 | presentation | every overtone has an icon and a valid colour; bright plates are detected so icons stay legible; hand names cover every resonance count |
+| **Sigil arithmetic** (`sigils.test.js`) | all 24 Sigils pinned to their exact numbers — each scored with and without the Sigil, asserting the precise chip and mult delta. A guard test fails if a Sigil is added without one |
+| **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Sigil the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/game.spec.js` (18 × desktop + phone)
+### E2E — `tests/e2e/` (25 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -54,6 +56,7 @@ It now runs on the harness too.
 | the Reliquary | opens on clearing a round; states the exponential; offers three items; **"Leave with no Sigil"** when empty-handed; a bought Sigil equips and survives into the next round |
 | the Interpreter | a typed word becomes a real card via the house appraiser, which names itself; a 1-letter word is rejected |
 | layout | never scrolls sideways; **the controls stay in the viewport**; help reopens and closes on Escape |
+| **the live Claude path** (`interpreter.spec.js`) | a fake sampler is injected before page load, proving the live branch works and names itself; **invented overtones are discarded rather than rendered**; a reply with no usable tags, a malformed reply, `not_granted` and `rate_limited` all degrade to the house appraiser with the run intact |
 
 ## Two real bugs the tests found
 
@@ -82,20 +85,29 @@ pixels, since device heights vary far more than widths.
 |---|---|
 | Scoring engine | covered, including a 600-play fuzz |
 | Deck construction & seeding | covered |
-| Sigil effects | covered structurally + by fuzz; **no per-Sigil arithmetic assertions** beyond CARNIVORE |
+| Sigil effects | covered — structural, 600-play fuzz, and exact arithmetic for all 24 |
 | Shop economy | affordability and purchase flow covered; reroll and word-packs not |
-| Interpreter | fallback path covered; **the live Claude path is not** (no `window.claude` over `file://`) |
-| Run end | **not covered** — death screen, Memory unlock, share text |
+| Interpreter | covered — fallback, live path, response validation and every refusal code |
+| Run end | covered — bookkeeping, Memory unlock, share block |
 | Coach / onboarding | not covered |
 | API | not applicable — no backend |
 
 ## Next steps
 
-- **Per-Sigil arithmetic tests.** The fuzz proves no Sigil crashes or produces nonsense;
-  it does not prove `ANTONYM ENGINE` pays exactly 120 + ×2. That is 24 small tests.
-- **Cover the run end**, which is where the day-1 hooks live: the Memory unlock and the
-  share text are the retention mechanics and are currently untested.
-- **Mock the live Interpreter** by injecting a fake `window.claude.use` before load, so
-  the Claude path gets tested as well as the fallback.
-- **CI**: both tiers run headless with no server. `npm test` is fast enough for a
-  pre-commit hook; `npm run test:e2e` suits a push hook or CI job.
+- **Coach / onboarding is still untested.** The coach advances pick → play → score and then
+  retires permanently; none of that is asserted.
+- **The shop’s reroll and word-pack offers** are untested, as is running out of money.
+- **A full losing run** — playing until the targets outrun the deck — is not simulated end to
+  end; `runend.test.js` calls `endRun` directly rather than arriving there through play.
+- **CI**: both tiers run headless with no server. `npm test` is fast enough for a pre-commit
+  hook; `npm run test:e2e` suits a push hook or CI job.
+
+## A note on the harness
+
+Two bugs in the test code itself are worth recording, since both would recur:
+
+- **Cross-realm comparison.** `api.LENSES` lives in the VM realm, so `.map()` returns an array
+  carrying the VM’s `Array.prototype`. `assert.deepStrictEqual` checks prototype identity, so a
+  cross-realm `[]` never equals a host `[]`. Compare lengths or contents, not array objects.
+- **Reduced motion is forced** in the harness so the rAF counter tweens resolve synchronously
+  and assertions do not race an animation.

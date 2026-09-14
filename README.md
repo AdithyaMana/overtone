@@ -53,6 +53,8 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `tools/sim.js` | Headless balance simulator (deck coverage + difficulty curve). |
 | `tests/harness.js` | Loads the real game into a Node VM for engine tests. |
 | `tests/logic.test.js` | Engine tests (node:test). |
+| `tests/sigils.test.js` | Exact arithmetic for all 24 Sigils. |
+| `tests/runend.test.js` | Memory unlock and share block. |
 | `tests/e2e/` | Browser tests (Playwright). |
 | `docs/tests/test-summary.md` | What is covered, and what is not. |
 | `tools/export-cards.js` | Exports the full card list from the lexicon. |
@@ -67,7 +69,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**64 tests, 0 failures.** The engine tier uses Node’s built-in runner and needs no
+**115 tests, 0 failures.** The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
