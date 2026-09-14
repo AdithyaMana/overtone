@@ -386,15 +386,79 @@ test.describe("layout", () => {
     await expect(page.locator("#playBtn")).toBeInViewport();
   });
 
-  test("the board does not repeat the hand back at portrait width",
+  test("the picked words go up to the board at portrait width, small",
     async ({ page }, info) => {
       test.skip(info.project.name !== "phone", "portrait layout");
+      /* Drawn at full size they were 240px of a 667px screen spent repeating
+         the hand; not drawn at all, tapping a card sent it nowhere and the
+         board looked broken. They go up small, into room the stage already
+         had. */
       await open(page);
       for (const key of ["1", "2"]) await page.keyboard.press(key);
-      await expect(page.locator("#stageCards .card").first()).toBeHidden();
+
+      const preview = page.locator("#stageCards .card");
+      await expect(preview).toHaveCount(2);
+      await expect(preview.first()).toBeVisible();
       await expect(page.locator("#hand .card .pos")).toHaveCount(2);
       await expect(page.locator("#stageHint")).toContainText("Worth");
+
+      const size = await page.evaluate(() => {
+        const up = document.querySelector("#stageCards .card");
+        const inHand = document.querySelector("#hand .card");
+        const ctl = document.querySelector(".controls").getBoundingClientRect();
+        const lowest = Math.max(...[...document.querySelectorAll("#hand .card")]
+          .map(c => c.getBoundingClientRect().bottom));
+        return {
+          up: up.offsetHeight, hand: inHand.offsetHeight,
+          tagsDrawn: [...up.querySelectorAll(".tg")]
+            .some(t => t.getBoundingClientRect().height > 0),
+          handClear: Math.round(ctl.top - lowest)
+        };
+      });
+      expect(size.up, "the preview is as big as the hand again")
+        .toBeLessThan(size.hand * 0.6);
+      expect(size.tagsDrawn, "the preview is repeating the tags too").toBe(false);
+      expect(size.handClear, "the preview pushed the hand under the controls")
+        .toBeGreaterThanOrEqual(0);
     });
+
+  test("the spotlight follows the board when the board moves", async ({ page }) => {
+    /* The hole was aimed once, when the step was drawn, and the board does not
+       hold still — a hand resolving folds the hand away and grows the stage.
+       On the last step the spotlight ended up 56px clear of the Lens bar it
+       was pointing at. It is the portrait run that catches this — at desktop
+       width the Lens bar barely moves — but the check is cheap on both. */
+    await page.goto(GAME);
+    await expect(page.locator("#tut")).toBeVisible();
+
+    const drift = () => page.evaluate(() => {
+      const s = TUT[tutStep];
+      if (!s || !s.sel) return null;
+      const hole = document.getElementById("tutHole").getBoundingClientRect();
+      const target = document.querySelector(s.sel).getBoundingClientRect();
+      return { step: tutStep, sel: s.sel, off: Math.round((hole.top + 8) - target.top) };
+    });
+
+    /* walk to the step that waits on a pick, then play the hand out */
+    await page.click("#tutNext");
+    await page.click("#tutNext");
+    await page.evaluate(() => {
+      const live = G.hand.filter(c => c.t.some(t => G.demand.tags.includes(t)));
+      const rest = G.hand.filter(c => live.indexOf(c) < 0);
+      [...live, ...rest].slice(0, 3).forEach(c => toggleSel(c.id));
+    });
+    await expect.poll(() => page.evaluate(() => tutStep)).toBeGreaterThanOrEqual(4);
+    await expect.poll(async () => Math.abs((await drift()).off),
+      { timeout: 3000, message: "the spotlight drifted while picking" })
+      .toBeLessThanOrEqual(4);
+
+    await page.evaluate(() => { while (tutStep < 5) tutAdvance(); play(); });
+    await settle(page);
+    /* the aim is corrected on a tick, so give it one */
+    await expect.poll(async () => Math.abs((await drift()).off),
+      { timeout: 4000, message: "the spotlight never caught up with the board" })
+      .toBeLessThanOrEqual(4);
+  });
 
   test("nothing on a card overlaps the icon plate", async ({ page }) => {
     await open(page);

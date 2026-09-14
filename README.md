@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**294 tests, 0 failures.** 106 engine + 188 E2E. The engine tier uses Node’s built-in runner and needs no
+**296 tests, 0 failures.** 106 engine + 190 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.

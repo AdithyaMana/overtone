@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**294 tests, 0 failures.** 106 engine tests + 188 E2E tests across two device profiles.
+**296 tests, 0 failures.** 106 engine tests + 190 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -49,7 +49,7 @@ It now runs on the harness too.
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (97 × desktop + phone)
+### E2E — `tests/e2e/` (98 × desktop + phone)
 
 | Suite | Covers |
 |---|---|

@@ -1148,14 +1148,35 @@ button{ font-family: inherit; color: inherit; }
   }
   .rail-empty{ white-space: normal; font-size: 11px; line-height: 1.35; }
 
-  /* The stage used to redraw the picked words at full size while the hand
-     was still showing the very same cards, selected, numbered and raised —
-     240px of portrait spent saying something twice, which is what pushed the
-     hand's second row under the pinned controls. The order badges are already
-     on the cards in hand, so the preview here is the number alone. During
-     resolution the hand folds away and the cards come back, big. */
-  #app:not(.resolving) #stageCards .card{ display: none; }
-  #app:not(.resolving) #stageCards{ gap: 0; }
+  /* The picked words go up to the board here, the way they do on a desktop —
+     but small. At full size they were 240px of portrait spent drawing the very
+     same cards the hand was already showing selected, numbered and raised,
+     which is what pushed the hand's second row under the pinned controls; not
+     drawn at all, tapping a card sent it nowhere and the board looked broken.
+
+     A stage that is picking holds one short line of text in a hundred pixels
+     of felt, so these fit in the room already there: the plate, its overtones
+     and the word, in the order they will score. During resolution the hand
+     folds away and the cards come back full size. */
+  #app:not(.resolving) #stageCards{ gap: 5px; align-items: flex-end; }
+  #app:not(.resolving) #stageCards .card{
+    width: 54px; height: 37px; padding: 3px; border-radius: 5px;
+    box-shadow: 0 2px 0 var(--card-edge);
+  }
+  #app:not(.resolving) #stageCards .card .card-inner{ gap: 2px; padding-bottom: 0; }
+  #app:not(.resolving) #stageCards .card .art{ height: 17px; padding: 0 2px; border-radius: 3px; }
+  #app:not(.resolving) #stageCards .card .art .ms{ font-size: 9px; }
+  #app:not(.resolving) #stageCards .card .art .ms.hit{ padding: 2px; }
+  #app:not(.resolving) #stageCards .card .art .icons{ gap: 1px; }
+  #app:not(.resolving) #stageCards .card .w{
+    font-size: 7.5px; height: auto; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #app:not(.resolving) #stageCards .card .tags,
+  #app:not(.resolving) #stageCards .card .base{ display: none; }
+  #app:not(.resolving) #stageCards .card .pos{
+    width: 14px; height: 14px; font-size: 9px; top: -5px; left: -4px;
+  }
 
   /* the board: the one band allowed to grow */
   .stage{ min-height: 104px; padding: 9px; gap: 6px; }
@@ -3858,7 +3879,8 @@ function startTutorial(force){
   clearInterval(tutWatch);
   tutWatch = setInterval(function(){
     const s = TUT[tutStep];
-    if(s && s.done && s.done()) tutAdvance();
+    if(s && s.done && s.done()){ tutAdvance(); return; }
+    pointTut();
   }, 220);
 }
 
@@ -3892,8 +3914,6 @@ function endTutorial(completed){
 function renderTut(){
   const s = TUT[tutStep];
   if(!s) return endTutorial(true);
-  const hole = document.getElementById("tutHole");
-  const box = document.getElementById("tutBox");
   document.getElementById("tutStep").textContent =
     s.label + " · " + (tutStep + 1) + " of " + TUT.length;
   document.getElementById("tutText").innerHTML = s.text();
@@ -3908,10 +3928,35 @@ function renderTut(){
     dots.appendChild(d);
   }
 
+  tutAim = null;
+  pointTut();
+}
+
+/* Where the spotlight is currently aimed, as a string, so a tick that changes
+   nothing costs one rect read and nothing else. */
+let tutAim = null;
+
+/* The hole was positioned once, when the step was drawn, and the board does
+   not hold still: a hand resolving folds the hand away and grows the stage,
+   the shop closes, a phone scrolls, an orientation changes. On the last step
+   the spotlight ended up 56px clear of the Lens bar it was pointing at.
+   Aim on a tick instead, and let the CSS transition carry the correction. */
+function pointTut(){
+  const s = TUT[tutStep];
+  if(!s) return;
+  const hole = document.getElementById("tutHole");
+  const box = document.getElementById("tutBox");
+  const el = s.sel ? document.querySelector(s.sel) : null;
+  const r = el ? el.getBoundingClientRect() : null;
+  const aim = r
+    ? [r.left, r.top, r.width, r.height].map(Math.round).join(",")
+    : "none";
+  if(aim === tutAim) return;
+  tutAim = aim;
+
   /* Below this width the card is docked by CSS and only needs to be told
      which end of the screen to sit at. */
   const docked = window.innerWidth <= 700;
-  const el = s.sel ? document.querySelector(s.sel) : null;
   if(docked){
     box.classList.remove("dock-top");
     if(el){
@@ -3920,7 +3965,7 @@ function renderTut(){
       if(r.top + r.height / 2 > window.innerHeight * 0.5) box.classList.add("dock-top");
     }
   }
-  if(!el){
+  if(!r){
     /* No target: a zero-size hole in the middle of the screen. It paints
        nothing itself, and its 9999px spread dims everything.
 
@@ -3940,7 +3985,6 @@ function renderTut(){
     return;
   }
 
-  const r = el.getBoundingClientRect();
   const pad = 8;
   hole.style.display = "block";
   hole.style.borderRadius = r.height > 120 ? "12px" : "10px";
@@ -4197,6 +4241,10 @@ function renderControls(){
 function render(){
   renderDemand(); renderRail(); renderHand(); renderControls(); renderPreview();
   coachSet(G.coachStep);
+  /* Anything that redraws the board can move what the tutorial is pointing at,
+     and a fifth of a second of a spotlight sitting off its target is visible.
+     Costs one rect read when the aim has not changed. */
+  if(tutActive()) pointTut();
 }
 
 /* ---------- panels ---------- */
@@ -4380,6 +4428,12 @@ window.addEventListener("resize", function(){
     if(tutActive()) renderTut();
   }, 160);
 });
+
+/* A quarter of a second of lag is a whole gesture on a phone, so scrolling
+   moves the spotlight now rather than on the next tick. */
+window.addEventListener("scroll", function(){
+  if(tutActive()) pointTut();
+}, { passive: true });
 
 document.addEventListener("keydown", function(e){
   if(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
