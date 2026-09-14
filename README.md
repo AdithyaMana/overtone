@@ -123,7 +123,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**217 tests, 0 failures.** 83 engine + 134 E2E. The engine tier uses Node’s built-in runner and needs no
+**252 tests, 0 failures.** 102 engine + 150 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -226,16 +226,67 @@ board and the hand gets a fixed allowance, so the two that carry the game get th
 
 ## Balance
 
-Targets aren't guessed. `tools/sim.js` runs 400 headless runs and reports deck coverage and how
-a greedy *lens-less* player fares against each round's target:
+Nothing here is guessed. Two simulators run the **real engine** through the harness — real deck
+construction, real draws, real scoring, real shop, real purchases.
 
 ```bash
-node tools/sim.js
+npm run sim                      # deck coverage + how a LENS-LESS player fares
+npm run balance                  # full runs: win rate, where runs die, mult ceiling
+npm run balance -- --curve       # what a round can actually PRODUCE, per round
+npm run balance -- --lenses      # per-Lens power ranking against the baseline
+npm run balance -- --stacks      # the strongest reachable loadouts
+npm run balance -- 400 --play greedy --buy random
 ```
 
-It caught two real bugs before launch: decks that could hand you an unwinnable Demand (FOOD sits
-on only 21 of 249 words), and a difficulty wall at round 3. Both are written up in
-[DESIGN.md §5.4](DESIGN.md).
+`sim.js` plays with **no** Lenses. That was the right question while the shop was the thing
+being taught and the wrong one once the shop became the game: **it cannot see a broken Lens,
+because it never buys one.** `balance.js` does, and the first time it ran it reported a **70%
+win rate** — the reviews were right.
+
+### What the numbers said
+
+| | before | after |
+|---|---|---|
+| optimal player | 70% | 43% |
+| realistic player | — | **25%** |
+| careless player (random buys) | — | 12% |
+| round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) |
+| best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% |
+| worst single Lens | CHRONICLER, 3% | 21% |
+
+Three findings did most of the work:
+
+1. **Flat chips die.** Targets climb 116× across a run; a Lens paying +45 a word is decisive in
+   round 2 and irrelevant by round 6. PROSPECTOR won 41% against a 64% baseline — it was a trap
+   dressed as an option. Seven Lenses now **grow every round you hold them**, sized against
+   measured tag frequency (DANGER sits on 34% of the lexicon and grows +40; MONEY on 9% and
+   grows +190). They start weaker and end far stronger, which turns a round-2 purchase into a
+   round-8 engine and gives the player a number to watch climb.
+2. **Unconditional ×mult breaks everything.** ENTROPY won *every* run and reached round 7.7 with
+   no other Lens, because "each word shorter than the last" is not a condition, it is a sorting
+   instruction. GLUTTON paid ×2.5 for playing three words, which everybody does anyway. Both
+   cost something now.
+3. **The slot cap was not a cost.** With five slots and nothing but upside in the shop, the right
+   play was always "buy the biggest number". Six **flawed** Lenses have the biggest numbers in
+   the game and every one takes something back: a play, a discard, two cards of hand, half your
+   income, or the target itself.
+
+### Setting a target curve
+
+`--curve` reports what a round can *produce* at each point in a run, so targets are a percentile
+of measured output rather than a number that felt right. The curve now sits at roughly
+p3 / p5 / p10 / p14 / p18 / p22 / p26 / p45 — deliberately generous early, because **dying in
+round 2 reads as the game cheating and dying in round 6 reads as your build being wrong**, and
+only one of those makes someone start again.
+
+A Lens-less player clears round 1 at ×2.2 and misses round 2 at ×0.97. Missing by three percent
+is the shop teaching itself.
+
+### Two bugs the old simulator could not see
+
+`sim.js` caught decks that could hand you an unwinnable Demand (FOOD sits on only 21 of 249
+words) and a difficulty wall at round 3 — both in [DESIGN.md §5.4](DESIGN.md). It could not catch
+either of these, because both live on the far side of a purchase.
 
 ## Card faces
 

@@ -406,6 +406,89 @@ of those a worse trade than they need to be.
 
 ---
 
+## 6.8 The balance pass, and the simulator that could not see the problem
+
+Playtesters said the game was too easy and that some Lenses were broken. Both were true, and the
+tooling I had could not show me either.
+
+`tools/sim.js` plays with **no Lenses at all**. That was the right question while the shop was the
+thing being taught — *can someone who ignores the Bookseller survive?* — and exactly the wrong one
+once the shop became the game. **A simulator that never buys a Lens cannot see a broken Lens.**
+So I built `tools/balance.js`, which plays whole runs through the real engine, buys from the real
+shop, and reports what actually happens. First run: a **70% win rate**, against 15-30% for a
+healthy roguelite.
+
+### What it found
+
+| Lens | win rate | reached alone |
+|---|---|---|
+| ENTROPY | **100%** | round 7.7 |
+| LITERALIST | 93% | 6.1 |
+| ZOOLOGIST | 89% | 5.4 |
+| BRUTALIST | 87% | 5.0 |
+| *baseline* | *64%* | |
+| PROSPECTOR | 41% | 4.1 |
+| CHRONICLER | **3%** | 2.6 |
+
+A $7 Lens that wins every run and carries to round 7.7 on its own is not a strong Lens, it is the
+game. And a $4 Lens that wins 3% is not a weak option, it is a trap — the shop was offering
+players a choice between "correct" and "lose".
+
+### Three structural problems, not thirty number problems
+
+**1. Flat chips die.** Targets climbed 26× across a run while a chip Lens paid the same +45 in
+round 8 as in round 2. Seven Lenses now **grow every round you hold them**, sized against measured
+tag frequency rather than feel: DANGER sits on 34% of the lexicon and grows +40 a round, MONEY on
+9% and grows +190. They start weaker than the old flat versions and end far stronger. That also
+fixes the *fantasy*: a Lens bought in round 2 and carried is now visibly worth more than the same
+Lens bought in round 6, and the rail shows the number climbing.
+
+**2. Unconditional ×mult breaks everything.** ENTROPY asked that each word be shorter than the
+last, which is not a condition — it is a sorting instruction. GLUTTON paid ×2.5 for playing three
+words, which is what everybody does anyway. A multiplier that compounds has to be paid for, so
+GLUTTON costs a discard, ENTROPY punishes any hand that does not qualify, and the rest came down.
+
+**3. The slot cap was not a cost.** Five slots, thirty Lenses, and nothing in the shop but upside
+meant the correct play was always "buy the biggest number". Two changes fixed that:
+
+- **Six flawed Lenses.** The biggest numbers in the game, each taking something back: THE WAGER
+  is ×3 for one fewer play a round. THE FAMINE pays +150 a word and deals you a four-card hand.
+  THE USURER is ×3 and halves your income. THE CURSE is ×3.5 and *doubles every target you face*.
+  THE TITHE is +1,000 points and halves your multiplier, which is a bargain while your chips are
+  big and a disaster once the multiplier is what carries you — the same card flips from good to
+  bad inside one run.
+- **Selling.** Every Lens has a price at the Bookseller, half what you paid. The slot comes back,
+  but a growing Lens loses everything it grew, so the question is never "is this one better" but
+  "is it better than what mine has already become". That is the decision the cap was supposed to
+  create and never did.
+
+### Setting targets from measurement
+
+`--curve` reports what a round can actually *produce* at each point in a run. Against it, the old
+final target of 5,200 sat at the **9th percentile**: the last round of the game was clearable by
+nine runs in ten. The curve now sits at roughly p3 / p5 / p10 / p14 / p18 / p22 / p26 / p45.
+
+Deliberately generous early. **Dying in round 2 reads as the game cheating; dying in round 6 reads
+as your build being wrong**, and only one of those makes someone start again. A Lens-less player
+clears round 1 at ×2.2 and misses round 2 at ×0.97 — missing by three percent is the shop teaching
+itself better than any panel copy could.
+
+### Where it landed
+
+| player | win rate |
+|---|---|
+| optimal (evaluates every ordering, buys by simulation) | 43% |
+| realistic (takes the best three, buys what fits) | **25%** |
+| careless (random purchases) | 12% |
+
+The number I care about is the spread. Before the pass, a careless player and a careful one both
+won most of their runs, so there was nothing to be careful *about*. Now choosing well roughly
+doubles your odds, and choosing badly roughly halves them. Deaths are spread across rounds 3-7
+rather than piled at the end, so a loss has a specific cause you can name — which is the thing
+that makes someone press New Run.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or

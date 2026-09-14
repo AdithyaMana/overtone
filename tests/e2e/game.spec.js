@@ -801,6 +801,132 @@ test.describe("throwaway motion cleans up after itself", () => {
 });
 
 /* ------------------------------------------------------------------ */
+test.describe("selling a Lens", () => {
+  async function shopWith(page, ids, bank) {
+    await page.evaluate(({ ids, bank }) => {
+      G.lenses = ids.map(id => LENSES.find(l => l.id === id));
+      G.lensState = {};
+      G.bank = bank; G.round = 3; G.offers = null;
+      openShop(9);
+    }, { ids, bank });
+  }
+
+  test("frees the slot and pays back half", async ({ page }) => {
+    await open(page);
+    /* Five slots against thirty Lenses meant the only interesting decision —
+       the one where you give something up — happened once, on the purchase
+       that filled your last slot. After that the shop was a wall. */
+    await shopWith(page, ["pyro", "reso", "glut", "zoo", "night"], 2);
+    await expect(page.locator(".own")).toHaveCount(5);
+    await expect(page.locator("#panel")).toContainText("5 of 5 slots full");
+    /* every Lens offer is dead while the slots are full */
+    const lensOffers = page.locator(".offer").filter({ hasNotText: "TWO NEW WORDS" });
+    expect(await lensOffers.first().isDisabled()).toBe(true);
+
+    const before = await page.evaluate(() => ({ bank: G.bank, n: G.lenses.length }));
+    await page.locator(".sellbtn").first().click();
+
+    const after = await page.evaluate(() => ({ bank: G.bank, n: G.lenses.length }));
+    expect(after.n, "the slot was not freed").toBe(before.n - 1);
+    /* PYROMANIAC costs $5, so it sells for $3 — half, rounded up. Always a
+       loss, or the shop could be churned for money. */
+    expect(after.bank).toBe(before.bank + 3);
+    await expect(page.locator("#panel")).toContainText("4 of 5 slots used");
+  });
+
+  test("selling a grown Lens loses what it grew, and says so first", async ({ page }) => {
+    await open(page);
+    await shopWith(page, ["pyro"], 5);
+    await page.evaluate(() => { G.lensState.pyro = 440; openShop(9); });
+
+    await expect(page.locator(".grown")).toContainText("grown to +440");
+    await expect(page.locator(".grown")).toContainText("selling loses it");
+
+    await page.locator(".sellbtn").first().click();
+    const kept = await page.evaluate(() => G.lensState.pyro);
+    expect(kept, "the growth survived the sale").toBeUndefined();
+  });
+
+  test("the slot freed can immediately be spent", async ({ page }) => {
+    await open(page);
+    await shopWith(page, ["pyro", "reso", "glut", "zoo", "night"], 12);
+    await page.locator(".sellbtn").first().click();
+    const lensOffer = page.locator(".offer").filter({ hasNotText: "TWO NEW WORDS" }).first();
+    expect(await lensOffer.isDisabled(), "still blocked after freeing a slot").toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("Lenses that cost you something", () => {
+  test("the shop marks a flawed Lens rather than burying the catch", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      G.bank = 20; G.round = 3;
+      G.offers = [
+        { kind: "lens", lens: LENSES.find(l => l.id === "curse"), cost: 7 },
+        { kind: "lens", lens: LENSES.find(l => l.id === "zoo"), cost: 5 },
+        { kind: "words", cost: 3 }
+      ];
+      openShop(9);
+    });
+    const flawed = page.locator(".offer.flawed");
+    await expect(flawed).toHaveCount(1);
+    await expect(flawed).toContainText("COSTS YOU SOMETHING");
+    await expect(flawed).toContainText("doubled");
+  });
+
+  test("THE WAGER actually takes the play it charges for", async ({ page }) => {
+    await open(page);
+    const meters = await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "wager")];
+      startRound();
+      return { plays: G.plays, shown: document.getElementById("playsLeft").textContent };
+    });
+    expect(meters.plays).toBe(3);
+    expect(meters.shown, "the meter still claims four").toBe("3");
+  });
+
+  test("THE FAMINE actually deals a smaller hand", async ({ page }) => {
+    await open(page);
+    const n = await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "famine")];
+      startRound();
+      return G.hand.length;
+    });
+    expect(n).toBe(4);
+    await expect(page.locator("#hand .card")).toHaveCount(4);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("Lenses that grow", () => {
+  test("the rail shows what a Lens has grown to", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "prosp")];
+      G.lensState = { prosp: 570 };
+      renderRail();
+    });
+    await expect(page.locator("#rail .lens .lv")).toContainText("+570 so far");
+  });
+
+  test("a hand scored twice gives the same number both times", async ({ page }) => {
+    await open(page);
+    /* renderPreview calls resolve() on every click. If scoring advanced a
+       growing Lens, the board would show one number and pay another. */
+    const scores = await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "pyro")];
+      G.lensState = { pyro: 110 };
+      const hand = G.hand.slice(0, 3);
+      return [resolve(hand).total, resolve(hand).total, resolve(hand).total, G.lensState.pyro];
+    });
+    expect(scores[0]).toBe(scores[1]);
+    expect(scores[1]).toBe(scores[2]);
+    expect(scores[3], "previewing a hand grew the Lens").toBe(110);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 test.describe("reading a Lens you own", () => {
   async function equip(page, ids) {
     await page.evaluate(list => {

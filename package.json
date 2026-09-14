@@ -12,7 +12,8 @@
     "cards": "node tools/export-cards.js",
     "font": "node tools/embed-font.js",
     "build:web": "node tools/build-web.js",
-    "deploy": "node tools/build-web.js && firebase deploy --only hosting"
+    "deploy": "node tools/build-web.js && firebase deploy --only hosting",
+    "balance": "node tools/balance.js"
   },
   "keywords": [],
   "author": "",

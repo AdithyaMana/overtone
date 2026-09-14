@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**217 tests, 0 failures.** 83 engine tests + 134 E2E tests across two device profiles.
+**252 tests, 0 failures.** 102 engine tests + 150 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -33,7 +33,7 @@ It now runs on the harness too.
 
 ## Generated tests
 
-### Engine — `tests/*.test.js` (83)
+### Engine — `tests/*.test.js` (102)
 
 | Suite | Covers |
 |---|---|
@@ -45,11 +45,11 @@ It now runs on the harness too.
 | the Interpreter | the house appraiser always returns 1–4 valid overtones on junk input; appraisal is stable; known vocabulary is read from its shape; an interpreted word is scorable |
 | the daily seed | the key is a sortable zero-padded date; one date gives every player the same deck and Demand order; a different date gives a different run; the year rolls over cleanly; a named seed is not flagged as the daily |
 | presentation | every overtone has an icon and a valid colour; bright plates are detected so icons stay legible; hand names cover every resonance count |
-| **Lens arithmetic** (`lenses.test.js`) | all 24 Lenses pinned to their exact numbers — each scored with and without the Lens, asserting the precise chip and mult delta. A guard test fails if a Lens is added without one |
+| **Lens arithmetic** (`lenses.test.js`) | all 30 Lenses pinned to their exact numbers — each scored with and without the Lens, asserting the precise point and multiplier delta. Plus: a growing Lens reads its level back but **never advances it during `resolve`** (renderPreview calls resolve on every click, so a Lens that grew while previewing would make the board show one number and pay another); growth is banked once per round by `startRound`; every flawed Lens actually implements the drawback its description claims; and no *unflawed* Lens quietly takes something away. A guard test fails if a Lens is added without an arithmetic test |
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (70 × desktop + phone)
+### E2E — `tests/e2e/` (78 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -67,6 +67,9 @@ It now runs on the harness too.
 | **order honesty** | the "order matters" line is absent with no Lenses, present with a position-reading Lens, and `orderMatters()` is false for one additive-mult Lens but true once a multiplicative one joins it |
 | **sound, vibration and motion** | three independent switches that persist across a reload; the theme is **not fetched before the first gesture**; it is created looping and pointed at the right file on that gesture; muting actually stops it; the iPhone `navigator.vibrate` gap is stated in the panel |
 | **throwaway motion** | every frame of a scoring window is sampled: no particle's animation may lack a holding `fill`, none may be visible after finishing, and none may outlive the hand. Verified against the broken build first — the first version of this test passed either way, which made it worthless |
+| **selling a Lens** | selling frees the slot, pays back half rounded up, and the freed slot can be spent immediately; a grown Lens loses everything it grew and the shop says so before the click |
+| **flawed Lenses** | the shop marks them rather than burying the catch; THE WAGER actually takes the play it charges for and the meter says 3; THE FAMINE actually deals a four-card hand |
+| **growing Lenses** | the rail shows what one has grown to; scoring the same hand three times gives the same number three times and leaves the level untouched |
 | **reading a Lens** | tapping one in the rail opens it to the full rule, unclamped and uncut; only one opens at a time and tapping again closes it; every one of the five longest rules fits when open; and on a phone opening one does not grow the rail into a second row, which would push the hand behind the pinned controls |
 | **the shape of a hand** | all seven cards lay out at one identical height (via `offsetHeight` — the fan means their *rects* differ by rotation angle); no tag that matches the round is ever clipped out of a card |
 | **the counters** | a rolling counter lands on the exact value the engine computed, not on whatever it was showing when the animation stopped; the total counts from zero and locks on the real score |

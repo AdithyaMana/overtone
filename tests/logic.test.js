@@ -130,7 +130,7 @@ describe("scoring", () => {
     const doesnt = api.resolve([wolf, oak]).total; // wolf is leftmost, eats nothing
     assert.ok(eats > doesnt,
       "order did not matter: " + eats + " vs " + doesnt);
-    assert.strictEqual(eats - doesnt, oak.base, "CARNIVORE paid the wrong amount");
+    assert.strictEqual(eats - doesnt, oak.base * 4, "CARNIVORE paid the wrong amount");
   });
 
   test("chips never go negative and mult never hits zero", () => {

@@ -319,6 +319,16 @@ button{ font-family: inherit; color: inherit; }
   padding-right: 13px;
 }
 .lens .d{ font-size: 11px; line-height:1.4; color:#2A1C46; margin-top:3px; }
+.lens .lv{
+  font-family: var(--f-display); font-size: 11px; margin-top: 5px;
+  color: #2A1C46; background: var(--gold); border-radius: 4px;
+  padding: 2px 6px; display: inline-block;
+  box-shadow: 0 2px 0 var(--gold-d);
+}
+/* a Lens that costs you something says so in its colour */
+.lens.flaw{ background: var(--blind); box-shadow: 0 3px 0 var(--blind-d); }
+.lens.flaw .d{ color: #FFE2DE; }
+.lens.flaw .lv{ background: var(--card); box-shadow: 0 2px 0 var(--card-edge); }
 /* a corner mark, so it reads as something you can open */
 .lens::before{
   content: "+"; position: absolute; top: 5px; right: 7px;
@@ -636,6 +646,12 @@ button{ font-family: inherit; color: inherit; }
   align-self:flex-start; font-size:11px; font-weight:700;
   background: var(--gold); color:#12181C; border-radius:4px; padding:2px 7px;
 }
+.offer.flawed{ background: var(--blind); box-shadow: 0 4px 0 var(--blind-d); }
+.offer.flawed .od{ color: #FFE2DE; }
+.cost-warn{
+  align-self:flex-start; font-family: var(--f-display); font-size:10px;
+  background: var(--card); color: var(--blind-d); border-radius:4px; padding:2px 7px;
+}
 
 /* while a hand is resolving, the board takes the room */
 #app.resolving .hand{ opacity: .26; transform: scale(.97); pointer-events: none; }
@@ -707,6 +723,33 @@ button{ font-family: inherit; color: inherit; }
 .offer .on{ font-size: 13px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm); }
 .offer .od{ font-size: 12px; color:#2A1C46; line-height:1.45; flex:1; }
 .offer .oc{ font-size: 14px; font-weight:700; color: var(--gold); text-shadow: var(--drop-sm); }
+
+.owned{ display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
+.own{
+  display:flex; align-items:center; gap:12px;
+  background: var(--lens); border-radius:8px; padding:10px 12px;
+  box-shadow: 0 3px 0 var(--lens-d);
+}
+.own.flaw{ background: var(--blind); box-shadow: 0 3px 0 var(--blind-d); }
+.own .ow{ flex:1; min-width:0; }
+.own .on{ font-family: var(--f-display); font-size:12px; color:#FFF; text-shadow: var(--drop-sm); }
+.own .od{ font-size:12px; line-height:1.4; color:#2A1C46; margin-top:3px; }
+.own.flaw .od{ color:#FFE2DE; }
+.own .grown{
+  font-family: var(--f-display); font-size:10.5px; margin-top:5px;
+  display:inline-block; background: var(--gold); color:#12181C;
+  border-radius:4px; padding:2px 7px; box-shadow: 0 2px 0 var(--gold-d);
+}
+.sellbtn{
+  flex:none; padding:10px 14px; font-size:12px; min-height:42px;
+  background: var(--panel-2); box-shadow: 0 4px 0 var(--edge);
+}
+@media (max-width: 620px){
+  .own{ flex-wrap:wrap; gap:8px; padding:9px 10px; }
+  .own .od{ font-size:11.5px; }
+  .sellbtn, .sellbtn{ width:100%; }
+  .own .sellbtn{ flex:1 1 100%; }
+}
 
 .rowend{ display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
 .purse{ font-size: 17px; font-weight:700; color: var(--gold); text-shadow: var(--drop); }
@@ -1519,71 +1562,141 @@ BLAZE HEA,BRI,DAN,LOU
 });
 
 /* ---------- Lenses: rules that warp meaning ----------
-   Each returns {chips, mult, xmult, label} or null.                */
+   Each returns {chips, mult, xmult, grow, label} or null. `grow` is banked by
+   play() and read back on later hands through ctx.lv(id) — never inside the
+   hand that earned it, so the board's preview is always the truth.
+
+   Three findings from tools/balance.js rebuilt this table:
+
+   1. FLAT CHIPS DIE. Targets climb 65x across a run; a Lens paying +45 a word
+      is decisive in round 2 and irrelevant by round 6. PROSPECTOR won 41% of
+      runs against a 64% baseline — it was a trap. Those Lenses GROW now. They
+      start weaker than they used to and end far stronger, which turns a
+      round-2 purchase into a round-8 engine and gives a player a number to
+      watch climb.
+
+   2. UNCONDITIONAL xMULT BREAKS EVERYTHING. ENTROPY won 100% of runs and
+      carried to round 7.7 on its own, because "each word shorter than the
+      last" is not a condition, it is a sorting instruction. Multiplicative
+      Lenses now want something the player must actually build toward, and the
+      free ones (GLUTTON paid x2.5 for playing three words, which everyone
+      does anyway) cost something in exchange.
+
+   3. THE SLOT CAP WAS NOT A COST. With five slots and no downside, the right
+      play was always "buy the biggest number". The flawed Lenses at the bottom
+      have the biggest numbers in the game and every one of them takes
+      something back: a play, a discard, a card in hand, your income, or the
+      target itself.                                                        */
 const LENSES = [
-  { id:"pyro", n:"PYROMANIAC", d:"Each HEAT word: +45 points", cost:4,
-    onCard:function(c){ return c.t.includes("HEA") ? {chips:45} : null; } },
-  { id:"zoo", n:"ZOOLOGIST", d:"Each ANIMAL word: +2 to the multiplier", cost:5,
-    onCard:function(c){ return c.t.includes("ANI") ? {mult:2} : null; } },
-  { id:"doom", n:"DOOMSAYER", d:"Each DANGER word: +55 points", cost:4,
-    onCard:function(c){ return c.t.includes("DAN") ? {chips:55} : null; } },
-  { id:"literal", n:"LITERALIST", d:"Real, touchable words: +1 to the multiplier. ABSTRACT words score nothing.", cost:6,
-    onCard:function(c){ return c.t.includes("ABS") ? {chips:-c.base, label:"voided"} : {mult:1}; } },
-  { id:"meta", n:"METAPHYSICIAN", d:"Each ABSTRACT word: +90 points", cost:5,
-    onCard:function(c){ return c.t.includes("ABS") ? {chips:90} : null; } },
-  { id:"carn", n:"CARNIVORE", d:"An ANIMAL word eats the word to its LEFT and takes its points", cost:6,
-    onCard:function(c,i,all){ if(!c.t.includes("ANI")||i===0) return null; return {chips: all[i-1].base, label:"devoured"}; } },
-  { id:"anton", n:"ANTONYM ENGINE", d:"A HEAT word straight after a COLD one (or the reverse): +120 points and multiplier ×2", cost:7,
-    onCard:function(c,i,all){
-      if(i===0) return null;
-      const p=all[i-1];
-      const a=c.t.includes("HEA")&&p.t.includes("COL"), b=c.t.includes("COL")&&p.t.includes("HEA");
-      return (a||b) ? {chips:120, xmult:2} : null; } },
-  { id:"entropy", n:"ENTROPY", d:"Play words in order longest to shortest: multiplier ×2 for each one", cost:7,
-    onCard:function(c,i,all){
-      for(let j=1;j<all.length;j++) if(all[j].w.length >= all[j-1].w.length) return null;
-      return all.length>1 ? {xmult:2} : null; } },
-  { id:"echo", n:"ECHO", d:"+35 points for every tag that two of your played words share", cost:6,
+  /* ---- chips that grow. The long game: weak now, an engine by round 7. ---- */
+  { id:"doom", n:"DOOMSAYER", d:"Each DANGER word: +30 points, and +40 more for every round you have held this Lens.", cost:5, grows:40,
+    onCard:function(c,i,all,ctx){ return c.t.includes("DAN") ? {chips:30+ctx.lv("doom")} : null; } },
+  { id:"chron", n:"CHRONICLER", d:"Each TIME word: +35 points, and +80 more for every round you have held this Lens.", cost:5, grows:80,
+    onCard:function(c,i,all,ctx){ return c.t.includes("TIM") ? {chips:35+ctx.lv("chron")} : null; } },
+  { id:"pyro", n:"PYROMANIAC", d:"Each HEAT word: +25 points, and +110 more for every round you have held this Lens.", cost:5, grows:110,
+    onCard:function(c,i,all,ctx){ return c.t.includes("HEA") ? {chips:25+ctx.lv("pyro")} : null; } },
+  { id:"meta", n:"METAPHYSICIAN", d:"Each ABSTRACT word: +40 points, and +120 more for every round you have held this Lens.", cost:5, grows:120,
+    onCard:function(c,i,all,ctx){ return c.t.includes("ABS") ? {chips:40+ctx.lv("meta")} : null; } },
+  { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +40 points, and +190 more for every round you have held this Lens.", cost:5, grows:190,
+    onCard:function(c,i,all,ctx){ return c.t.includes("MON") ? {chips:40+ctx.lv("prosp")} : null; } },
+  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 7 letters or more: +60 points, and +95 more for every round you have held this Lens.", cost:5, grows:95,
+    onCard:function(c,i,all,ctx){ return c.w.length>=7 ? {chips:60+ctx.lv("sesq")} : null; } },
+
+  /* ---- flat chips: cheap, immediate, and honest about not scaling ---- */
+  { id:"poly", n:"POLYGLOT", d:"Words carrying 4 or more tags: +90 points, and +75 more for every round you have held this Lens.", cost:4, grows:75,
+    onCard:function(c,i,all,ctx){ return c.t.length>=4 ? {chips:90+ctx.lv("poly")} : null; } },
+  { id:"lexi", n:"LEXICOGRAPHER", d:"+22 points for each letter of your LEFTMOST word, and +14 more per letter for every round you have held this Lens.", cost:4, grows:14,
+    onCard:function(c,i,all,ctx){ return i===0 ? {chips:(22+ctx.lv("lexi"))*c.w.length} : null; } },
+  { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 points, and +240 more for every round you have held this Lens.", cost:5, grows:240,
+    onPlay:function(all,ctx){
+      const n=all.some(function(c){return c.t.includes("NAT");}), t=all.some(function(c){return c.t.includes("TEC");});
+      return (n&&t) ? {chips:250+ctx.lv("alch")} : null; } },
+  { id:"echo", n:"ECHO", d:"+70 points for every tag that two of your played words share", cost:5,
     onPlay:function(all){
       let n=0;
       for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++)
         n += all[i].t.filter(function(t){ return all[j].t.includes(t); }).length;
-      return n ? {chips:35*n, label:"×"+n+" shared"} : null; } },
-  { id:"syn", n:"SYNESTHETE", d:"Words that are both LOUD and BRIGHT: multiplier ×3", cost:6,
-    onCard:function(c){ return (c.t.includes("LOU")&&c.t.includes("BRI")) ? {xmult:3} : null; } },
-  { id:"poly", n:"POLYGLOT", d:"Words carrying 4 or more tags: +70 points", cost:5,
-    onCard:function(c){ return c.t.length>=4 ? {chips:70} : null; } },
-  { id:"brut", n:"BRUTALIST", d:"Words of 4 letters or fewer: multiplier ×2", cost:6,
-    onCard:function(c){ return c.w.length<=4 ? {xmult:2} : null; } },
-  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 9 letters or more: +150 points", cost:5,
-    onCard:function(c){ return c.w.length>=9 ? {chips:150} : null; } },
-  { id:"glut", n:"GLUTTON", d:"Play exactly 3 words: multiplier ×2.5", cost:6,
-    onPlay:function(all){ return all.length===3 ? {xmult:2.5} : null; } },
-  { id:"asc", n:"ASCETIC", d:"Play exactly 1 word: multiplier ×5", cost:6,
-    onPlay:function(all){ return all.length===1 ? {xmult:5} : null; } },
-  { id:"reso", n:"RESONATOR", d:"The first word that matches what the round wants: multiplier ×2", cost:5,
+      return n ? {chips:70*n, label:"×"+n+" shared"} : null; } },
+  { id:"carn", n:"CARNIVORE", d:"An ANIMAL word eats the word to its LEFT and takes four times its points", cost:5,
+    onCard:function(c,i,all){ if(!c.t.includes("ANI")||i===0) return null; return {chips: all[i-1].base*4, label:"devoured"}; } },
+  { id:"miser", n:"MISER", d:"+140 points for every discard you have not used", cost:4,
+    onPlay:function(all,ctx){ return ctx.discards ? {chips:140*ctx.discards, label:"×"+ctx.discards+" held"} : null; } },
+
+  /* ---- multiplier, added. Steady, narrow, and it does not compound. ---- */
+  { id:"zoo", n:"ZOOLOGIST", d:"Each ANIMAL word: +1 to the multiplier", cost:5,
+    onCard:function(c){ return c.t.includes("ANI") ? {mult:1} : null; } },
+  { id:"hydro", n:"HYDROLOGIST", d:"Each WET word: +1 to the multiplier", cost:5,
+    onCard:function(c){ return c.t.includes("WET") ? {mult:1} : null; } },
+  { id:"phren", n:"PHRENOLOGIST", d:"Each MIND word: +1 to the multiplier", cost:5,
+    onCard:function(c){ return c.t.includes("MIN") ? {mult:1} : null; } },
+  { id:"night", n:"NIGHTWATCH", d:"Each DARK word: +1 to the multiplier", cost:4,
+    onCard:function(c){ return c.t.includes("DAR") ? {mult:1} : null; } },
+  { id:"reso", n:"RESONATOR", d:"The first word that matches what the round wants: +2 to the multiplier", cost:5,
     onCard:function(c,i,all,ctx){
       if(ctx.resoUsed) return null;
       const hit = c.t.some(function(t){ return ctx.demand.tags.includes(t); });
-      if(!hit) return null; ctx.resoUsed=true; return {xmult:2}; } },
-  { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 points", cost:5,
+      if(!hit) return null; ctx.resoUsed=true; return {mult:2}; } },
+  { id:"literal", n:"LITERALIST", d:"Real, touchable words: +1 to the multiplier. ABSTRACT words score nothing and cost 2 multiplier.", cost:6,
+    onCard:function(c){ return c.t.includes("ABS") ? {chips:-c.base, mult:-2, label:"voided"} : {mult:1}; } },
+
+  /* ---- multiplier, multiplied. Expensive, and each wants a real deck. ---- */
+  { id:"syn", n:"SYNESTHETE", d:"Words that are both LOUD and BRIGHT: multiplier ×3", cost:6,
+    onCard:function(c){ return (c.t.includes("LOU")&&c.t.includes("BRI")) ? {xmult:3} : null; } },
+  { id:"anton", n:"ANTONYM ENGINE", d:"A HEAT word straight after a COLD one (or the reverse): +180 points and multiplier ×2", cost:7,
+    onCard:function(c,i,all){
+      if(i===0) return null;
+      const p=all[i-1];
+      const a=c.t.includes("HEA")&&p.t.includes("COL"), b=c.t.includes("COL")&&p.t.includes("HEA");
+      return (a||b) ? {chips:180, xmult:2} : null; } },
+  { id:"brut", n:"BRUTALIST", d:"Words of 4 letters or fewer: multiplier ×1.6 each", cost:7,
+    onCard:function(c){ return c.w.length<=4 ? {xmult:1.6} : null; } },
+  { id:"asc", n:"ASCETIC", d:"Play exactly 1 word: multiplier ×5", cost:6,
+    onPlay:function(all){ return all.length===1 ? {xmult:5} : null; } },
+  { id:"entropy", n:"ENTROPY", d:"Play 3 words, each shorter than the last: multiplier ×2.5. Any other hand: multiplier ×0.5.", cost:7,
     onPlay:function(all){
-      const n=all.some(function(c){return c.t.includes("NAT");}), t=all.some(function(c){return c.t.includes("TEC");});
-      return (n&&t) ? {chips:250} : null; } },
-  { id:"lexi", n:"LEXICOGRAPHER", d:"+9 points for each letter of your LEFTMOST word", cost:4,
-    onCard:function(c,i){ return i===0 ? {chips:9*c.w.length} : null; } },
-  { id:"hydro", n:"HYDROLOGIST", d:"Each WET word: +2 to the multiplier", cost:5,
-    onCard:function(c){ return c.t.includes("WET") ? {mult:2} : null; } },
-  { id:"chron", n:"CHRONICLER", d:"Each TIME word: +80 points", cost:4,
-    onCard:function(c){ return c.t.includes("TIM") ? {chips:80} : null; } },
-  { id:"night", n:"NIGHTWATCH", d:"Each DARK word: +1 to the multiplier", cost:4,
-    onCard:function(c){ return c.t.includes("DAR") ? {mult:1} : null; } },
-  { id:"miser", n:"MISER", d:"+40 points for every discard you have not used", cost:4,
-    onPlay:function(all,ctx){ return ctx.discards ? {chips:40*ctx.discards, label:"×"+ctx.discards+" held"} : null; } },
-  { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +100 points", cost:4,
-    onCard:function(c){ return c.t.includes("MON") ? {chips:100} : null; } },
-  { id:"phren", n:"PHRENOLOGIST", d:"Each MIND word: +2 to the multiplier", cost:5,
-    onCard:function(c){ return c.t.includes("MIN") ? {mult:2} : null; } }
+      if(all.length<3) return {xmult:0.5, label:"unbalanced"};
+      for(let j=1;j<all.length;j++) if(all[j].w.length >= all[j-1].w.length) return {xmult:0.5, label:"unbalanced"};
+      return {xmult:2.5}; } },
+  { id:"glut", n:"GLUTTON", d:"Play exactly 3 words: multiplier ×2.5. You get one less discard each round.", cost:6,
+    onPlay:function(all){ return all.length===3 ? {xmult:2.5} : null; },
+    onRound:function(g){ g.discards -= 1; } },
+
+  /* ---- flawed. The biggest numbers in the game, and every one takes
+     something back. The slot cap was never a cost while everything in the
+     shop was upside; these are the Lenses you have to think about.       ---- */
+  { id:"wager", n:"THE WAGER", flaw:true, cost:6,
+    d:"Every hand: multiplier ×3. You get one less play each round.",
+    onPlay:function(){ return {xmult:3}; },
+    onRound:function(g){ g.plays -= 1; } },
+  /* -2 mult drove the multiplier onto its floor and made this a pure trap:
+     it won 11.7% and its median multiplier was x0.1. Halving instead makes it
+     a real trade that flips as a run goes on — worth it while your chips are
+     big and your multiplier is small, a mistake once the multiplier is the
+     thing carrying you. */
+  { id:"tithe", n:"THE TITHE", flaw:true, cost:5,
+    d:"Every hand: +1,000 points, but your multiplier is halved.",
+    onPlay:function(){ return {chips:1000, xmult:0.5}; } },
+  { id:"usurer", n:"THE USURER", flaw:true, cost:5,
+    d:"Every hand: multiplier ×3. The Bookseller pays you half.",
+    onPlay:function(){ return {xmult:3}; },
+    onReward:function(r){ return r / 2; } },
+  { id:"oracle", n:"THE ORACLE", flaw:true, cost:6,
+    d:"Your FIRST word: multiplier ×4. Every word after it scores no points.",
+    onCard:function(c,i){
+      if(i===0) return {xmult:4};
+      return {chips:-c.base, label:"silenced"}; } },
+  { id:"famine", n:"THE FAMINE", flaw:true, cost:6, hand:-3,
+    d:"Each word: +150 points. Your hand is three cards smaller and you get one less discard.",
+    onCard:function(){ return {chips:150}; },
+    onRound:function(g){ g.discards -= 1; } },
+  /* x5 against a target only a third higher was the best deal in the shop by
+     a mile — 58% against a 30% baseline. Doubling the target is the version
+     where being behind is fatal, which is what a Lens this loud should feel
+     like. */
+  { id:"curse", n:"THE CURSE", flaw:true, cost:7,
+    d:"Every hand: multiplier ×3.5. Every target you face is doubled.",
+    onPlay:function(){ return {xmult:3.5}; },
+    onRound:function(g){ g.target = g.target * 2; } }
 ];
 
 /* ---------- Demands ---------- */
@@ -1612,7 +1725,17 @@ const DEMANDS = [
    Rounds 1-2 are generous so the first session always lands some wins;
    round 3 is the first real decision; the late curve outruns any deck
    that isn't multiplying, which is what makes the Lens engine the game. */
-const TARGETS = [200, 340, 520, 800, 1250, 2000, 3300, 5200];
+/* Set from tools/balance.js --curve, which reports what a round can actually
+   PRODUCE at each point in a run. The old curve topped out at 5,200, which the
+   measurement put at the 9th percentile of what round 8 could make: the last
+   round of the game was clearable by nine runs in ten, and the reviews were
+   right that nothing was at stake.
+
+   These sit at roughly p3 / p5 / p10 / p14 / p18 / p22 / p26 / p45. Early
+   rounds stay generous on purpose — dying in round 2 reads as the game
+   cheating, dying in round 6 reads as your build being wrong, and only one of
+   those makes someone start again. */
+const TARGETS = [250, 550, 1900, 5500, 10500, 15500, 20500, 29000];
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
@@ -2039,6 +2162,8 @@ function newRun(seedStr){
     demandOrder: demandOrder,
     best: { word:"", mult:0, score:0 },
     coachStep: null,
+    /* what each Lens has grown to this run, keyed by Lens id */
+    lensState: {},
     /* which Lens in the rail is opened out to its full rule */
     openLens: null,
     /* a round result deferred while the opening tutorial finishes */
@@ -2069,15 +2194,35 @@ function todayKey(){
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
+/* How big a hand is, after the Lenses that shrink it. Never below four —
+   a hand you cannot make a three-word play from is not a hand. */
+function handSize(){
+  let n = HAND_SIZE;
+  if(G && G.lenses) G.lenses.forEach(function(l){ if(l.hand) n += l.hand; });
+  return Math.max(4, n);
+}
+
 function startRound(){
   G.demand = { n: G.demandOrder[G.round].n, tags: G.demandOrder[G.round].tags.slice() };
   G.target = TARGETS[G.round];
   G.roundScore = 0;
   G.plays = 4; G.discards = 3;
+  /* Lenses that cost you something take it here, before the round starts, so
+     the meters on the board are true from the first frame. And the ones that
+     grow, grow here — per round rather than per firing, because firing-based
+     growth compounds a Lens's own weakness: the rare triggers that most needed
+     the help were the ones that fired least and so grew slowest. */
+  G.lenses.forEach(function(l){
+    if(l.onRound) l.onRound(G);
+    if(l.grows) G.lensState[l.id] = (G.lensState[l.id] || 0) + l.grows;
+  });
+  G.plays = Math.max(1, G.plays);
+  G.discards = Math.max(0, G.discards);
+  G.target = Math.max(1, Math.round(G.target));
   G.selected = [];
   G.discard = G.discard.concat(G.hand);
   G.hand = [];
-  draw(HAND_SIZE);
+  draw(handSize());
   render();
 }
 
@@ -2095,7 +2240,19 @@ function draw(n){
 function resolve(cards){
   const events = [];
   let chips = 0, mult = 1;
-  const ctx = { demand: G.demand, discards: G.discards, resoUsed: false };
+  /* `lv` is a Lens's accumulated growth, read ONCE for the whole hand. Growth
+     is returned rather than applied, so resolve() stays pure: renderPreview
+     calls it on every click and must never advance anything. play() commits.
+     If a Lens grew mid-hand the board would show one number and pay another,
+     and "the board shows what you would score before you commit" is the one
+     promise this game cannot break. */
+  const lensState = (G.lensState = G.lensState || {});
+  const growth = {};
+  const ctx = {
+    demand: G.demand, discards: G.discards, resoUsed: false,
+    lenses: G.lenses,
+    lv: function(id){ return lensState[id] || 0; }
+  };
 
   for(let i=0;i<cards.length;i++){
     const c = cards[i];
@@ -2114,9 +2271,10 @@ function resolve(cards){
       const r = L.onCard(c, i, cards, ctx);
       if(!r) continue;
       const parts = [];
-      if(r.chips){ chips += r.chips; parts.push((r.chips>0?"+":"")+r.chips); }
-      if(r.mult){ mult += r.mult; parts.push("+"+r.mult+" mult"); }
+      if(r.chips){ chips += r.chips; parts.push((r.chips>0?"+":"")+Math.round(r.chips)); }
+      if(r.mult){ mult += r.mult; parts.push((r.mult>0?"+":"")+r.mult+" mult"); }
       if(r.xmult){ mult *= r.xmult; parts.push("×"+r.xmult+" mult"); }
+      if(r.grow) growth[L.id] = (growth[L.id] || 0) + r.grow;
       events.push({ k:"lens", i:i, lens:li, cls:(r.xmult||r.mult)?"m":"c",
                     txt: L.n+" "+(r.label?r.label+" ":"")+parts.join(" "), chips:chips, mult:mult });
     }
@@ -2128,16 +2286,18 @@ function resolve(cards){
     const r = L.onPlay(cards, ctx);
     if(!r) continue;
     const parts = [];
-    if(r.chips){ chips += r.chips; parts.push("+"+r.chips); }
-    if(r.mult){ mult += r.mult; parts.push("+"+r.mult+" mult"); }
+    if(r.chips){ chips += r.chips; parts.push((r.chips>0?"+":"")+Math.round(r.chips)); }
+    if(r.mult){ mult += r.mult; parts.push((r.mult>0?"+":"")+r.mult+" mult"); }
     if(r.xmult){ mult *= r.xmult; parts.push("×"+r.xmult+" mult"); }
+    if(r.grow) growth[L.id] = (growth[L.id] || 0) + r.grow;
     events.push({ k:"lens", i:-1, lens:li, cls:(r.xmult||r.mult)?"m":"c",
                   txt: L.n+" "+(r.label?r.label+" ":"")+parts.join(" "), chips:chips, mult:mult });
   }
 
   chips = Math.max(0, Math.round(chips));
   mult = Math.max(0.1, mult);
-  return { events: events, chips: chips, mult: mult, total: Math.round(chips*mult) };
+  return { events: events, chips: chips, mult: mult, total: Math.round(chips*mult),
+           growth: growth };
 }
 
 /* ---------- play ---------- */
@@ -2158,6 +2318,10 @@ async function play(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.plays--;
+  /* the one place growth is banked */
+  for(const gid in res.growth){
+    G.lensState[gid] = (G.lensState[gid] || 0) + res.growth[gid];
+  }
   renderHand(); renderControls();
 
   const stageCards = document.getElementById("stageCards");
@@ -2218,7 +2382,10 @@ async function play(){
 
   if(G.coachStep === "play") G.coachStep = "score";
   renderDemand();
-  await sleep(760);
+  /* Long enough to actually read it. The total rolls up over as much as 620ms
+     now that scores run to five digits, and this hold was 760ms — which left
+     the finished number on screen for about a seventh of a second. */
+  await sleep(1250);
   try{ totalEl.remove(); }catch(err){}
   setTally(0, 1);
 
@@ -2238,7 +2405,7 @@ async function play(){
      the celebration. */
   if(tutActive() && (G.roundScore >= G.target || G.plays <= 0)){
     G.heldResult = G.roundScore >= G.target ? "won" : "lost";
-    draw(HAND_SIZE - G.hand.length);
+    draw(handSize() - G.hand.length);
     document.getElementById("stageHint").textContent = idleHint();
     render();
     /* Step 7 is reached off `G.plays < 4`, which is true at the TOP of play() —
@@ -2253,7 +2420,7 @@ async function play(){
   if(G.roundScore >= G.target){ await celebrate(); winRound(); return; }
   if(G.plays <= 0){ await lament(); endRun(false); return; }
 
-  draw(HAND_SIZE - G.hand.length);
+  draw(handSize() - G.hand.length);
   document.getElementById("stageHint").textContent = idleHint();
   render();
   if(tutActive()) renderTut();
@@ -2311,7 +2478,7 @@ function discardSel(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.discards--;
-  draw(HAND_SIZE - G.hand.length);
+  draw(handSize() - G.hand.length);
   SFX.discard();
   buzz([9,26,9]);
   render();
@@ -2319,7 +2486,9 @@ function discardSel(){
 
 /* ---------- round win + shop ---------- */
 function winRound(){
-  const reward = 4 + G.plays + G.discards;
+  let reward = 4 + G.plays + G.discards;
+  G.lenses.forEach(function(l){ if(l.onReward) reward = l.onReward(reward); });
+  reward = Math.max(0, Math.round(reward));
   G.bank += reward;
   G.round++;
   if(G.round >= ROUNDS){ endRun(true); return; }
@@ -2364,6 +2533,13 @@ function openShop(reward){
     + Math.round(TARGETS[ROUNDS-1] / TARGETS[G.round]) + '\u00d7</b> this one.<br>'
     + '<b>Words add points. Lenses multiply them.</b></p>'
     + '<div class="offers" id="offers"></div>'
+    + (G.lenses.length
+        ? '<div class="sub" style="margin:16px 0 7px">Your Lenses &mdash; '
+          + G.lenses.length + ' of ' + LENS_SLOTS
+          + (G.lenses.length >= LENS_SLOTS
+              ? ' slots full. Sell one to make room.' : ' slots used')
+          + '</div><div class="owned" id="owned"></div>'
+        : '')
     + '<div class="rowend">'
     + '<button class="btn ghost" id="rerollBtn" type="button">Reroll $1</button>'
     + '<div class="purse">Purse $' + G.bank + '</div>'
@@ -2377,6 +2553,8 @@ function openShop(reward){
     const b = document.createElement("button");
     b.className = "offer"; b.type = "button";
     b.disabled = o.bought || G.bank < o.cost || (o.kind==="lens" && G.lenses.length>=LENS_SLOTS);
+    if(!o.bought && o.kind === "lens" && G.lenses.length >= LENS_SLOTS) b.title = "No slots left — sell one below";
+    else if(!o.bought && G.bank < o.cost) b.title = "You cannot afford this yet";
     if(o.kind === "lens"){
       /* An honest nudge: say when a Lens actually has words to fire on. */
       const lt = LENS_TAG[o.lens.id];
@@ -2384,8 +2562,9 @@ function openShop(reward){
       const fit = (lt && n >= 5)
         ? '<div class="fit">Good fit &mdash; you hold ' + n + ' ' + TAGS[lt][0] + ' words</div>'
         : '';
+      if(o.lens.flaw) b.classList.add("flawed");
       b.innerHTML = '<div class="on">' + o.lens.n + '</div><div class="od">' + o.lens.d + '</div>'
-                  + fit
+                  + (o.lens.flaw ? '<div class="cost-warn">COSTS YOU SOMETHING</div>' : fit)
                   + '<div class="oc">' + (o.bought ? "acquired" : "$" + o.cost) + '</div>';
     } else {
       b.innerHTML = '<div class="on">TWO NEW WORDS</div><div class="od">Two fresh words, yours for the rest of the run.</div>'
@@ -2395,6 +2574,26 @@ function openShop(reward){
     box.appendChild(b);
   });
 
+  const ownedBox = document.getElementById("owned");
+  if(ownedBox){
+    G.lenses.forEach(function(l, i){
+      const lv = (G.lensState && G.lensState[l.id]) || 0;
+      const row = document.createElement("div");
+      row.className = "own" + (l.flaw ? " flaw" : "");
+      row.innerHTML = '<div class="ow"><div class="on">' + escapeHtml(l.n) + '</div>'
+        + '<div class="od">' + escapeHtml(l.d) + '</div>'
+        + (lv ? '<div class="grown">grown to +' + Math.round(lv).toLocaleString()
+                + ' &mdash; selling loses it</div>' : '')
+        + '</div>';
+      const b = document.createElement("button");
+      b.className = "btn sellbtn"; b.type = "button";
+      b.textContent = "Sell $" + sellValue(l);
+      b.onclick = function(){ sellLens(i, reward); };
+      row.appendChild(b);
+      ownedBox.appendChild(row);
+    });
+  }
+
   document.getElementById("rerollBtn").disabled = G.bank < 1;
   document.getElementById("rerollBtn").onclick = function(){
     if(G.bank < 1) return;
@@ -2403,6 +2602,26 @@ function openShop(reward){
   document.getElementById("leaveShop").onclick = function(){
     G.offers = null; coachFinish(); hidePanel(); startRound();
   };
+}
+
+/* Half of what you paid, rounded up, never less than a dollar. Selling is
+   always a loss — it has to be, or a player could churn the shop for money —
+   so what you are really buying back is the slot. */
+function sellValue(lens){ return Math.max(1, Math.ceil(lens.cost / 2)); }
+
+function sellLens(idx, reward){
+  const l = G.lenses[idx];
+  if(!l) return;
+  G.lenses.splice(idx, 1);
+  /* Everything it had grown to goes with it. That is the real price of
+     selling a Lens you have carried for five rounds, and the shop says so
+     before you click. */
+  if(G.lensState) delete G.lensState[l.id];
+  if(G.openLens === l.id) G.openLens = null;
+  G.bank += sellValue(l);
+  SFX.reroll();
+  buzz([12, 30, 12]);
+  openShop(reward);
 }
 
 function buy(idx, reward){
@@ -3108,8 +3327,9 @@ const TUT = [
       return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>: a rule "
            + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
            + "and the targets climb faster than any deck can keep up with.<br><br>"
-           + "A few Lenses want fewer words. <b>ASCETIC</b> pays \u00d75 if you play exactly "
-           + "one. Until you own something like that, three is the answer."
+           + "A few want fewer words &mdash; <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
+           + "And the loudest ones are <b>flawed</b>: they pay more than anything else and take "
+           + "a play, a discard or your income back for it."
            + '<span class="do">'
            + (G.roundScore >= G.target
                 ? "You have already cleared " + G.demand.n + ". The Bookseller is next."
@@ -3372,10 +3592,14 @@ function renderRail(){
   G.lenses.forEach(function(l){
     const d = document.createElement("button");
     d.type = "button";
-    d.className = "lens" + (G.openLens === l.id ? " open" : "");
+    d.className = "lens" + (l.flaw ? " flaw" : "") + (G.openLens === l.id ? " open" : "");
     d.title = l.d;
     d.setAttribute("aria-expanded", G.openLens === l.id ? "true" : "false");
-    d.innerHTML = '<div class="n">' + escapeHtml(l.n) + '</div><div class="d">' + escapeHtml(l.d) + '</div>';
+    const lv = (G.lensState && G.lensState[l.id]) || 0;
+    d.innerHTML = '<div class="n">' + escapeHtml(l.n) + '</div>'
+      + '<div class="d">' + escapeHtml(l.d) + '</div>'
+      /* A Lens that grows is the reason to keep playing one. Show the number. */
+      + (lv ? '<div class="lv">+' + Math.round(lv).toLocaleString() + ' so far</div>' : '');
     /* Tap to read the whole rule. One open at a time, so the rail never turns
        into a wall of text. */
     d.onclick = function(){
@@ -3507,7 +3731,7 @@ function showHelp(){
   const exTags = ex.t.map(function(t){
     return '<span class="tg' + (t === "HEA" ? " match" : "") + '">' + TAGS[t][0] + '</span>';
   }).join("");
-  const withLens = ex.base + 25 + 45;
+  const withLens = ex.base + 25 + 135;
   const exCol = TAG_COLOR[ex.t[0]];
   const exLight = isLightHex(exCol) ? " light" : "";
   const exArt = '<div class="art' + exLight + '" style="background:' + exCol + '">'
@@ -3521,7 +3745,7 @@ function showHelp(){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Four things and you are fine</div>'
+    + '<div class="sub">Five things and you are fine</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
@@ -3542,7 +3766,15 @@ function showHelp(){
     +     TARGETS[0] + ' and round 8 asks for ' + TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
-    +     'They are the engine, and they are why no two runs feel the same.</p></div>'
+    +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
+    +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
+    +     'the biggest numbers in the game, and every one of them takes something back &mdash; '
+    +     'a play, a discard, cards in hand, your income, or the target itself.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">5</div>'
+    +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
+    +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
+    +     'it grew &mdash; so the question is never just "is this one better", it is "is it '
+    +     'better than what mine has already become".</p></div>'
     + '</div>'
 
     + '<div class="worked">'
@@ -3555,8 +3787,9 @@ function showHelp(){
     +     'Say this round wants <b>HEAT</b>.<br>'
     +     'FURNACE is worth <b>' + ex.base + '</b> on its own, and its gold HEAT tag adds '
     +     'another <b>25</b>.<br>'
-    +     'Now hold <b>PYROMANIAC</b>, which pays +45 on every HEAT word, and the same card '
-    +     'is <b>' + withLens + '</b>.'
+    +     'Now hold <b>PYROMANIAC</b>. It pays +25 on every HEAT word when you buy it, and '
+    +     '+110 more for every round you keep it &mdash; so by round two the same card is '
+    +     '<b>' + withLens + '</b>, and it is still climbing.'
     +     '<span class="worked-tot">' + withLens + ' \u00d7 1 = ' + withLens + ' points</span>'
     +   '</div>'
     + '</div>'

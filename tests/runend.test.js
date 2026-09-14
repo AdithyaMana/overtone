@@ -78,7 +78,11 @@ describe("the Memory unlock — the reason run 2 differs from run 1", () => {
     const c = api.makeCard({ w: "EMBER", t: ["HEA"] }, false);
     const withMemory = api.resolve([c]).chips;
     api.G.lenses = [];
-    assert.strictEqual(withMemory - api.resolve([c]).chips, 45,
+    /* 25 base + 110 for the round now under way: startRound() banks a step of
+       growth for every Lens in hand as the round opens, and a carried Lens is
+       in hand for round 1. */
+    const pyro = api.LENSES.find(l => l.id === "pyro");
+    assert.strictEqual(withMemory - api.resolve([c]).chips, 25 + pyro.grows,
       "the carried Lens did not actually fire");
   });
 
