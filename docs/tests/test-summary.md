@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**137 tests, 0 failures.** 78 engine tests + 59 E2E tests across two device profiles.
+**150 tests, 0 failures.** 83 engine tests + 67 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -33,7 +33,7 @@ It now runs on the harness too.
 
 ## Generated tests
 
-### Engine — `tests/*.test.js` (78)
+### Engine — `tests/*.test.js` (83)
 
 | Suite | Covers |
 |---|---|
@@ -43,12 +43,13 @@ It now runs on the harness too.
 | Lenses | all 24 well formed and uniquely id'd; **600-play fuzz** across random hands and loadouts; the "fits your deck" map only names single-overtone Lenses |
 | run shape | targets climb monotonically; the climb is ≥15× so an engine is mandatory; a run starts fully resourced; **the first shop is always affordable**; no Demand repeats |
 | the Interpreter | the house appraiser always returns 1–4 valid overtones on junk input; appraisal is stable; known vocabulary is read from its shape; an interpreted word is scorable |
+| the daily seed | the key is a sortable zero-padded date; one date gives every player the same deck and Demand order; a different date gives a different run; the year rolls over cleanly; a named seed is not flagged as the daily |
 | presentation | every overtone has an icon and a valid colour; bright plates are detected so icons stay legible; hand names cover every resonance count |
 | **Lens arithmetic** (`lenses.test.js`) | all 24 Lenses pinned to their exact numbers — each scored with and without the Lens, asserting the precise chip and mult delta. A guard test fails if a Lens is added without one |
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (30 × desktop + phone)
+### E2E — `tests/e2e/` (34 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -59,6 +60,7 @@ It now runs on the harness too.
 | layout | never scrolls sideways; **the controls stay in the viewport**; help reopens and closes on Escape |
 | **first-run coaching** | the coach walks pick → play → read the result, marks the Play button at the right moment, walks *back* if the player deselects, and never returns on a later run |
 | **the end of a run** | running out of plays ends the run through the real code path; the result screen carries the share block and the Memory unlock; the next run starts with the carried Lens equipped |
+| **a full run** (`fullrun.spec.js`) | an entire run played start to finish — every round, every shop, real purchases, through to the result screen — asserting no console error or unhandled rejection anywhere along the way |
 | **the live Claude path** (`interpreter.spec.js`) | a fake sampler is injected before page load, proving the live branch works and names itself; **invented overtones are discarded rather than rendered**; a reply with no usable tags, a malformed reply, `not_granted` and `rate_limited` all degrade to the house appraiser with the run intact |
 
 ## Three real bugs the tests found
@@ -104,20 +106,27 @@ Found the moment onboarding got its first test.
 
 ## Next steps
 
-- **A run is never played start to finish.** The end-of-run E2E test drops the player on the
-  last Demand rather than grinding through eight rounds, so the full arc is still unproven.
-- **The daily seed is not tested across a date boundary** — `todayKey()` is trusted.
-- **No visual regression testing.** Every layout bug so far was caught by a geometry assertion
-  (viewport containment, row spread); nothing guards colour or spacing.
+- **No pixel-level visual regression testing.** Every layout bug in this project was caught by a
+  *geometry* assertion — viewport containment, hand-row spread, badge/icon overlap, mid-word
+  wrapping — and those are stable across machines. Screenshot baselines are not: they vary with
+  OS, GPU and font rendering, so committing them from one machine hands the next person failing
+  tests on a correct build. If this ever needs pixel diffing it belongs in one fixed CI
+  container, not on a laptop.
+- **No load or performance budget.** The page is ~94KB with no runtime dependencies, so there is
+  nothing to regress yet — that changes the day a real font gets embedded.
 - **CI**: both tiers run headless with no server. `npm test` is fast enough for a pre-commit
   hook; `npm run test:e2e` suits a push hook or CI job.
 
 ## A note on the harness
 
-Two bugs in the test code itself are worth recording, since both would recur:
+Three bugs in the test code itself are worth recording, since all three would recur:
 
 - **Cross-realm comparison.** `api.LENSES` lives in the VM realm, so `.map()` returns an array
   carrying the VM’s `Array.prototype`. `assert.deepStrictEqual` checks prototype identity, so a
   cross-realm `[]` never equals a host `[]`. Compare lengths or contents, not array objects.
 - **Reduced motion is forced** in the harness so the rAF counter tweens resolve synchronously
   and assertions do not race an animation.
+- **Never measure a rotated element for overlap.** Hand cards are fanned and deal in with a
+  rotation, and a rotated element has an inflated *axis-aligned* bounding rect — the first
+  overlap test reported four collisions that were not visually there. Geometry assertions run
+  against the stage preview cards, which carry `transform: none` and render identical markup.

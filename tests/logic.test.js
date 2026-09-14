@@ -324,3 +324,64 @@ describe("presentation rules", () => {
     assert.notStrictEqual(api.resonanceName(0), api.resonanceName(1));
   });
 });
+
+/* ------------------------------------------------------------------ */
+describe("the daily seed", () => {
+  /* The daily is a retention mechanic: everyone gets the same deck and the
+     same eight Demands on a given date, which is what makes a score worth
+     comparing. todayKey() had been trusted rather than tested. */
+  const { load } = require("./harness.js");
+
+  function onDate(y, m, d) {
+    const h = load();
+    const Real = Date;
+    h.ctx.Date = class extends Real {
+      constructor(...a) { return a.length ? new Real(...a) : new Real(y, m - 1, d, 12, 0, 0); }
+      static now() { return new Real(y, m - 1, d, 12, 0, 0).getTime(); }
+    };
+    return h.api;
+  }
+
+  test("the key is a plain sortable date", () => {
+    assert.strictEqual(onDate(2026, 9, 14).todayKey(), "2026-09-14");
+    assert.strictEqual(onDate(2026, 1, 5).todayKey(), "2026-01-05", "month and day are not zero-padded");
+    assert.strictEqual(onDate(2026, 12, 31).todayKey(), "2026-12-31");
+  });
+
+  test("the same date gives every player the same run", () => {
+    const a = onDate(2026, 9, 14);
+    a.newRun(null);
+    const deckA = wholeDeck(a.G).map(c => c.w).sort().join(",");
+    const demandsA = a.G.demandOrder.map(d => d.n).join(">");
+
+    const b = onDate(2026, 9, 14);
+    b.newRun(null);
+    assert.strictEqual(wholeDeck(b.G).map(c => c.w).sort().join(","), deckA);
+    assert.strictEqual(b.G.demandOrder.map(d => d.n).join(">"), demandsA);
+    assert.ok(b.G.isDaily, "a run started with no seed is not flagged as the daily");
+  });
+
+  test("the run changes when the date does", () => {
+    const a = onDate(2026, 9, 14); a.newRun(null);
+    const b = onDate(2026, 9, 15); b.newRun(null);
+    assert.notStrictEqual(
+      wholeDeck(a.G).map(c => c.w).sort().join(","),
+      wholeDeck(b.G).map(c => c.w).sort().join(","),
+      "two different days produced an identical deck");
+  });
+
+  test("a named seed is not treated as the daily", () => {
+    const a = onDate(2026, 9, 14);
+    a.newRun("free-abc");
+    assert.ok(!a.G.isDaily, "a free run was flagged as the daily");
+  });
+
+  test("the year rolls over cleanly", () => {
+    const a = onDate(2026, 12, 31); a.newRun(null);
+    const b = onDate(2027, 1, 1); b.newRun(null);
+    assert.notStrictEqual(a.todayKey(), b.todayKey());
+    assert.notStrictEqual(
+      wholeDeck(a.G).map(c => c.w).sort().join(","),
+      wholeDeck(b.G).map(c => c.w).sort().join(","));
+  });
+});
