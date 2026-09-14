@@ -7,7 +7,7 @@
 <meta name="description" content="A word roguelite where meaning is the physics. Play words into an escalating scoring engine and warp the rules with Lenses.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0&display=swap">
 <style>
 /* ============================================================
@@ -24,51 +24,57 @@
 :root{
   color-scheme: dark;
 
-  /* A PICO-8-derived arcade set: indigo room, wine table, hot accents.
-     The flat/hard-shadow/one-font rules still hold — only the hues moved. */
-  --bg:        #000000;   /* the room */
-  --felt:      #6E1E4B;   /* the table cards are played on */
-  --felt-d:    #4A1233;
-  --panel:     #2B2B57;
-  --panel-2:   #3E3E73;
-  --inset:     #101024;
-  --edge:      #191934;   /* the lip — must read against black */
+  --bg:        #0E161C;   /* the room */
+  --felt:      #1C2B35;   /* the table cards are played on */
+  --felt-d:    #131E26;
+  --panel:     #2C4150;
+  --panel-2:   #3A5568;
+  --inset:     #16222A;
+  --edge:      #0A1116;   /* the lip under everything */
 
-  --chips:     #29ADFF;
-  --chips-d:   #1668AD;
-  --mult:      #FF004D;
-  --mult-d:    #A80033;
-  --gold:      #FFEC27;
-  --gold-d:    #B39C00;
-  --blind:     #FFA300;
-  --blind-d:   #B36F00;
-  --green:     #00E436;
-  --green-d:   #009424;
-  --lens:     #FF77A8;
-  --lens-d:   #B34A75;
+  /* the signature trio */
+  --chips:     #0093FF;
+  --chips-d:   #005FA8;
+  --mult:      #FE5F55;
+  --mult-d:    #B8352C;
+  --gold:      #EFA31D;
+  --gold-d:    #A76E08;
+  --blind:     #C8443A;
+  --blind-d:   #7E2620;
 
-  --card:      #FFF1E8;
-  --card-edge: #C8B8AE;
-  --card-ink:  #14141F;
-  --card-dim:  #6B6478;
+  --green:     #4BC292;
+  --green-d:   #26795A;
+  --lens:      #9B7BE0;
+  --lens-d:    #5B3FA3;
 
-  --text:      #FFF1E8;
-  --text-dim:  #C2C3C7;
-  --text-faint:#83769C;
+  --card:      #F6F1E4;
+  --card-edge: #BFB49A;
+  --card-ink:  #1B1915;
+  --card-dim:  #7B7361;
 
-  --f: "Silkscreen", "Courier New", ui-monospace, monospace;
+  --text:      #FFFFFF;
+  --text-dim:  #A9BCC9;
+  --text-faint:#70889A;
+
+  /* DotGothic16 is a dot-matrix face with genuinely distinct numerals, which
+     is the thing the last two pixel fonts got wrong. It ships one weight, so
+     hierarchy comes from size and colour and synthetic bold is switched off —
+     a smeared fake-bold is exactly what makes a pixel face look muddy. */
+  --f: "DotGothic16", "Courier New", ui-monospace, monospace;
   --drop: 2px 2px 0 rgba(0,0,0,.55);
   --drop-sm: 1px 1px 0 rgba(0,0,0,.55);
 }
 
-*{ box-sizing: border-box; }
+*{ box-sizing: border-box; font-synthesis: none; }
+/* one weight only — emphasis is colour, never a smeared fake bold */
+b, strong{ font-weight: 400; color: #FFF; }
 html,body{ margin:0; padding:0; }
 body{
   background: var(--bg);
   color: var(--text);
   font-family: var(--f);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.5;
   min-height: 100vh;
 }
 button{ font-family: inherit; color: inherit; }
@@ -93,7 +99,7 @@ button{ font-family: inherit; color: inherit; }
 /* ---------- masthead ---------- */
 .masthead{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .wordmark{
-  margin:0; font-size: 26px; font-weight: 700; letter-spacing: .05em;
+  margin:0; font-size: 30px; font-weight: 700; letter-spacing: .05em;
   color: var(--card);
   text-shadow: 3px 3px 0 var(--mult);
 }
@@ -116,8 +122,8 @@ button{ font-family: inherit; color: inherit; }
 .blind-badge{
   background: var(--blind);
   border-radius: 7px; padding: 10px 8px;
-  font-size: 15px; font-weight:700; letter-spacing:.02em; line-height:1.2;
-  color:#3D2200; text-shadow: none;
+  font-size: 17px; font-weight:700; letter-spacing:.02em; line-height:1.15;
+  color:#FFF; text-shadow: var(--drop);
   box-shadow: 0 3px 0 var(--blind-d);
   text-wrap: balance;
   animation: plaqueSlam .34s cubic-bezier(.2,1.5,.4,1);
@@ -129,14 +135,14 @@ button{ font-family: inherit; color: inherit; }
 }
 .blind-wants{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; margin-top:11px; }
 .blind-wants .w{
-  background: var(--gold); color:#0B0B18; border-radius: 4px;
+  background: var(--gold); color:#12181C; border-radius: 4px;
   padding: 3px 8px; font-size: 11px; font-weight:700; letter-spacing:.03em;
   box-shadow: 0 2px 0 var(--gold-d);
 }
 .blind-req{ margin-top: 13px; }
 .blind-req .k{ font-size: 12px; color: var(--text-dim); letter-spacing:.04em; }
 .blind-req .v{
-  font-size: 28px; font-weight:700; color: var(--mult);
+  font-size: 30px; font-weight:700; color: var(--mult);
   text-shadow: var(--drop); font-variant-numeric: tabular-nums; line-height:1.1;
 }
 .progress{
@@ -152,7 +158,7 @@ button{ font-family: inherit; color: inherit; }
 .roundscore{ padding: 9px 12px; text-align:center; }
 .roundscore .k{ font-size: 12px; color: var(--text-dim); letter-spacing:.04em; }
 .roundscore .v{
-  font-size: 25px; font-weight:700; font-variant-numeric: tabular-nums;
+  font-size: 27px; font-weight:700; font-variant-numeric: tabular-nums;
   text-shadow: var(--drop); line-height:1.15;
 }
 
@@ -164,7 +170,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .tally .chips, .tally .multv{
   border-radius: 6px; padding: 9px 4px; text-align:center;
-  font-size: 23px; font-weight:700; font-variant-numeric: tabular-nums;
+  font-size: 25px; font-weight:700; font-variant-numeric: tabular-nums;
   text-shadow: var(--drop);
   overflow: hidden; text-overflow: ellipsis;
 }
@@ -179,13 +185,13 @@ button{ font-family: inherit; color: inherit; }
 .meters{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .meter{ padding: 8px 6px; text-align:center; }
 .meter .k{ font-size: 11.5px; color: var(--text-dim); }
-.meter .v{ font-size: 22px; font-weight:700; text-shadow: var(--drop); line-height:1.15; }
+.meter .v{ font-size: 24px; font-weight:700; text-shadow: var(--drop); line-height:1.15; }
 .meter.plays .v{ color: var(--chips); }
 .meter.disc .v{ color: var(--mult); }
 
 .money{
   padding: 9px; text-align:center;
-  font-size: 23px; font-weight:700; color: var(--gold);
+  font-size: 25px; font-weight:700; color: var(--gold);
   text-shadow: var(--drop);
 }
 .runinfo{
@@ -210,10 +216,10 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 3px 0 var(--lens-d);
 }
 .lens .n{
-  font-size: 12px; font-weight:700; color:#3D0F27; text-shadow: none;
+  font-size: 12px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm);
   white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
 }
-.lens .d{ font-size: 9.5px; line-height:1.5; color:#5C1A3A; margin-top:4px; }
+.lens .d{ font-size: 11px; line-height:1.4; color:#2A1C46; margin-top:3px; }
 .lens.fired{ animation: lensFire .5s cubic-bezier(.2,1.3,.3,1); }
 @keyframes lensFire{
   0%{ transform: translateY(0) scale(1) rotate(0); }
@@ -234,11 +240,11 @@ button{ font-family: inherit; color: inherit; }
 }
 .stage-cards{ display:flex; gap:10px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
 .stage-hint{
-  font-size: 13px; font-weight:600; letter-spacing:.03em; color: #F2D8E6;
+  font-size: 15px; font-weight:600; letter-spacing:.03em; color: #C9D7E0;
   text-align:center; max-width: 44ch; text-shadow: var(--drop-sm);
 }
 .stage-hint .hand-name{
-  display:inline-block; font-size: 15px; font-weight:700;
+  display:inline-block; font-size: 17px; font-weight:700;
   background: var(--inset); color:#FFF;
   border-radius: 6px; padding: 6px 16px;
   box-shadow: 0 3px 0 var(--edge);
@@ -246,7 +252,7 @@ button{ font-family: inherit; color: inherit; }
 }
 @keyframes nameIn{ 0%{transform:scale(.72);opacity:0} 100%{transform:none;opacity:1} }
 .stage-total{
-  font-size: 46px; font-weight:700; color: var(--gold);
+  font-size: 52px; font-weight:700; color: var(--gold);
   text-shadow: 4px 4px 0 var(--edge);
   font-variant-numeric: tabular-nums;
   animation: slam .34s cubic-bezier(.2,1.5,.4,1);
@@ -327,11 +333,11 @@ button{ font-family: inherit; color: inherit; }
 }
 .ms-ok .ms{ visibility: visible; }
 .card .art .ms.hit{
-  color:#0B0B18; background: var(--gold); border-radius: 50%;
+  color:#12181C; background: var(--gold); border-radius: 50%;
   padding: 2px; text-shadow: none;
 }
 /* dark ink on the bright plates, and invert the match ring so it still reads */
-.card .art.light .ms{ color:#0B0B18; text-shadow: none; }
+.card .art.light .ms{ color:#12181C; text-shadow: none; }
 .card .art.light .ms.hit{ background:#1B1B3A; color: var(--gold); }
 .legend{ display:flex; flex-wrap:wrap; gap: 6px; margin-bottom: 16px; }
 .legend .leg{
@@ -341,7 +347,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .legend .ms{ font-size: 17px; color: var(--text-dim); text-shadow:none; }
 .card .w{
-  font-size: 13px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
+  font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
   flex: 1;
 }
@@ -353,11 +359,11 @@ button{ font-family: inherit; color: inherit; }
 }
 .card .tags{ display:flex; flex-wrap:wrap; gap:3px; }
 .card .tg{
-  font-size: 9px; font-weight:600; letter-spacing:.02em;
+  font-size: 10px; font-weight:600; letter-spacing:.02em;
   padding: 2px 5px; border-radius: 3px;
   background: #DCD4E0; color: #453F54;
 }
-.card .tg.match{ background: var(--gold); color:#0B0B18; font-weight:700; }
+.card .tg.match{ background: var(--gold); color:#12181C; font-weight:700; }
 .card.interpreted{
   box-shadow: 0 0 0 3px var(--lens), 0 4px 0 var(--card-edge), 0 7px 13px rgba(0,0,0,.4);
 }
@@ -381,7 +387,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .float.c{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .float.m{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
-.float.r{ background: var(--gold); color:#0B0B18; box-shadow: 0 3px 0 var(--gold-d); }
+.float.r{ background: var(--gold); color:#12181C; box-shadow: 0 3px 0 var(--gold-d); }
 @keyframes floatUp{
   0%{ opacity:0; transform: translate(-50%,6px) scale(.78); }
   16%{ opacity:1; transform: translate(-50%,-18px) scale(1.1); }
@@ -393,14 +399,14 @@ button{ font-family: inherit; color: inherit; }
 .demand-call{ display:flex; flex-direction:column; align-items:center; gap: 12px; }
 .dc-icons{ display:flex; gap: 16px; }
 .dc-icons .ms{ font-size: 50px; color: var(--gold); text-shadow: 3px 3px 0 rgba(0,0,0,.35); }
-.dc-text{ font-size: 13px; color:#F2D8E6; text-align:center; max-width: 40ch; }
+.dc-text{ font-size: 15px; color:#F2D8E6; text-align:center; max-width: 40ch; }
 .dc-text b{ color: var(--gold); }
 
 /* which card is first, second, third — the rule the game kept stating */
 .pos{
   position:absolute; top:-9px; left:-7px; z-index:9;
   width:23px; height:23px; border-radius:50%;
-  background: var(--gold); color:#0B0B18;
+  background: var(--gold); color:#12181C;
   font-size:13px; font-weight:700;
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 2px 0 var(--gold-d);
@@ -415,7 +421,7 @@ button{ font-family: inherit; color: inherit; }
 .stakes b{ color: var(--gold); }
 .fit{
   align-self:flex-start; font-size:11px; font-weight:700;
-  background: var(--gold); color:#0B0B18; border-radius:4px; padding:2px 7px;
+  background: var(--gold); color:#12181C; border-radius:4px; padding:2px 7px;
 }
 
 /* ---------- hand + controls ---------- */
@@ -426,7 +432,7 @@ button{ font-family: inherit; color: inherit; }
 .btn{
   touch-action: manipulation;
   border:none; border-radius: 8px; cursor:pointer;
-  padding: 13px 26px; font-size: 13px; font-weight:700; letter-spacing: .06em;
+  padding: 13px 26px; font-size: 15px; font-weight:700; letter-spacing: .06em;
   text-transform: uppercase;
   background: var(--panel-2); color:#FFF;
   box-shadow: 0 4px 0 var(--edge);
@@ -440,7 +446,7 @@ button{ font-family: inherit; color: inherit; }
 .btn.primary:active:not(:disabled){ box-shadow: none; }
 .btn.danger{ background: var(--mult); box-shadow: 0 4px 0 var(--mult-d); }
 .btn.danger:active:not(:disabled){ box-shadow: none; }
-.btn.interp{ background: var(--lens); color:#3D0F27; text-shadow:none; box-shadow: 0 4px 0 var(--lens-d); }
+.btn.interp{ background: var(--lens); color:#FFF; text-shadow: var(--drop); box-shadow: 0 4px 0 var(--lens-d); }
 .btn.interp:active:not(:disabled){ box-shadow: none; }
 
 /* ---------- overlays ---------- */
@@ -460,11 +466,11 @@ button{ font-family: inherit; color: inherit; }
 }
 @keyframes panelIn{ 0%{transform:scale(.93) translateY(12px); opacity:0} 100%{transform:none; opacity:1} }
 .panel h2{
-  margin:0 0 4px; font-size: 23px; font-weight:700;
+  margin:0 0 4px; font-size: 26px; font-weight:700;
   text-shadow: var(--drop); text-wrap: balance;
 }
 .panel .sub{ font-size: 13px; color: var(--text-faint); margin-bottom: 15px; letter-spacing:.05em; }
-.panel p{ color: var(--text-dim); margin: 0 0 12px; max-width: 56ch; font-size: 13px; line-height:1.8; }
+.panel p{ color: var(--text-dim); margin: 0 0 12px; max-width: 60ch; font-size: 14px; line-height:1.65; }
 .panel p b, .panel li b{ color:#FFF; font-weight:700; }
 .panel p.gold{ color: var(--gold); }
 
@@ -478,9 +484,9 @@ button{ font-family: inherit; color: inherit; }
 .offer:hover:not(:disabled){ filter: brightness(1.12); }
 .offer:active:not(:disabled){ transform: translateY(4px); box-shadow: none; }
 .offer:disabled{ opacity:.4; cursor:not-allowed; }
-.offer .on{ font-size: 13px; font-weight:700; color:#3D0F27; text-shadow: none; }
-.offer .od{ font-size: 10px; color:#5C1A3A; line-height:1.6; flex:1; }
-.offer .oc{ font-size: 14px; font-weight:700; color: #3D0F27; text-shadow: none; }
+.offer .on{ font-size: 13px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm); }
+.offer .od{ font-size: 12px; color:#2A1C46; line-height:1.45; flex:1; }
+.offer .oc{ font-size: 14px; font-weight:700; color: var(--gold); text-shadow: var(--drop-sm); }
 
 .rowend{ display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
 .purse{ font-size: 17px; font-weight:700; color: var(--gold); text-shadow: var(--drop); }
@@ -500,9 +506,9 @@ button{ font-family: inherit; color: inherit; }
   background: var(--lens); border-radius:8px; padding:12px 14px; margin:14px 0;
   box-shadow: 0 4px 0 var(--lens-d);
 }
-.unlock .k{ font-size:11.5px; color:#5C1A3A; letter-spacing:.06em; }
-.unlock .v{ font-size:15px; font-weight:700; color:#3D0F27; margin-top:3px; text-shadow: none; }
-.unlock .d{ font-size:12.5px; color:#5C1A3A; margin-top:3px; }
+.unlock .k{ font-size:11.5px; color:#D8CCF5; letter-spacing:.06em; }
+.unlock .v{ font-size:15px; font-weight:700; color:#FFF; margin-top:3px; text-shadow: var(--drop-sm); }
+.unlock .d{ font-size:12.5px; color:#E3DAF8; margin-top:3px; }
 
 #interpInput{
   width:100%; padding: 13px 14px; font-family: var(--f);
@@ -514,7 +520,7 @@ button{ font-family: inherit; color: inherit; }
 .appraisal{ display:flex; gap:14px; align-items:center; margin:14px 0; min-height: 150px; }
 .appraisal .say{ font-size: 13px; color: var(--text-dim); line-height:1.55; }
 .appraisal .say .src{ display:block; font-size:11px; color: var(--text-faint); margin-top:8px; letter-spacing:.04em; }
-.helplist{ margin:0 0 14px; padding-left:18px; color: var(--text-dim); font-size:13px; line-height:1.8; }
+.helplist{ margin:0 0 14px; padding-left:18px; color: var(--text-dim); font-size:14px; line-height:1.65; }
 .helplist li{ margin-bottom:7px; }
 
 .teach{ display:flex; flex-direction:column; gap:13px; margin: 4px 0 16px; }
@@ -525,7 +531,7 @@ button{ font-family: inherit; color: inherit; }
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 3px 0 var(--chips-d); text-shadow: var(--drop-sm);
 }
-.teach-row p{ margin:0; font-size:13px; line-height:1.8; }
+.teach-row p{ margin:0; font-size:14px; line-height:1.6; }
 .gold{ color: var(--gold); }
 .worked{
   display:flex; gap:16px; align-items:center; flex-wrap:wrap;
@@ -541,9 +547,9 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 2px 0 var(--edge);
 }
 .coach{
-  align-self:center; background: var(--gold); color:#0B0B18;
+  align-self:center; background: var(--gold); color:#12181C;
   border-radius: 8px; padding: 10px 18px; max-width: 52ch;
-  text-align:center; font-size: 12px; font-weight:700; line-height:1.4;
+  text-align:center; font-size: 14px; font-weight:700; line-height:1.4;
   box-shadow: 0 4px 0 var(--gold-d);
   animation: coachIn .24s ease-out;
 }
@@ -578,8 +584,8 @@ button{ font-family: inherit; color: inherit; }
   .card .art{ height: 64px; }
   .card .art .icons{ gap: 6px; }
   .card .art .ms{ font-size: 25px; }
-  .card .w{ font-size: 15px; }
-  .card .tg{ font-size: 9.5px; }
+  .card .w{ font-size: 17px; }
+  .card .tg{ font-size: 11px; }
   .card .base{ font-size: 12px; }
   .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 30px; }
   .pos{ width: 26px; height: 26px; font-size: 14px; top: -10px; left: -8px; }
@@ -587,28 +593,28 @@ button{ font-family: inherit; color: inherit; }
   /* the round's rule, at the size it deserves */
   .dc-icons .ms{ font-size: 54px; }
   .dc-icons{ gap: 22px; }
-  .dc-text{ font-size: 14px; max-width: 46ch; }
+  .dc-text{ font-size: 17px; max-width: 46ch; }
   .demand-call{ gap: 13px; }
-  .stage-hint{ font-size: 14px; }
-  .stage-hint .hand-name{ font-size: 16px; padding: 6px 20px; }
+  .stage-hint{ font-size: 16px; }
+  .stage-hint .hand-name{ font-size: 19px; padding: 6px 20px; }
 
   /* the sidebar has the width to be read at a glance */
-  .blind-badge{ font-size: 17px; padding: 12px 9px; }
+  .blind-badge{ font-size: 19px; padding: 12px 9px; }
   .blind-wants .w{ font-size: 12px; padding: 3px 9px; }
-  .blind-req .v{ font-size: 30px; }
+  .blind-req .v{ font-size: 34px; }
   .blind-req .k, .roundscore .k, .meter .k{ font-size: 13px; }
-  .roundscore .v{ font-size: 27px; }
-  .tally .chips, .tally .multv{ font-size: 25px; padding: 10px 5px; }
-  .meter .v{ font-size: 24px; }
-  .money{ font-size: 25px; }
+  .roundscore .v{ font-size: 30px; }
+  .tally .chips, .tally .multv{ font-size: 28px; padding: 10px 5px; }
+  .meter .v{ font-size: 27px; }
+  .money{ font-size: 28px; }
 
   .lens{ min-width: 134px; max-width: 186px; padding: 8px 10px; }
   .lens .n{ font-size: 13px; }
   .lens .d{ font-size: 12px; }
   .lensbar-head{ font-size: 13px; }
 
-  .btn{ font-size: 14px; padding: 14px 28px; }
-  .coach{ font-size: 13px; padding: 12px 22px; }
+  .btn{ font-size: 16px; padding: 13px 28px; }
+  .coach{ font-size: 15px; padding: 11px 22px; }
 }
 
 /* ---------- narrow: sidebar becomes a HUD strip ----------
@@ -701,7 +707,7 @@ button{ font-family: inherit; color: inherit; }
     background: var(--bg);
     box-shadow: 0 -2px 0 var(--edge);
   }
-  .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 6px; font-size: 11px; letter-spacing: 0; }
+  .btn{ flex: 1 1 0; min-height: 48px; padding: 12px 8px; font-size: 13px; letter-spacing: .02em; }
 
   .panel{ padding: 16px; }
   .panel h2{ font-size: 21px; }

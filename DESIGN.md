@@ -315,11 +315,15 @@ UI read as machine-made: **flat fills** (no gradient on any surface), **hard sha
 **colour as information** — blue is chips, red is mult, gold is money, and nothing else gets to
 be loud.
 
-The hues themselves come from a PICO-8-derived arcade set rather than anything muted: a black
-ground, a wine-coloured table, and hot accents (cyan, hot red, arcade yellow, pink Lenses). The
-wordmark is cream with a hard red offset, the way an arcade title screen would do it. The face is
-Silkscreen, chosen for one reason: the previous pixel face rendered 5 and 8 near-identically at UI
-sizes, which is fatal in a game made entirely of numbers. Half the
+The palette is Balatro’s own register: a dark blue-slate room and table, ivory cards, and the
+blue/red chips-and-mult pairing carrying the loudest colour, with gold for money and lavender
+for Lenses. A detour through a black-and-wine arcade palette was tried and reverted — it read
+as a different game rather than a better-dressed one.
+
+The face is DotGothic16, arrived at by elimination: two earlier pixel faces rendered 5 and 8
+near-identically at UI sizes, which is fatal in a game made entirely of numbers. It ships one
+weight, so synthetic bold is switched off and hierarchy comes from size and colour — a smeared
+fake bold is exactly what makes a pixel face look muddy. Half the
 overtone plates are bright enough that white icons vanish on them, so the plate measures its own
 luminance and flips to dark ink — and inverts the gold match-ring along with it.
 
