@@ -9,10 +9,16 @@ const { pathToFileURL } = require("url");
 const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
 
 /* Open the game and clear the first-run help card. */
+/* Open the game past whatever first-run guidance is showing. The spotlight
+   tutorial replaced the auto-opening help modal, so handle either. */
 async function open(page) {
   await page.goto(GAME);
-  await expect(page.locator("#veil")).toBeVisible();
-  await page.click("#closeHelp");
+  const tut = page.locator("#tut");
+  if (await tut.isVisible()) {
+    await page.click("#tutSkip");
+    await expect(tut).toBeHidden();
+  }
+  if (await page.locator("#veil").isVisible()) await page.click("#closeHelp");
   await expect(page.locator("#veil")).toBeHidden();
 }
 
@@ -37,9 +43,16 @@ async function playAHand(page) {
 
 /* ------------------------------------------------------------------ */
 test.describe("first visit", () => {
-  test("loads and explains itself before anything else", async ({ page }) => {
+  test("greets with the tutorial, not a wall of rules", async ({ page }) => {
     await page.goto(GAME);
     await expect(page).toHaveTitle("Overtone");
+    await expect(page.locator("#tut")).toBeVisible();
+    await expect(page.locator("#veil"), "a rules modal opened itself").toBeHidden();
+  });
+
+  test("keeps the full rules one click away", async ({ page }) => {
+    await open(page);
+    await page.click("#helpBtn");
     const panel = page.locator("#panel");
     await expect(panel).toContainText("How Overtone works");
     await expect(panel).toContainText("Chips × Mult");
@@ -398,5 +411,108 @@ test.describe("the end of a run", () => {
     await expect(page.locator("#rail .lens")).toHaveCount(1);
     await expect(page.locator("#rail .lens .n")).toContainText("ZOOLOGIST");
     await expect(page.locator("#lensCount")).toHaveText("1/5");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the opening tutorial", () => {
+  test("greets a first-time player instead of a rules modal", async ({ page }) => {
+    await page.goto(GAME);
+    await expect(page.locator("#tut")).toBeVisible();
+    await expect(page.locator("#tutText")).toContainText("Overtone");
+    await expect(page.locator("#tutStep")).toContainText("1 of 6");
+    /* the modal no longer opens itself */
+    await expect(page.locator("#veil")).toBeHidden();
+  });
+
+  test("spotlights the real board, and lets the player touch it", async ({ page }) => {
+    await page.goto(GAME);
+    await page.click("#tutNext");                       // -> the Demand
+    await expect(page.locator("#tutStep")).toContainText("2 of 6");
+    await expect(page.locator("#tutText")).toContainText("pays for");
+
+    /* The cutout slides between targets on a CSS transition, so poll until it
+       settles rather than measuring it mid-flight. */
+    await expect.poll(async () => page.evaluate(() => {
+      const hole = document.getElementById("tutHole").getBoundingClientRect();
+      const blind = document.querySelector(".blind").getBoundingClientRect();
+      return Math.abs(hole.left - (blind.left - 8)) < 3 &&
+             Math.abs(hole.top - (blind.top - 8)) < 3;
+    }), { timeout: 3000, message: "the spotlight never settled over the Demand" }).toBe(true);
+
+    /* the overlay must not swallow clicks — the next step needs a card tapped */
+    await page.click("#tutNext");
+    await expect(page.locator("#tutStep")).toContainText("3 of 6");
+    await expect(page.locator("#tutNext")).toBeHidden();  // doing it IS the button
+    await page.locator("#hand .card").first().click();
+    await expect(page.locator("#hand .card.sel")).toHaveCount(1);
+    await expect(page.locator("#tutStep")).toContainText("4 of 6");
+  });
+
+  test("advances off a real play, then finishes and stays gone", async ({ page }) => {
+    await page.goto(GAME);
+    /* straight to the play step */
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await page.locator("#hand .card").first().click();
+    await expect(page.locator("#tutStep")).toContainText("4 of 6");
+    await page.click("#tutNext");
+    await expect(page.locator("#tutStep")).toContainText("5 of 6");
+    await expect(page.locator("#tutNext")).toBeHidden();
+
+    await page.click("#playBtn");
+    await expect(page.locator("#tutStep")).toContainText("6 of 6");
+    await page.click("#tutNext");
+    await expect(page.locator("#tut")).toBeHidden();
+
+    /* and it does not ambush a returning player */
+    await page.reload();
+    await expect(page.locator("#hand .card")).toHaveCount(7);
+    await expect(page.locator("#tut")).toBeHidden();
+  });
+
+  test("can be skipped, and skipping sticks", async ({ page }) => {
+    await page.goto(GAME);
+    await page.click("#tutSkip");
+    await expect(page.locator("#tut")).toBeHidden();
+    await expect(page.locator("#hand .card")).toHaveCount(7);
+    await page.reload();
+    await expect(page.locator("#tut")).toBeHidden();
+  });
+
+  test("skipping leaves the lighter coach running", async ({ page }) => {
+    await page.goto(GAME);
+    await page.click("#tutSkip");
+    /* they opted out of the overlay, not out of ever being helped */
+    await expect(page.locator("#coach")).toBeVisible();
+    await expect(page.locator("#coach")).toContainText("Gold tags match the Demand");
+  });
+
+  test("finishing it retires the coach, which would only repeat itself", async ({ page }) => {
+    await page.goto(GAME);
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await page.locator("#hand .card").first().click();
+    await page.click("#tutNext");
+    await page.click("#playBtn");
+    await expect(page.locator("#tutStep")).toContainText("6 of 6");
+    await page.click("#tutNext");
+    await expect(page.locator("#tut")).toBeHidden();
+    await expect(page.locator("#coach")).toBeHidden();
+  });
+
+  test("only one guide runs at a time", async ({ page }) => {
+    await page.goto(GAME);
+    await expect(page.locator("#tut")).toBeVisible();
+    /* the coach would otherwise be giving its own instructions underneath */
+    await expect(page.locator("#coach")).toBeHidden();
+  });
+
+  test("can be replayed from the help card", async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#tut")).toBeHidden();
+    await page.click("#helpBtn");
+    await page.click("#replayTut");
+    await expect(page.locator("#veil")).toBeHidden();
+    await expect(page.locator("#tut")).toBeVisible();
+    await expect(page.locator("#tutStep")).toContainText("1 of 6");
   });
 });

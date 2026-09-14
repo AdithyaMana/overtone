@@ -50,6 +50,14 @@ function load(){
   const byId = Object.create(null);
   const store = Object.create(null);
 
+  /* The page starts its spotlight tutorial on a first visit, and that runs a
+     setInterval which would hold Node's event loop open forever — node --test
+     would never exit. Engine tests are not testing onboarding, so arrive as a
+     player who has already seen it. (The tutorial itself is covered in
+     tests/e2e/game.spec.js, in a browser that has an event loop anyway.) */
+  store["overtone:tutorial"] = "true";
+  store["overtone:coached"] = "true";
+
   const win = {
     innerWidth: 1280,
     innerHeight: 800,

@@ -94,6 +94,40 @@ button{ font-family: inherit; color: inherit; }
    little air taken back out of their tracking. */
 .btn, .blind-badge, .stage-hint .hand-name{ letter-spacing: .02em; }
 
+/* ---------- the opening tutorial ----------
+   A spotlight over the real board rather than a modal read before the game
+   has been seen. The overlay does not take pointer events — the player has to
+   be able to tap the very cards it is pointing at. */
+.tut{ position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.tut[hidden]{ display: none !important; }
+.tut-hole{
+  position: absolute; border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(6,12,16,.78);
+  transition: left .26s cubic-bezier(.2,.9,.3,1), top .26s cubic-bezier(.2,.9,.3,1),
+              width .26s cubic-bezier(.2,.9,.3,1), height .26s cubic-bezier(.2,.9,.3,1);
+}
+.tut-box{
+  position: absolute; width: min(340px, calc(100vw - 24px));
+  background: var(--panel); border-radius: 9px; padding: 14px 16px;
+  box-shadow: 0 5px 0 var(--edge);
+  pointer-events: auto;
+}
+.tut-step{
+  font-size: 11px; letter-spacing: .12em; color: var(--text-faint);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.tut-text{ font-size: 14px; line-height: 1.6; color: var(--text); }
+.tut-text b{ color: var(--gold); }
+.tut-row{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.tut-skip{
+  background: none; border: none; cursor: pointer; padding: 6px 2px;
+  font-family: inherit; font-size: 12px; color: var(--text-faint);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.tut-skip:hover{ color: var(--text-dim); }
+.tut-next{ padding: 9px 20px; font-size: 13px; }
+.tut-next[hidden]{ display: none !important; }
+
 /* every raised surface is the same object: flat fill, solid lip */
 .slab{
   background: var(--panel);
@@ -824,6 +858,18 @@ button{ font-family: inherit; color: inherit; }
 
 <div class="veil" id="veil" hidden>
   <div class="panel" id="panel"></div>
+</div>
+
+<div class="tut" id="tut" hidden>
+  <div class="tut-hole" id="tutHole"></div>
+  <div class="tut-box" id="tutBox">
+    <div class="tut-step" id="tutStep"></div>
+    <div class="tut-text" id="tutText"></div>
+    <div class="tut-row">
+      <button class="tut-skip" id="tutSkip" type="button">Skip</button>
+      <button class="btn primary tut-next" id="tutNext" type="button">Next</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>
@@ -2073,6 +2119,133 @@ function toggleSel(id){
   coachSet(G.coachStep);
 }
 
+/* ---------- the opening tutorial ----------
+   Six beats on the real board with the real deck. Two of them wait for the
+   player to actually do the thing rather than read that they could — a
+   tutorial you can finish without touching the game has taught nothing. */
+const TUT = [
+  { text: function(){
+      return "<b>Overtone</b> is a word game where meaning is the score. "
+           + "Every word carries overtones, and each round asks for some of them."; },
+    label: "Welcome" },
+
+  { sel: ".blind", pos: "right", label: "The Demand",
+    text: function(){
+      return "This round is <b>" + G.demand.n + "</b>. It pays for "
+           + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" and ")
+           + " — 25 chips for every one you play."; } },
+
+  { sel: "#hand", pos: "top", label: "Your hand",
+    text: function(){
+      return "Words that can score are marked with a gold edge, and the matching "
+           + "tags light up gold. <b>Tap two or three of them.</b>"; },
+    done: function(){ return G.selected.length >= 1; } },
+
+  { sel: "#tally", pos: "right", label: "The score",
+    text: function(){
+      return "Chips <b>×</b> mult. Matching tags add chips; Lenses multiply them. "
+           + "The board shows what you would score before you commit."; } },
+
+  { sel: "#playBtn", pos: "top", label: "Playing",
+    text: function(){
+      return "<b>Play them.</b> They resolve left to right in the order you tapped, "
+           + "so the order is part of the puzzle."; },
+    done: function(){ return G.plays < 4; } },
+
+  { sel: ".lensbar", pos: "bottom", label: "What comes next",
+    text: function(){
+      return "Beat the target and the Bookseller sells you a <b>Lens</b>. "
+           + "Lenses multiply — more words only add. That is the whole game."; } }
+];
+
+let tutStep = -1, tutWatch = null;
+
+function tutActive(){ return tutStep >= 0; }
+function tutorialSeen(){ return store.get("tutorial", false); }
+
+function startTutorial(force){
+  if(!force && tutorialSeen()) return;
+  tutStep = 0;
+  /* render() has already drawn the coach by now; stand it down so the two
+     guides never talk over each other. */
+  coachSet(null);
+  document.getElementById("tut").hidden = false;
+  renderTut();
+  clearInterval(tutWatch);
+  tutWatch = setInterval(function(){
+    const s = TUT[tutStep];
+    if(s && s.done && s.done()) tutAdvance();
+  }, 220);
+}
+
+function tutAdvance(){
+  tutStep++;
+  if(tutStep >= TUT.length){ endTutorial(true); return; }
+  renderTut();
+}
+
+function endTutorial(completed){
+  clearInterval(tutWatch); tutWatch = null;
+  tutStep = -1;
+  document.getElementById("tut").hidden = true;
+  store.set("tutorial", true);
+  /* Finishing the tutorial makes the coach redundant. SKIPPING it does not —
+     a player who dismisses a six-step overlay has not necessarily learned
+     anything, and the coach is one unobtrusive line. Leave them the net. */
+  if(completed) coachFinish();
+  else if(G) coachSet(G.coachStep);
+}
+
+function renderTut(){
+  const s = TUT[tutStep];
+  if(!s) return endTutorial(true);
+  const hole = document.getElementById("tutHole");
+  const box = document.getElementById("tutBox");
+  document.getElementById("tutStep").textContent =
+    s.label + " · " + (tutStep + 1) + " of " + TUT.length;
+  document.getElementById("tutText").innerHTML = s.text();
+  /* a step that waits on the player gets no Next — doing it is the button */
+  document.getElementById("tutNext").hidden = !!s.done;
+
+  const el = s.sel ? document.querySelector(s.sel) : null;
+  if(!el){
+    /* No target: park the cutout off-screen at zero size so its 9999px spread
+       still dims the whole board. Hiding it would leave the card floating over
+       an undimmed page. */
+    hole.style.display = "block";
+    hole.style.left = "50%";
+    hole.style.top = "-9999px";
+    hole.style.width = "0px";
+    hole.style.height = "0px";
+    box.style.left = "50%";
+    box.style.top = "50%";
+    box.style.transform = "translate(-50%, -50%)";
+    return;
+  }
+
+  const r = el.getBoundingClientRect();
+  const pad = 8;
+  hole.style.display = "block";
+  hole.style.left = (r.left - pad) + "px";
+  hole.style.top = (r.top - pad) + "px";
+  hole.style.width = (r.width + pad * 2) + "px";
+  hole.style.height = (r.height + pad * 2) + "px";
+
+  box.style.transform = "none";
+  const bw = box.offsetWidth, bh = box.offsetHeight, gap = 14;
+  /* Side placement needs room the phone layout does not have, so narrow
+     screens always get the card above or below the spotlight. */
+  const narrow = window.innerWidth < 820;
+  let left, top;
+  if(s.pos === "right" && !narrow){ left = r.right + gap; top = r.top; }
+  else if(s.pos === "top"){ left = r.left; top = r.top - gap - bh; }
+  else { left = r.left; top = r.bottom + gap; }
+  if(top < 12) top = r.bottom + gap;
+  if(top + bh > window.innerHeight - 12) top = r.top - gap - bh;
+  box.style.left = Math.max(12, Math.min(left, window.innerWidth - bw - 12)) + "px";
+  box.style.top = Math.max(12, Math.min(top, window.innerHeight - bh - 12)) + "px";
+}
+
 /* ---------- first-run coaching ----------
    A modal explains the game to someone who hasn't seen it yet, which is the
    worst possible moment. This instead says one short thing at a time, on the
@@ -2092,7 +2265,7 @@ function coachSet(step){
   const btn = document.getElementById("playBtn");
   if(!el) return;
   if(btn) btn.classList.remove("hint-pulse");
-  if(!step || coachDone() || !COACH[step]){ el.hidden = true; return; }
+  if(!step || coachDone() || tutActive() || !COACH[step]){ el.hidden = true; return; }
   el.textContent = COACH[step];
   el.hidden = false;
   if(step === "play" && btn) btn.classList.add("hint-pulse");
@@ -2316,9 +2489,14 @@ function showHelp(){
     + '<p style="font-size:13px"><span class="kbd">1</span>–<span class="kbd">7</span> pick &middot; '
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
-    + '<div class="rowend"><span></span>'
+    + '<div class="rowend">'
+    + '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
     + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
   document.getElementById("closeHelp").onclick = hidePanel;
+  document.getElementById("replayTut").onclick = function(){
+    hidePanel();
+    startTutorial(true);
+  };
 }
 
 /* ---------- input ---------- */
@@ -2329,18 +2507,23 @@ document.getElementById("helpBtn").onclick = showHelp;
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel(); newRun("free-" + Math.random().toString(36).slice(2,8));
 };
+document.getElementById("tutNext").onclick = tutAdvance;
+document.getElementById("tutSkip").onclick = function(){ endTutorial(false); };
 document.getElementById("stage").onclick = function(){ if(G && G.animating) skipAnim = true; };
 
 /* Re-lay the hand when the screen changes shape (rotation, resize). */
 let resizeT = null;
 window.addEventListener("resize", function(){
   clearTimeout(resizeT);
-  resizeT = setTimeout(function(){ if(G && !G.animating) renderHand(); }, 160);
+  resizeT = setTimeout(function(){
+    if(G && !G.animating) renderHand();
+    if(tutActive()) renderTut();
+  }, 160);
 });
 
 document.addEventListener("keydown", function(e){
   if(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
-  if(e.key === "Escape"){ hidePanel(); return; }
+  if(e.key === "Escape"){ if(tutActive()) endTutorial(false); hidePanel(); return; }
   if(!document.getElementById("veil").hidden) return;
   if(e.key === " "){ if(G && G.animating){ e.preventDefault(); skipAnim = true; } return; }
   if(G && G.animating) return;
@@ -2355,10 +2538,10 @@ document.addEventListener("keydown", function(e){
 function start(restored){
   initIcons();
   newRun(null);
-  if(!store.get("seenHelp", false)){
-    store.set("seenHelp", true);
-    showHelp();
-  }
+  /* A rules modal shown before the game has been seen is the worst moment to
+     explain anything. First-timers get the spotlight tutorial on the real
+     board instead; the modal stays one click away under "How to play". */
+  if(!tutorialSeen()) startTutorial(false);
 }
 try{
   if(window.claude && window.claude.hot){

@@ -31,7 +31,9 @@ async function withClaude(page, { reply, fail } = {}) {
 
 async function open(page) {
   await page.goto(GAME);
-  await page.click("#closeHelp");
+  const tut = page.locator("#tut");
+  if (await tut.isVisible()) { await page.click("#tutSkip"); await expect(tut).toBeHidden(); }
+  if (await page.locator("#veil").isVisible()) await page.click("#closeHelp");
   await expect(page.locator("#veil")).toBeHidden();
 }
 

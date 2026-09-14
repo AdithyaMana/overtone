@@ -34,7 +34,8 @@ test.describe("a full run", () => {
       const problems = watchForErrors(page);
 
       await page.goto(GAME);
-      await page.click("#closeHelp");
+      if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+      if (await page.locator("#veil").isVisible()) await page.click("#closeHelp");
       await expect(page.locator("#veil")).toBeHidden();
 
       const seen = { rounds: 0, shops: 0, bought: 0, plays: 0 };
@@ -100,7 +101,7 @@ test.describe("a full run", () => {
       const problems = watchForErrors(page);
 
       await page.goto(GAME);
-      await page.click("#closeHelp");
+      if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
 
       /* End a run holding a Lens, the short way — the long way is covered above.
          coachFinish() is what leaving the Bookseller does; without it the coach

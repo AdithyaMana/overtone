@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**150 tests, 0 failures.** 83 engine tests + 67 E2E tests across two device profiles.
+**168 tests, 0 failures.** 83 engine tests + 85 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -49,7 +49,7 @@ It now runs on the harness too.
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (34 × desktop + phone)
+### E2E — `tests/e2e/` (43 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -58,6 +58,7 @@ It now runs on the harness too.
 | the Bookseller | opens on clearing a round; states the exponential; offers three items; **"Leave with no Lens"** when empty-handed; a bought Lens equips and survives into the next round |
 | the Interpreter | a typed word becomes a real card via the house appraiser, which names itself; a 1-letter word is rejected |
 | layout | never scrolls sideways; **the controls stay in the viewport**; help reopens and closes on Escape |
+| **the opening tutorial** | greets a first-timer instead of a rules modal; the spotlight lands on the real element; the overlay does not swallow clicks, so the player can tap the cards it points at; two steps wait for a real action; skipping leaves the lighter coach running while finishing retires it; it never ambushes a returning player; replayable from the help card |
 | **first-run coaching** | the coach walks pick → play → read the result, marks the Play button at the right moment, walks *back* if the player deselects, and never returns on a later run |
 | **the end of a run** | running out of plays ends the run through the real code path; the result screen carries the share block and the Memory unlock; the next run starts with the carried Lens equipped |
 | **a full run** (`fullrun.spec.js`) | an entire run played start to finish — every round, every shop, real purchases, through to the result screen — asserting no console error or unhandled rejection anywhere along the way |
@@ -124,6 +125,7 @@ Three bugs in the test code itself are worth recording, since all three would re
 - **Cross-realm comparison.** `api.LENSES` lives in the VM realm, so `.map()` returns an array
   carrying the VM’s `Array.prototype`. `assert.deepStrictEqual` checks prototype identity, so a
   cross-realm `[]` never equals a host `[]`. Compare lengths or contents, not array objects.
+- **A page timer can hang `node --test`.** The tutorial runs a `setInterval`, which held Node’s event loop open forever once the harness started loading a first-time visit — the engine suite went from 0.3s to never finishing. The harness now arrives as a player who has already seen the tutorial; the tutorial itself is covered in a browser, which has an event loop anyway.
 - **Reduced motion is forced** in the harness so the rAF counter tweens resolve synchronously
   and assertions do not race an animation.
 - **Never measure a rotated element for overlap.** Hand cards are fanned and deal in with a
