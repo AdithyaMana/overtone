@@ -270,15 +270,25 @@ decision, and the run finishes itself — which is a complaint players made in e
 
 Raising every target is the obvious answer and the wrong one: it punishes the decks that never got
 going and barely inconveniences the ones that did. So the round answers the deck in front of it.
-**Past twice what the round asks for, it drafts a second rule** — one of the Ordeals, never the one
-it already has — and the Bookseller names it before you spend, so an engine loud enough to trigger
-it is a purchase you made knowing.
+**Past three times what the round asks for, it drafts a second rule** — one of the Ordeals, never
+the one it already has — and the Bookseller names it before you spend, so an engine loud enough to
+trigger it is a purchase you made knowing.
 
-The threshold is measured, not guessed. Across simulated runs the deck's ceiling over the round's
-target sits at a median of **4.1×** on rounds 1 and 2 — those targets are meant to be walked over,
-and round 1 is where the tutorial runs — and then at **0.7× to 1.2×** from round 3 on. So the rule
-only starts at round 3, where being twice ahead actually means something: it catches the 5–18% of
-later rounds where a build has genuinely broken away, and leaves the opening alone.
+Both numbers are measured, and both were retuned after measuring what they cost. Across simulated
+runs the deck's ceiling over the round's target sits at a median of **4.1×** on rounds 1 and 2 —
+those targets are meant to be walked over, and round 1 is where the tutorial runs — and then at
+**0.7× to 1.2×** from round 3 on. So the rule starts at round 3.
+
+The bar is three times rather than twice because twice turned out to be a tax rather than an
+answer:
+
+| threshold | fires on | realistic win rate |
+|---|---|---|
+| no reckoning | — | 20.8% |
+| **3× (shipped)** | 0–5% of rounds 3–8 | **18.2%** |
+| 2× | 5–18% of rounds 3–8 | 16.6% |
+
+Being strong is the point of the game. Running away with it is what this is for.
 
 **Memory never carries a flawed Lens.** It is a gift handed to a player who has not chosen anything
 yet — it arrives before the first shop, on a board they cannot answer it on. A Lens that doubles
@@ -349,8 +359,8 @@ them. The first three rounds were a formality.
 
 | | at first | after pass one | now |
 |---|---|---|---|
-| optimal player | 70% | 43% | **22%** |
-| realistic player (`--play human`) | — | 33% | **16%** |
+| optimal player | 70% | 43% | **25%** |
+| realistic player (`--play human`) | — | 33% | **18%** |
 | careless player (random buys) | — | 12% | **11%** |
 | round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) |
 | best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% |

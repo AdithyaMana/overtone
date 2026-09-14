@@ -2569,14 +2569,22 @@ function roundShape(round){
    already has — and the Bookseller names it before you spend, so an engine
    that triggers it is a purchase you made knowing. Seeded on the run and the
    round, so a daily deals everyone the same reckoning. */
-/* Measured rather than guessed. Across simulated runs the deck's ceiling over
-   the round's target sits at a median of 4.1x on rounds 1 and 2 — those targets
-   are meant to be walked over, and round 1 is where the tutorial runs — and
-   then at 0.7x to 1.2x from round 3 on, where the curve starts outrunning
-   decks. So "twice what the round asks" only means runaway after round 2; it
-   catches the 5-18% of later rounds where a build has genuinely broken away,
-   and leaves the opening alone. */
-const RECKON_AT = 2, RECKON_FROM = 2;
+/* Both numbers measured, and both retuned after measuring what they cost.
+
+   Across simulated runs the deck's ceiling over the round's target sits at a
+   median of 4.1x on rounds 1 and 2 — those targets are meant to be walked
+   over, and round 1 is where the tutorial runs — and then at 0.7x to 1.2x from
+   round 3 on. So the rule starts at round 3, where being ahead means anything
+   at all.
+
+   The bar is three times rather than twice. At twice, a deck that was merely
+   doing well called down a second rule: it fired on 5-18% of later rounds and
+   took 4.2 points off the win rate, 20.8% to 16.6%, which is a tax rather than
+   an answer. At three times it fires on the 0-5% of rounds where a build has
+   genuinely broken the round open, and costs 2.6 — 18.2% against 20.8% with no
+   reckoning at all. Being strong is the point of the game; running away with
+   it is what this is for. */
+const RECKON_AT = 3, RECKON_FROM = 2;
 
 function reckonFor(round){
   if(!G || !G.demandOrder || round < RECKON_FROM) return null;
