@@ -275,10 +275,12 @@ money — with the board to its right. Plays are announced with named shapes (`D
 RESONANCE`, `OVERTONE CASCADE`) the way Balatro names poker hands, which teaches players to aim
 for a shape instead of squinting at tags.
 
-*The fantasy half* is obsidian and arcane violet, tarnished gold, bone-parchment cards, and a
-gothic display face (Grenze Gotisch) over the pixel UI — gothic for names and headings, pixel
-for every number, so the readable parts stay readable. Embers drift up the background on a
-canvas layer.
+*The discipline* is four rules, held everywhere, because breaking them is exactly what makes a
+UI read as machine-made: **flat fills** (no gradient on any surface), **hard shadows only**
+(zero blur — every panel sits on a solid lip), **one typeface** at one family of sizes, and
+**colour as information** — blue is chips, red is mult, gold is money, and nothing else gets to
+be loud. The play area is green felt, because a card game should look like it happens on a
+table.
 
 *The juice* is where a card game lives, so it got its own pass: cards deal in with a stagger
 (only newly drawn ones — the hand re-renders on every click), breathe on an inner layer so the
