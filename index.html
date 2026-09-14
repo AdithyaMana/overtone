@@ -24,39 +24,41 @@
 :root{
   color-scheme: dark;
 
-  --bg:        #232F38;   /* the room */
-  --felt:      #3D6B54;   /* the green table cards are played on */
-  --felt-d:    #2C4F3D;
-  --panel:     #414F5B;
-  --panel-2:   #52616D;
-  --inset:     #2A363F;
-  --edge:      #151E24;   /* the lip under everything */
+  /* A PICO-8-derived arcade set: indigo room, wine table, hot accents.
+     The flat/hard-shadow/one-font rules still hold — only the hues moved. */
+  --bg:        #1B1B3A;   /* the room */
+  --felt:      #6E1E4B;   /* the table cards are played on */
+  --felt-d:    #4A1233;
+  --panel:     #2E2E5C;
+  --panel-2:   #414178;
+  --inset:     #14142B;
+  --edge:      #0B0B1C;   /* the lip under everything */
 
-  --chips:     #0093FF;
-  --chips-d:   #0064B5;
-  --mult:      #FE5F55;
-  --mult-d:    #C13A31;
-  --gold:      #EAC058;
-  --gold-d:    #A8811F;
-  --blind:     #D4603A;
-  --blind-d:   #97381A;
-  --green:     #56A870;
-  --green-d:   #2F6E45;
-  --sigil:     #8A6FC4;
-  --sigil-d:   #54418A;
+  --chips:     #29ADFF;
+  --chips-d:   #1668AD;
+  --mult:      #FF004D;
+  --mult-d:    #A80033;
+  --gold:      #FFEC27;
+  --gold-d:    #B39C00;
+  --blind:     #FFA300;
+  --blind-d:   #B36F00;
+  --green:     #00E436;
+  --green-d:   #009424;
+  --sigil:     #FF77A8;
+  --sigil-d:   #B34A75;
 
-  --card:      #FBF7EC;
-  --card-edge: #C7BFAC;
-  --card-ink:  #1C1C1C;
-  --card-dim:  #7A7568;
+  --card:      #FFF1E8;
+  --card-edge: #C8B8AE;
+  --card-ink:  #1B1B3A;
+  --card-dim:  #6B6478;
 
-  --text:      #FFFFFF;
-  --text-dim:  #B6C2CC;
-  --text-faint:#7E8C97;
+  --text:      #FFF1E8;
+  --text-dim:  #C2C3C7;
+  --text-faint:#83769C;
 
   --f: "Pixelify Sans", "Trebuchet MS", Verdana, system-ui, sans-serif;
-  --drop: 2px 2px 0 rgba(0,0,0,.5);
-  --drop-sm: 1px 1px 0 rgba(0,0,0,.5);
+  --drop: 2px 2px 0 rgba(0,0,0,.55);
+  --drop-sm: 1px 1px 0 rgba(0,0,0,.55);
 }
 
 *{ box-sizing: border-box; }
@@ -92,7 +94,8 @@ button{ font-family: inherit; color: inherit; }
 .masthead{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .wordmark{
   margin:0; font-size: 30px; font-weight: 700; letter-spacing: .05em;
-  text-shadow: 3px 3px 0 var(--edge);
+  color: var(--card);
+  text-shadow: 3px 3px 0 var(--mult);
 }
 .wordmark span{ color: var(--gold); }
 .mast-actions{ display:flex; gap:8px; align-items:center; }
@@ -114,7 +117,7 @@ button{ font-family: inherit; color: inherit; }
   background: var(--blind);
   border-radius: 7px; padding: 10px 8px;
   font-size: 18px; font-weight:700; letter-spacing:.02em; line-height:1.12;
-  text-shadow: var(--drop);
+  color:#3D2200; text-shadow: none;
   box-shadow: 0 3px 0 var(--blind-d);
   text-wrap: balance;
   animation: plaqueSlam .34s cubic-bezier(.2,1.5,.4,1);
@@ -126,7 +129,7 @@ button{ font-family: inherit; color: inherit; }
 }
 .blind-wants{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; margin-top:11px; }
 .blind-wants .w{
-  background: var(--gold); color:#2A2003; border-radius: 4px;
+  background: var(--gold); color:#1B1B3A; border-radius: 4px;
   padding: 3px 8px; font-size: 11px; font-weight:700; letter-spacing:.03em;
   box-shadow: 0 2px 0 var(--gold-d);
 }
@@ -165,7 +168,7 @@ button{ font-family: inherit; color: inherit; }
   text-shadow: var(--drop);
   overflow: hidden; text-overflow: ellipsis;
 }
-.tally .chips{ background: var(--chips); color:#FFF; box-shadow: 0 3px 0 var(--chips-d); }
+.tally .chips{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .tally .multv{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
 .tally .x{ font-size: 15px; font-weight:700; color: var(--text-faint); }
 .tally.pulse .chips{ animation: pop .22s cubic-bezier(.2,1.6,.4,1); }
@@ -207,10 +210,10 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 3px 0 var(--sigil-d);
 }
 .lens .n{
-  font-size: 12px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm);
+  font-size: 12px; font-weight:700; color:#3D0F27; text-shadow: none;
   white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
 }
-.lens .d{ font-size: 11px; line-height:1.3; color:#E6DFF7; margin-top:3px; }
+.lens .d{ font-size: 11px; line-height:1.3; color:#5C1A3A; margin-top:3px; }
 .lens.fired{ animation: sigilFire .5s cubic-bezier(.2,1.3,.3,1); }
 @keyframes sigilFire{
   0%{ transform: translateY(0) scale(1) rotate(0); }
@@ -231,14 +234,14 @@ button{ font-family: inherit; color: inherit; }
 }
 .stage-cards{ display:flex; gap:10px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
 .stage-hint{
-  font-size: 15px; font-weight:600; letter-spacing:.03em; color: #DDEAE2;
+  font-size: 15px; font-weight:600; letter-spacing:.03em; color: #F2D8E6;
   text-align:center; max-width: 44ch; text-shadow: var(--drop-sm);
 }
 .stage-hint .hand-name{
   display:inline-block; font-size: 17px; font-weight:700;
   background: var(--inset); color:#FFF;
   border-radius: 6px; padding: 6px 16px;
-  box-shadow: 0 3px 0 #162026;
+  box-shadow: 0 3px 0 var(--edge);
   margin-bottom: 8px; animation: nameIn .26s cubic-bezier(.2,1.5,.4,1);
 }
 @keyframes nameIn{ 0%{transform:scale(.72);opacity:0} 100%{transform:none;opacity:1} }
@@ -324,9 +327,12 @@ button{ font-family: inherit; color: inherit; }
 }
 .ms-ok .ms{ visibility: visible; }
 .card .art .ms.hit{
-  color:#2A2003; background: var(--gold); border-radius: 50%;
+  color:#1B1B3A; background: var(--gold); border-radius: 50%;
   padding: 2px; text-shadow: none;
 }
+/* dark ink on the bright plates, and invert the match ring so it still reads */
+.card .art.light .ms{ color:#1B1B3A; text-shadow: none; }
+.card .art.light .ms.hit{ background:#1B1B3A; color: var(--gold); }
 .legend{ display:flex; flex-wrap:wrap; gap: 6px; margin-bottom: 16px; }
 .legend .leg{
   display:inline-flex; align-items:center; gap:5px;
@@ -349,9 +355,9 @@ button{ font-family: inherit; color: inherit; }
 .card .tg{
   font-size: 9.5px; font-weight:600; letter-spacing:.02em;
   padding: 1px 4px; border-radius: 3px;
-  background: #E6E0D2; color: var(--card-dim);
+  background: #E4DDE6; color: var(--card-dim);
 }
-.card .tg.match{ background: var(--gold); color:#2A2003; font-weight:700; }
+.card .tg.match{ background: var(--gold); color:#1B1B3A; font-weight:700; }
 .card.interpreted{
   box-shadow: 0 0 0 3px var(--sigil), 0 4px 0 var(--card-edge), 0 7px 13px rgba(0,0,0,.4);
 }
@@ -373,9 +379,9 @@ button{ font-family: inherit; color: inherit; }
   text-shadow: var(--drop-sm);
   animation: floatUp .85s ease-out forwards;
 }
-.float.c{ background: var(--chips); color:#FFF; box-shadow: 0 3px 0 var(--chips-d); }
+.float.c{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .float.m{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
-.float.r{ background: var(--gold); color:#2A2003; box-shadow: 0 3px 0 var(--gold-d); }
+.float.r{ background: var(--gold); color:#1B1B3A; box-shadow: 0 3px 0 var(--gold-d); }
 @keyframes floatUp{
   0%{ opacity:0; transform: translate(-50%,6px) scale(.78); }
   16%{ opacity:1; transform: translate(-50%,-18px) scale(1.1); }
@@ -401,17 +407,17 @@ button{ font-family: inherit; color: inherit; }
 .btn:hover:not(:disabled){ filter: brightness(1.12); }
 .btn:active:not(:disabled){ transform: translateY(4px); box-shadow: none; }
 .btn:disabled{ opacity:.35; cursor:not-allowed; }
-.btn.primary{ background: var(--chips); box-shadow: 0 4px 0 var(--chips-d); }
+.btn.primary{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 4px 0 var(--chips-d); }
 .btn.primary:active:not(:disabled){ box-shadow: none; }
 .btn.danger{ background: var(--mult); box-shadow: 0 4px 0 var(--mult-d); }
 .btn.danger:active:not(:disabled){ box-shadow: none; }
-.btn.interp{ background: var(--sigil); box-shadow: 0 4px 0 var(--sigil-d); }
+.btn.interp{ background: var(--sigil); color:#3D0F27; text-shadow:none; box-shadow: 0 4px 0 var(--sigil-d); }
 .btn.interp:active:not(:disabled){ box-shadow: none; }
 
 /* ---------- overlays ---------- */
 .veil{
   position: fixed; inset:0; z-index: 40;
-  background: rgba(14,20,24,.9);
+  background: rgba(11,11,28,.92);
   display:flex; align-items:center; justify-content:center;
   padding: 18px; overflow-y:auto;
 }
@@ -443,9 +449,9 @@ button{ font-family: inherit; color: inherit; }
 .offer:hover:not(:disabled){ filter: brightness(1.12); }
 .offer:active:not(:disabled){ transform: translateY(4px); box-shadow: none; }
 .offer:disabled{ opacity:.4; cursor:not-allowed; }
-.offer .on{ font-size: 13px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm); }
-.offer .od{ font-size: 12px; color:#E6DFF7; line-height:1.4; flex:1; }
-.offer .oc{ font-size: 14px; font-weight:700; color: var(--gold); text-shadow: var(--drop-sm); }
+.offer .on{ font-size: 13px; font-weight:700; color:#3D0F27; text-shadow: none; }
+.offer .od{ font-size: 12px; color:#5C1A3A; line-height:1.4; flex:1; }
+.offer .oc{ font-size: 14px; font-weight:700; color: #3D0F27; text-shadow: none; }
 
 .rowend{ display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
 .purse{ font-size: 17px; font-weight:700; color: var(--gold); text-shadow: var(--drop); }
@@ -465,9 +471,9 @@ button{ font-family: inherit; color: inherit; }
   background: var(--sigil); border-radius:8px; padding:12px 14px; margin:14px 0;
   box-shadow: 0 4px 0 var(--sigil-d);
 }
-.unlock .k{ font-size:11.5px; color:#DDD4F2; letter-spacing:.06em; }
-.unlock .v{ font-size:15px; font-weight:700; color:#FFF; margin-top:3px; text-shadow: var(--drop-sm); }
-.unlock .d{ font-size:12.5px; color:#E6DFF7; margin-top:3px; }
+.unlock .k{ font-size:11.5px; color:#5C1A3A; letter-spacing:.06em; }
+.unlock .v{ font-size:15px; font-weight:700; color:#3D0F27; margin-top:3px; text-shadow: none; }
+.unlock .d{ font-size:12.5px; color:#5C1A3A; margin-top:3px; }
 
 #interpInput{
   width:100%; padding: 13px 14px; font-family: var(--f);
@@ -486,7 +492,7 @@ button{ font-family: inherit; color: inherit; }
 .teach-row{ display:flex; gap:12px; align-items:flex-start; }
 .teach-n{
   flex:none; width:28px; height:28px; border-radius:6px;
-  background: var(--chips); color:#FFF; font-weight:700; font-size:15px;
+  background: var(--chips); color:#06233D; font-weight:700; font-size:15px;
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 3px 0 var(--chips-d); text-shadow: var(--drop-sm);
 }
@@ -506,7 +512,7 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 2px 0 var(--edge);
 }
 .coach{
-  align-self:center; background: var(--gold); color:#2A2003;
+  align-self:center; background: var(--gold); color:#1B1B3A;
   border-radius: 8px; padding: 10px 18px; max-width: 56ch;
   text-align:center; font-size: 14px; font-weight:700; line-height:1.4;
   box-shadow: 0 4px 0 var(--gold-d);
@@ -1700,26 +1706,21 @@ const ICONS = {
   DAR:"dark_mode",  MIN:"psychology",  TIM:"schedule",   ABS:"blur_on"
 };
 
+/* One flat colour per overtone, drawn from the same arcade set. */
 const TAG_COLOR = {
-  HEA:{ c:"#F07A3A", d:"#8E2B10" },
-  COL:{ c:"#7FC7E8", d:"#245A80" },
-  WET:{ c:"#4E9FD8", d:"#16456E" },
-  MOT:{ c:"#E8B93C", d:"#7A5610" },
-  DAN:{ c:"#E85C4C", d:"#7E1C15" },
-  LOU:{ c:"#E874B0", d:"#7A2452" },
-  BRI:{ c:"#F2CE55", d:"#8A650F" },
-  DAR:{ c:"#6E66A8", d:"#221D3D" },
-  ANI:{ c:"#DE9058", d:"#6B3416" },
-  PLA:{ c:"#6FC47A", d:"#1F5430" },
-  NAT:{ c:"#5FAE85", d:"#17453A" },
-  BOD:{ c:"#E08698", d:"#742640" },
-  FOO:{ c:"#EBAE62", d:"#7E4816" },
-  TOO:{ c:"#A8B6C6", d:"#3A4859" },
-  TEC:{ c:"#5FCFBA", d:"#125853" },
-  MON:{ c:"#EBC44E", d:"#7E5E10" },
-  MIN:{ c:"#A88FE0", d:"#3F3078" },
-  TIM:{ c:"#9DB0C4", d:"#31455A" },
-  ABS:{ c:"#C4BCDC", d:"#413A5C" }
+  ANI:"#AB5236", PLA:"#00E436", NAT:"#008751", BOD:"#C2506E",
+  FOO:"#E07A3C", TOO:"#7C7469", TEC:"#29ADFF", MON:"#E8C020",
+  HEA:"#FF004D", COL:"#6FD8F5", WET:"#1D6FB8", MOT:"#FFA300",
+  DAN:"#7E2553", LOU:"#FF77A8", BRI:"#FFEC27", DAR:"#262B44",
+  MIN:"#83769C", TIM:"#8B93A8", ABS:"#5F574F"
+};
+
+/* Half these plates are bright, and white icons vanish on them. */
+function isLightHex(hex){
+  const r = parseInt(hex.slice(1,3),16),
+        g = parseInt(hex.slice(3,5),16),
+        b = parseInt(hex.slice(5,7),16);
+  return (0.299*r + 0.587*g + 0.114*b) > 150;
 };
 
 /* The icon font either arrives or it doesn't. Until it's confirmed the glyphs
@@ -1756,8 +1757,8 @@ function artNode(card){
   const col = TAG_COLOR[lead] || TAG_COLOR.ABS;
 
   const d = document.createElement("div");
-  d.className = "art";
-  d.style.background = col.c;
+  d.className = "art" + (isLightHex(col) ? " light" : "");
+  d.style.background = col;
 
   const row = document.createElement("div");
   row.className = "icons";
@@ -2056,7 +2057,8 @@ function showHelp(){
   }).join("");
   const withLens = ex.base + 25 + 45;
   const exCol = TAG_COLOR[ex.t[0]];
-  const exArt = '<div class="art" style="background:' + exCol.c + '">'
+  const exLight = isLightHex(exCol) ? " light" : "";
+  const exArt = '<div class="art' + exLight + '" style="background:' + exCol + '">'
     + '<div class="icons">' + ex.t.slice(0,3).map(function(t){
         return '<span class="ms' + (t === "HEA" ? " hit" : "") + '" aria-hidden="true">' + ICONS[t] + '</span>';
       }).join("") + '</div></div>';

@@ -279,8 +279,13 @@ for a shape instead of squinting at tags.
 UI read as machine-made: **flat fills** (no gradient on any surface), **hard shadows only**
 (zero blur — every panel sits on a solid lip), **one typeface** at one family of sizes, and
 **colour as information** — blue is chips, red is mult, gold is money, and nothing else gets to
-be loud. The play area is green felt, because a card game should look like it happens on a
-table.
+be loud.
+
+The hues themselves come from a PICO-8-derived arcade set rather than anything muted: an indigo
+room, a wine-coloured table, and hot accents (cyan, hot red, arcade yellow, pink sigils). The
+wordmark is cream with a hard red offset, the way an arcade title screen would do it. Half the
+overtone plates are bright enough that white icons vanish on them, so the plate measures its own
+luminance and flips to dark ink — and inverts the gold match-ring along with it.
 
 *The juice* is where a card game lives, so it got its own pass: cards deal in with a stagger
 (only newly drawn ones — the hand re-renders on every click), breathe on an inner layer so the
