@@ -260,6 +260,49 @@ test.describe("layout", () => {
     expect(spread, "the hand wrapped to a second row at " + w + "px").toBeLessThan(60);
   });
 
+  test("nothing on a card overlaps the icon plate", async ({ page }) => {
+    await open(page);
+    /* Measured on the stage cards, not the hand: hand cards are fanned and
+       deal in with a rotation, and a rotated element has an inflated
+       axis-aligned rect, so an AABB test there reports overlaps that are not
+       visually there. Stage cards carry transform:none and render the same
+       markup. The value badge used to sit absolutely over the art, where a
+       third overtone icon ran underneath it. */
+    for (const key of ["1", "2", "3"]) await page.keyboard.press(key);
+    await expect(page.locator("#stageCards .card")).toHaveCount(3);
+
+    const clashes = await page.locator("#stageCards .card").evaluateAll(cards =>
+      cards.map(card => {
+        if (getComputedStyle(card).transform !== "none") return null;
+        const icons = card.querySelector(".icons").getBoundingClientRect();
+        const base = card.querySelector(".base").getBoundingClientRect();
+        const w = card.querySelector(".w").getBoundingClientRect();
+        const hits = (a, b) => !(b.right <= a.left + 0.5 || b.left >= a.right - 0.5 ||
+                                 b.bottom <= a.top + 0.5 || b.top >= a.bottom - 0.5);
+        const word = card.querySelector(".w").textContent;
+        if (hits(icons, base)) return word + ": value on the icons";
+        if (hits(w, base)) return word + ": value on the word";
+        return null;
+      }).filter(Boolean));
+    expect(clashes).toEqual([]);
+  });
+
+  test("card words are not broken mid-word", async ({ page }) => {
+    await open(page);
+    for (const key of ["1", "2", "3"]) await page.keyboard.press(key);
+    await expect(page.locator("#stageCards .card")).toHaveCount(3);
+    /* A word that wraps is fine; a word that wraps because something else is
+       taking its width is not — SOLSTICE once rendered as "SOLSTIC / E". */
+    const cramped = await page.locator("#stageCards .card .w").evaluateAll(ws =>
+      ws.map(w => {
+        const line = parseFloat(getComputedStyle(w).lineHeight);
+        const lines = Math.round(w.getBoundingClientRect().height / line);
+        const chars = w.textContent.trim().length;
+        return (lines > 1 && chars <= 9) ? w.textContent + " wrapped onto " + lines + " lines" : null;
+      }).filter(Boolean));
+    expect(cramped).toEqual([]);
+  });
+
   test("help can be reopened at any time", async ({ page }) => {
     await open(page);
     await page.click("#helpBtn");

@@ -330,8 +330,10 @@ button{ font-family: inherit; color: inherit; }
   100%{ opacity:1; transform: translateY(var(--dy,0px)) rotate(var(--rot,0deg)); }
 }
 .card .art{
-  border-radius: 5px; height: 52px;
-  display:flex; align-items:center; justify-content:center;
+  position: relative;
+  border-radius: 5px; height: 56px;
+  display:flex; align-items:flex-start; justify-content:center;
+  padding-top: 7px;
   box-shadow: 0 3px 0 rgba(0,0,0,.22);
 }
 .card .art .icons{ display:flex; align-items:center; gap: 5px; }
@@ -363,13 +365,13 @@ button{ font-family: inherit; color: inherit; }
 .card .w{
   font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
-  flex: 1;
+  flex: 1; min-width: 0;
 }
 .card .base{
-  position:absolute; top:8px; right:8px; z-index:2;
+  position: absolute; right: 4px; bottom: 3px; z-index: 2;
   font-size: 11px; font-weight:700; color:#FFF;
-  background: rgba(0,0,0,.5); border-radius: 4px; padding: 0 5px;
-  font-variant-numeric: tabular-nums;
+  background: rgba(0,0,0,.55); border-radius: 4px; padding: 0 4px;
+  font-variant-numeric: tabular-nums; line-height: 1.45;
 }
 .card .tags{ display:flex; flex-wrap:wrap; gap:3px; }
 .card .tg{
@@ -595,7 +597,7 @@ button{ font-family: inherit; color: inherit; }
 
   /* bigger cards: the thing players actually read */
   .card{ width: 122px; min-height: 194px; padding: 8px; }
-  .card .art{ height: 64px; }
+  .card .art{ height: 68px; }
   .card .art .icons{ gap: 6px; }
   .card .art .ms{ font-size: 25px; }
   .card .w{ font-size: 17px; }
@@ -699,11 +701,11 @@ button{ font-family: inherit; color: inherit; }
   .handwrap{ gap: 9px; }
   .hand{ gap: 5px; min-height: 0; padding-top: 7px; padding-bottom: 7px; }
   .card{ width: 68px; min-height: 114px; padding: 5px 4px; border-radius: 6px; }
-  .card .art{ height: 34px; border-radius: 4px; }
+  .card .art{ height: 40px; border-radius: 4px; padding-top: 5px; }
   .card .art .icons{ gap: 3px; }
   .card .art .ms{ font-size: 15px; }
   .card .w{ font-size: 11.5px; }
-  .card .base{ font-size: 9.5px; padding: 0 4px; top: 5px; right: 5px; }
+  .card .base{ font-size: 10px; padding: 0 4px; }
   .card .tg{ font-size: 7.5px; padding: 1px 3px; }
   .card:hover{ transform: none; }
   .card.sel{ transform: translateY(-10px) scale(1.03); }
@@ -2017,10 +2019,19 @@ function cardEl(c, staticCard){
     tags.appendChild(s);
   });
 
+  /* The value used to sit absolutely over the icon plate, where a third icon
+     ran underneath it. It shares a row with the word now, so they cannot
+     collide however many overtones a card carries. */
+  /* The value sits in the plate's bottom corner. Sharing a row with the word
+     stole the width long words need (SOLSTICE broke mid-word), and floating it
+     over the centre of the plate ran it into a third icon — so the icons are
+     pushed to the top of the plate and the number takes thecorner. */
+  art.appendChild(base);
+
   const inner = document.createElement("div");
   inner.className = "card-inner";
   inner.appendChild(art); inner.appendChild(w); inner.appendChild(tags);
-  el.appendChild(base); el.appendChild(inner);
+  el.appendChild(inner);
 
   /* A card that can score at all should read as live before anything is
      read. This sorts the hand into useful / not useful at a glance without
@@ -2260,6 +2271,7 @@ function showHelp(){
   const exCol = TAG_COLOR[ex.t[0]];
   const exLight = isLightHex(exCol) ? " light" : "";
   const exArt = '<div class="art' + exLight + '" style="background:' + exCol + '">'
+    + '<div class="base">' + ex.base + '</div>'
     + '<div class="icons">' + ex.t.slice(0,3).map(function(t){
         return '<span class="ms' + (t === "HEA" ? " hit" : "") + '" aria-hidden="true">' + ICONS[t] + '</span>';
       }).join("") + '</div></div>';
@@ -2285,8 +2297,7 @@ function showHelp(){
     + '</div>'
 
     + '<div class="worked">'
-    +   '<div class="card static">'
-    +     '<div class="base">' + ex.base + '</div><div class="card-inner">'
+    +   '<div class="card static"><div class="card-inner">'
     +     exArt
     +     '<div class="w">' + ex.w + '</div>'
     +     '<div class="tags">' + exTags + '</div></div>'
