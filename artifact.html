@@ -2,7 +2,7 @@
 <meta name="description" content="A word roguelite where meaning is the physics. Play words into an escalating scoring engine and warp the rules with Lenses.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Russo+One&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Russo+One&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0&display=swap">
 <style>
 /* ============================================================
@@ -51,11 +51,12 @@
   --text-dim:  #A9BCC9;
   --text-faint:#70889A;
 
-  /* DotGothic16 is a dot-matrix face with genuinely distinct numerals, which
-     is the thing the last two pixel fonts got wrong. It ships one weight, so
-     hierarchy comes from size and colour and synthetic bold is switched off —
-     a smeared fake-bold is exactly what makes a pixel face look muddy. */
-  --f: "DotGothic16", "Courier New", ui-monospace, monospace;
+  /* The text face. Every number and every piece of large type is set in the
+     display face, so this one only has to do the small print — and its job is
+     to be narrow and legible. Three pixel faces were tried here first: two
+     rendered 5 and 8 alike, and the third was so wide that English wrapped
+     mid-phrase. Oxanium is a game-UI face with real weights. */
+  --f: "Oxanium", "Segoe UI", system-ui, sans-serif;
   /* The display face. "ArcadeLocal" only resolves once a real arcade TTF has
      been embedded by tools/embed-font.js; Russo One stands in until then, so
      the page never waits on a file it does not have. */
@@ -68,8 +69,8 @@
 /* --- arcade-font-end --- */
 
 *{ box-sizing: border-box; font-synthesis: none; }
-/* one weight only — emphasis is colour, never a smeared fake bold */
-b, strong{ font-weight: 400; color: #FFF; }
+/* the text face has real weights; the display face has one and ignores this */
+b, strong{ font-weight: 700; color: #FFF; }
 html,body{ margin:0; padding:0; }
 body{
   background: var(--bg);
@@ -254,7 +255,7 @@ button{ font-family: inherit; color: inherit; }
 .stage-cards{ display:flex; gap:10px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
 .stage-hint{
   font-size: 15px; font-weight:600; letter-spacing:.03em; color: #C9D7E0;
-  text-align:center; max-width: 44ch; text-shadow: var(--drop-sm);
+  text-align:center; max-width: 56ch; text-shadow: var(--drop-sm);
 }
 .stage-hint .hand-name{
   display:inline-block; font-size: 17px; font-weight:700;
@@ -412,7 +413,7 @@ button{ font-family: inherit; color: inherit; }
 .demand-call{ display:flex; flex-direction:column; align-items:center; gap: 12px; }
 .dc-icons{ display:flex; gap: 16px; }
 .dc-icons .ms{ font-size: 50px; color: var(--gold); text-shadow: 3px 3px 0 rgba(0,0,0,.35); }
-.dc-text{ font-size: 15px; color:#F2D8E6; text-align:center; max-width: 40ch; }
+.dc-text{ font-size: 16px; color:#C9D7E0; text-align:center; max-width: 54ch; }
 .dc-text b{ color: var(--gold); }
 
 /* which card is first, second, third — the rule the game kept stating */
@@ -606,7 +607,7 @@ button{ font-family: inherit; color: inherit; }
   /* the round's rule, at the size it deserves */
   .dc-icons .ms{ font-size: 54px; }
   .dc-icons{ gap: 22px; }
-  .dc-text{ font-size: 17px; max-width: 46ch; }
+  .dc-text{ font-size: 18px; max-width: 56ch; }
   .demand-call{ gap: 13px; }
   .stage-hint{ font-size: 16px; }
   .stage-hint .hand-name{ font-size: 19px; padding: 6px 20px; }

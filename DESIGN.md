@@ -320,10 +320,15 @@ blue/red chips-and-mult pairing carrying the loudest colour, with gold for money
 for Lenses. A detour through a black-and-wine arcade palette was tried and reverted — it read
 as a different game rather than a better-dressed one.
 
-The face is DotGothic16, arrived at by elimination: two earlier pixel faces rendered 5 and 8
-near-identically at UI sizes, which is fatal in a game made entirely of numbers. It ships one
-weight, so synthetic bold is switched off and hierarchy comes from size and colour — a smeared
-fake bold is exactly what makes a pixel face look muddy. Half the
+Type is split by job, not taste. An arcade display face carries the wordmark, the blind badge,
+every number, card words and buttons; a compact text face (Oxanium) takes the small print —
+tag chips, Lens rules, help copy. A heavy arcade face is unreadable at 10px, and the small
+print is where the rules live.
+
+Four faces were tried in the text slot before that split existed. Two pixel faces rendered 5
+and 8 near-identically, which is fatal in a game made of numbers; a third was so wide that
+English wrapped mid-phrase. Moving the numbers to the display face is what finally let the
+text face be chosen for reading rather than for counting. Half the
 overtone plates are bright enough that white icons vanish on them, so the plate measures its own
 luminance and flips to dark ink — and inverts the gold match-ring along with it.
 
