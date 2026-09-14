@@ -48,6 +48,40 @@ watch the engine resolve → spend the winnings on a rule that breaks the next r
 | 1:50–3:30 | Rounds 2–4. Somewhere here the first real combo fires and the screen shakes. Most first runs die around round 4–5. |
 | 3:30 | Death screen: total, best play, the Sigil carried into the next run, and a copyable share block. |
 
+### Two moments a stranger either gets or quietly closes the tab
+
+Neither of these was a colour problem, and both were found by asking where a new player’s
+attention actually goes rather than where the layout assumes it goes.
+
+**The first sixty seconds.** The stage is the largest element on screen and sat empty at rest,
+holding one small line of text — while the round’s rule lived in the far sidebar. A new player
+had to connect “gold tags on cards” to “PAYS FOR” on the opposite side of the screen. The stage
+now states the rule where the eye already is: the demanded overtones as large icons, and
+**+25 chips for each one you play**. Three smaller fixes came with it:
+
+- Cards that carry at least one matching overtone get a gold top edge, so the hand sorts itself
+  into useful / not useful before anything is read. This removes noise, not depth — the actual
+  decision was never *which cards match*, it is which three and in what order.
+- Selected cards are **numbered 1-2-3**. The game had been stating “resolves left to right” in
+  words while giving the player no way to see what order they had picked. A stated rule that is
+  never shown is not a rule, it is trivia.
+- The idle hint stopped repeating the +25 rule the stage now states, and carries the order rule
+  instead.
+
+**The Reliquary is the real cliff.** The simulation says a player who ignores the shop dies at
+round 3, so the shop has about fifteen seconds to teach that Sigils are the engine and not a
+bonus. Money was never the problem — a player arrives with ~$13 against a $4-7 Sigil.
+Comprehension was. So the shop now:
+
+- **Names the exponential in numbers**, because it is invisible from inside a single round:
+  *Round 8 asks for 5,200 — 15× this one. Sigils multiply. More words only add.*
+- **Marks a Sigil that has words to fire on** (“Fits your deck — 7 DANGER words”), which teaches
+  synergy thinking by example. The badge only appears when it is true, so it stays meaningful —
+  on a typical roll about half the offers earn it.
+- **Makes leaving empty-handed a conscious act.** With no Sigil owned, the exit button reads
+  *Leave with no Sigil* in the warning colour rather than *To the table →*. Friction, not a
+  block: the player may still do it, but not by accident.
+
 **What brings them back tomorrow.** Three separate hooks, deliberately layered so they don't
 depend on each other:
 
