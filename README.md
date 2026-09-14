@@ -14,9 +14,7 @@ assets: it is all SVG primitives, seeded by the word itself.
 Once per run, the **Interpreter** will take any word you type — your dog's name, your job
 title, anything — appraise its overtones, and shuffle it into your deck as a real card.
 
-▶ **Play it in the browser** — one click, nothing to install.
-Live at `https://adithyamana.github.io/overtone/` once this repo is pushed and GitHub Pages is
-enabled; until then, clone and open `index.html` directly (see below) — it needs no server.
+▶ **[Play it](https://playovertone.web.app)** — one click, nothing to install.
 
 📄 **[Design writeup](DESIGN.md)** — pitch, loop, progression, money, AI, shipping, references.
 
@@ -81,6 +79,19 @@ falls back to the web face. Then rebuild with `node build-artifact.js`.
 
 Check the licence first: embedding a font in a published page redistributes it, which many
 free-for-personal-use faces do not permit.
+
+## Deploying
+
+```bash
+npm run deploy      # stage public/ and push to Firebase Hosting
+```
+
+Hosted at **https://playovertone.web.app** (Firebase project `playovertone`).
+`overtone.web.app` was already taken globally — that subdomain belongs to whoever owns the
+Firebase project ID `overtone`.
+
+`tools/build-web.js` copies `index.html` into `public/` and serves the same page as `404.html`,
+so any URL lands in the game. Tests, tools and `node_modules` stay out of the deploy.
 
 ## Tests
 
