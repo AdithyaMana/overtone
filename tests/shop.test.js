@@ -189,3 +189,76 @@ describe("the round reward", () => {
     assert.ok(api2.G.bank > slow, "clearing a round efficiently paid no more than scraping through");
   });
 });
+
+/* ------------------------------------------------------------------ */
+describe("the ceiling the Bookseller quotes", () => {
+  /* This number carries a strong claim — the shop prints it in red and says
+     no order of play reaches the target — so it has to be an upper bound on
+     what the deck can do, and it was not one. It scored the best hands out of
+     a nine-card pool while four plays of three need twelve, so the fourth play
+     always scored nothing, and it picked that pool by raw base value while a
+     matching tag pays 25 against words averaging 23.
+     Playing a real run, round 4 was quoted at 5,040 against a 5,200 target,
+     in red, when the deck could actually make 6,115. */
+
+  test("a fourth play is worth more than a third", () => {
+    const api = fresh();
+    const round = 4;
+    api.G.ordealOrder[round] = null;
+    const four = api.deckCeiling(round);
+
+    /* THE CLOCK takes the fourth play away and nothing else. */
+    api.G.ordealOrder[round] = api.ORDEALS.find(o => o.id === "clock");
+    const three = api.deckCeiling(round);
+
+    assert.ok(three > 0, "three plays scored nothing at all");
+    assert.ok(four > three,
+      "four plays scored no more than three (" + four + " vs " + three
+      + ") — the pool has no cards left for the last play");
+  });
+
+  test("it is an upper bound: no real hand beats it", () => {
+    const api = fresh();
+    const round = 2;
+    const shape = api.roundShape(round);
+    const ceiling = api.deckCeiling(round);
+
+    /* Score the best single hand the whole deck can make against that round,
+       by brute force. One play cannot beat what four plays are supposed to
+       top out at. */
+    const d = api.G.demandOrder[round];
+    api.G.demand = { n: d.n, tags: d.tags.slice() };
+    api.G.ordeal = api.G.ordealOrder[round] || null;
+    const deck = wholeDeck(api.G);
+    let best = 0;
+    for (let i = 0; i < deck.length; i++)
+      for (let j = 0; j < deck.length; j++)
+        for (let k = 0; k < deck.length; k++) {
+          if (i === j || j === k || i === k) continue;
+          const t = api.resolve([deck[i], deck[j], deck[k]]).total;
+          if (t > best) best = t;
+        }
+
+    assert.ok(shape.plays >= 2, "this round should have more than one play");
+    assert.ok(ceiling >= best,
+      "the ceiling (" + ceiling + ") is below a hand the deck can actually play ("
+      + best + ")");
+  });
+
+  test("it counts what the round pays for, not just the biggest words", () => {
+    const api = fresh();
+    const round = 2;
+    const d = api.G.demandOrder[round];
+    const deck = wholeDeck(api.G);
+    const matching = deck.filter(c => c.t.some(t => d.tags.indexOf(t) >= 0));
+    assert.ok(matching.length >= 3, "no matching words to reason about");
+
+    /* Every matching word is worth 25 a tag. A ceiling that ranked its pool by
+       base value alone would leave the small matching words out and quote a
+       number the deck beats on a single play. */
+    const ceiling = api.deckCeiling(round);
+    const bigThree = deck.slice().sort((a, b) => b.base - a.base).slice(0, 3);
+    assert.ok(ceiling > api.resolve(bigThree).total,
+      "the ceiling is no better than playing the three biggest words once");
+  });
+});

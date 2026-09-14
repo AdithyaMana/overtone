@@ -53,7 +53,7 @@ test.describe("the Interpreter with Claude available", () => {
     await appraise(page, "mitochondria");
 
     const appraisal = page.locator("#appraisal");
-    await expect(appraisal.locator(".card .w")).toHaveText("MITOCHONDRIA");
+    await expect(appraisal.locator(".card .wt")).toHaveText("MITOCHONDRIA");
     await expect(appraisal.locator(".src")).toContainText("Appraised live by Claude");
     await expect(appraisal).toContainText("A machine that thinks it remembers");
 
@@ -126,7 +126,7 @@ test.describe("the Interpreter when Claude refuses", () => {
       await open(page);
       await appraise(page, "glacier");
 
-      await expect(page.locator("#appraisal .card .w")).toHaveText("GLACIER");
+      await expect(page.locator("#appraisal .card .wt")).toHaveText("GLACIER");
       await expect(page.locator("#appraisal .src")).toContainText("House appraisal");
       /* the run continues — the card is still real */
       await page.click("#interpGo");

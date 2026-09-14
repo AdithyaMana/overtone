@@ -92,6 +92,30 @@ describe("the Memory unlock — the reason run 2 differs from run 1", () => {
     assert.strictEqual(api.store.get("memory", null), null);
   });
 
+  test("a fresh run carries nothing in, Memory included", () => {
+    const api = fresh();
+    api.store.set("memory", "pyro");
+
+    /* The ordinary path: you finished a run, so the next one starts with what
+       that run earned you. */
+    api.newRun("carried");
+    assert.strictEqual(api.G.lenses.length, 1, "Memory was not carried into the next run");
+    assert.strictEqual(api.G.lenses[0].id, "pyro");
+    assert.strictEqual(api.G.memoryLens, "pyro", "the carried Lens is not marked as Memory");
+
+    /* Reaching for "New run" is the other thing: abandoning what you are doing
+       and starting clean. A board holding a Lens you never bought reads as the
+       game failing to reset. */
+    api.newRun("clean", true);
+    /* joined, not deepStrictEqual: G lives in the VM realm and its arrays are
+       never strictly equal to one built out here. */
+    assert.strictEqual(api.G.lenses.map(l => l.id).join(","), "",
+      "a fresh run started holding a Lens");
+    assert.strictEqual(api.G.memoryLens, undefined);
+    assert.strictEqual(api.store.get("memory", null), "pyro",
+      "starting fresh threw away the Memory instead of just not using it");
+  });
+
   test("the unlock does not hand back the same Lens twice running", () => {
     const api = fresh();
     api.store.set("memory", "pyro");

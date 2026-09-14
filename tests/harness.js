@@ -72,6 +72,13 @@ function load(){
   const documentStub = {
     getElementById(id){ return byId[id] || (byId[id] = makeEl("div")); },
     createElement(tag){ return makeEl(tag); },
+    /* A card's word is a text node so that the value can float beside it, and
+       a stub that cannot make one fails every test in the suite with
+       "document.createTextNode is not a function". */
+    createTextNode(text){
+      return { nodeType: 3, nodeName: "#text", textContent: String(text),
+               parentNode: null, children: [] };
+    },
     querySelector(){ return makeEl("div"); },
     querySelectorAll(){ return []; },
     addEventListener(){},

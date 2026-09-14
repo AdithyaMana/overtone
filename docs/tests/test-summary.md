@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**278 tests, 0 failures.** 102 engine tests + 176 E2E tests across two device profiles.
+**294 tests, 0 failures.** 106 engine tests + 188 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -49,7 +49,7 @@ It now runs on the harness too.
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (91 × desktop + phone)
+### E2E — `tests/e2e/` (97 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -69,7 +69,9 @@ It now runs on the harness too.
 | **throwaway motion** | every frame of a scoring window is sampled: no particle's animation may lack a holding `fill`, none may be visible after finishing, and none may outlive the hand. Verified against the broken build first — the first version of this test passed either way, which made it worthless |
 | **the Bookseller tells the truth** | it quotes the target you will actually face (it printed the raw one, so THE CURSE made it say 11,500 for a 23,000 round); it states the round's shape when a Lens or Ordeal has bent it; it says plainly when the deck cannot reach the next target however it is played, and names the ways out; and `deckCeiling` borrows the board's Demand, Ordeal and discards to look a round ahead, so a test asserts it puts all three back |
 | **Ordeals** | exactly three per run, on rounds 4, 6 and 8, never the same one twice; the plaque states the rule before a card is played and the Bookseller names it before you spend; THE VICE actually refuses a third word, THE DROUGHT actually takes every discard, THE LEAN YEAR actually deals four cards; THE FOG strips a word's own value but leaves its matching tags; THE MIRROR pays a two-tag word and nothing for a one-tag word; and **round 1 is never an Ordeal**, because the tutorial runs there |
-| **selling a Lens** | selling frees the slot, pays back half rounded up, and the freed slot can be spent immediately; a grown Lens loses everything it grew and the shop says so before the click |
+| **selling a Lens** | selling frees the slot, pays back half rounded up, and the freed slot can be spent immediately; a grown Lens loses everything it grew and the shop says so before the click; and **one click does not sell** — the only irreversible thing in the shop asks twice |
+| **the card's shape** | every one of the 249 words in the lexicon makes the same shaped card: one height, one plate height, the word and the tags starting on the same line, no half-cut tag row, the plate inside the card, the icons inside the plate, and the value in the corner touching none of them |
+| **the board holds still** | at 1366×640 — the most common laptop screen — the whole board including PLAY is above the fold, and picking a word moves nothing |
 | **flawed Lenses** | the shop marks them rather than burying the catch; THE WAGER actually takes the play it charges for and the meter says 3; THE FAMINE actually deals a four-card hand |
 | **growing Lenses** | the rail shows what one has grown to; scoring the same hand three times gives the same number three times and leaves the level untouched |
 | **reading a Lens** | tapping one in the rail opens it to the full rule, unclamped and uncut; only one opens at a time and tapping again closes it; every one of the five longest rules fits when open; and on a phone opening one does not grow the rail into a second row, which would push the hand behind the pinned controls |
@@ -189,6 +191,15 @@ Three bugs in the test code itself are worth recording, since all three would re
   they could not occupy the same pixels*. They share a flex row now, which cannot overlap. The
   third recurrence was found only because an unrelated change (shuffling the Ordeal pool) consumed
   RNG draws and therefore dealt different words.
+- **A grid item will not shrink below its min-content.** Rebuilding the card as three grid
+  bands fixed the plate being squashed and introduced something worse: the plate's own
+  min-content (three icons and a value in a row) was 103px inside an 84px card, so it painted
+  straight out over the card's edges. As a flex item in a column this had never come up, because
+  `min-width: auto` only binds on the main axis and the main axis there was vertical. Now
+  `min-width: 0` and `overflow: hidden`, with a test that measures the plate against the card.
+- **A flex item that can shrink cannot be measured for overflow.** `scrollWidth - clientWidth`
+  read zero at every icon size, because the glyphs were being squeezed rather than overflowing.
+  Comparing each glyph's rendered width against `font-size + padding` is what actually found it.
 - **Never measure a rotated element, for anything.** This is the second time it has cost a
   test. Hand cards are fanned, and a rotated element's *axis-aligned* rect is inflated by an
   amount that depends on its angle — so a uniformity check on `getBoundingClientRect().height`

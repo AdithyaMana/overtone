@@ -324,6 +324,14 @@ button{ font-family: inherit; color: inherit; }
   transition: max-width .18s cubic-bezier(.2,.9,.3,1);
 }
 .lens:active{ transform: translateY(2px); box-shadow: 0 1px 0 var(--lens-d); }
+/* A Lens you did not buy has to say so, or a fresh board holding one looks
+   like the game forgot to clear itself. */
+.lens .mem{
+  display:inline-block; margin-left: 6px; vertical-align: 1px;
+  font-family: var(--f); font-size: 8.5px; font-weight:700; letter-spacing:.08em;
+  background: var(--lens-d); color:#FFF; border-radius: 3px; padding: 1px 4px;
+  text-shadow: none;
+}
 .lens .n{
   font-size: 12px; font-weight:700; color:#FFF; text-shadow: var(--drop-sm);
   white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
@@ -494,7 +502,12 @@ button{ font-family: inherit; color: inherit; }
      produce (SANDSTORM, four long overtones, 200px) rather than guessed. Left
      to size themselves cards came out ragged: a word takes one to three lines
      and its tags one row to five, so a hand was seven different rectangles. */
-  position:relative; width: 104px; height: 202px;
+  /* --strip is the band along the bottom that belongs to the value alone.
+     The card carries it in ADDITION to its three bands rather than taking it
+     out of them: carved out of the tags instead, 91 cards in the lexicon would
+     have dropped an overtone to make room for a number. */
+  --strip: 17px;
+  position:relative; width: 104px; height: 192px;
   background: var(--card); color: var(--card-ink);
   border-radius: 7px; padding: 7px;
   cursor:pointer; user-select:none;
@@ -504,7 +517,17 @@ button{ font-family: inherit; color: inherit; }
 }
 /* the idle breath sits on an inner layer so it never fights hover or select,
    both of which drive transform on the card itself */
-.card-inner{ display:flex; flex-direction:column; gap: 5px; height: 100%; }
+/* Three bands, every one of them the same on every card: the plate, a word
+   box two lines tall, and whatever is left for tags. It was a flex column,
+   where .art's 56px was a starting size rather than a rule — so a word
+   carrying five overtones overflowed the card and flexbox took the difference
+   out of the plate, which is why one card in a hand had a 40px plate and its
+   neighbour had 56px. Grid rows do not shrink. */
+.card-inner{
+  display: grid; grid-template-rows: auto auto 1fr;
+  gap: 5px; height: 100%;
+  padding-bottom: var(--strip);
+}
 .hand .card .card-inner{
   animation: breathe 3.4s ease-in-out infinite;
   animation-delay: calc(var(--i, 0) * -0.21s);
@@ -549,13 +572,28 @@ button{ font-family: inherit; color: inherit; }
      card's value belongs and centres the icons in what is left. Centring the
      whole row instead left the number floating mid-plate, reading as a fourth
      icon rather than as a value. */
-  display:flex; align-items:center;
-  gap: 4px; padding: 0 5px;
+  /* Icons only, centred. The value used to live here too — first beside them,
+     then under them — and both cost the icons their centre. It sits on the
+     card itself now. */
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 4px;
   box-shadow: 0 3px 0 rgba(0,0,0,.22);
+  /* A grid item's automatic minimum size is its MIN-CONTENT, so without this
+     the plate refuses to be narrower than its icons and its value badge laid
+     out in a row — about 103px — and a 98px card cannot hold it. It does not
+     clip either: it paints straight out over the edges of the card, which is
+     what "the scaling is coming outside" looked like. As a flex item in a
+     column this never came up, because min-width:auto only binds on the main
+     axis and the main axis there was vertical. */
+  min-width: 0; overflow: hidden;
 }
 .card .art .icons{
   display:flex; align-items:center; justify-content:center;
-  flex: 1 1 auto; min-width: 0; gap: 5px;
+  flex: 0 1 auto; min-width: 0; gap: 3px;
+  /* Five overtones do not fit a phone plate at any readable icon size. They
+     are clipped at the plate's edge rather than allowed outside it — every
+     overtone is still written out in full on the tags below. */
+  flex-wrap: nowrap; overflow: hidden;
 }
 .ms{
   font-family: "Material Symbols Rounded";
@@ -568,9 +606,17 @@ button{ font-family: inherit; color: inherit; }
   text-shadow: var(--drop-sm);
 }
 .ms-ok .ms{ visibility: visible; }
+/* Sized to the room there is. A 104px card leaves the plate 88px, the value
+   takes 21 of it, and three icons with their gaps have 55 left — which 21px
+   glyphs have never fitted into. They used to paint out over the card instead
+   of admitting it. */
+.card .art .ms{ font-size: 16px; }
+/* The gold disc behind an overtone this round is asking for. It is the one
+   thing a player scans a hand for, so it is as big as the plate can carry
+   rather than as small as it can be drawn. */
 .card .art .ms.hit{
   color:#12181C; background: var(--gold); border-radius: 50%;
-  padding: 2px; text-shadow: none;
+  padding: 4px; text-shadow: none;
 }
 /* dark ink on the bright plates, and invert the match ring so it still reads */
 .card .art.light .ms{ color:#12181C; text-shadow: none; }
@@ -583,21 +629,55 @@ button{ font-family: inherit; color: inherit; }
 }
 .legend .ms{ font-size: 17px; color: var(--text-dim); text-shadow:none; }
 .card .w{
-  font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:-.01em;
+  font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:-.025em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
+  /* Two lines of room whether the word needs them or not. INHERITANCE takes
+     two and ANT takes one, and reserving the pair is what keeps the tags below
+     starting on the same line across a hand instead of stepping up and down
+     with the length of the word.
+
+     flow-root rather than grid because the value floats in here: a float needs
+     a block formatting context to sit in, and floating it is what lets a short
+     word share its line while a long one simply wraps beneath it. Nothing is
+     reserved and nothing collides.
+
+     A fixed height rather than a minimum: where the number drops to the second
+     line the band came out a fraction taller, and 30 cards in a hand of seven
+     carried their tags one pixel below their neighbours' — small, but it is
+     exactly the raggedness this band exists to remove. */
+  display: flow-root; height: 2.1em; overflow: hidden;
   /* No flex:1. Stretching the word to fill the card's slack made its box the
      slack rather than the text, so a three-letter word measured as three lines
      — and the assertion that catches mid-word breaks measures exactly that.
      .tags carries margin-top:auto instead, which does the same job honestly. */
   min-width: 0;
 }
+/* On the card, beside the word it belongs to, rather than on the coloured
+   plate. Floated so that it never takes width from the word: it shares the
+   word's line when there is room and drops to the second line of the band —
+   which is held open for every card anyway — when there is not. */
+.card .wt{ display: inline; }
+/* Bottom right, where a card keeps its value. It had been beside the word,
+   which cost nothing but reads as part of the name; in the corner it reads as
+   what the card is worth. The strip below the tags is what makes it safe —
+   floated or absolute, a number in that corner sits on a tag on 7 of the 249
+   words unless the row beneath them belongs to it. */
 .card .base{
-  flex: none; align-self: flex-start; margin-top: 3px;
-  font-size: 11px; font-weight:700; color:#FFF;
-  background: rgba(0,0,0,.55); border-radius: 4px; padding: 0 4px;
-  font-variant-numeric: tabular-nums; line-height: 1.45;
+  /* Above the inner column: it animates a transform when the hand breathes,
+     which makes it a stacking context of its own. */
+  position: absolute; right: 7px; bottom: 5px; z-index: 3;
+  font-size: 13px; font-weight:700; color: var(--card-ink);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+  opacity: .8;
 }
-.card .tags{ display:flex; flex-wrap:wrap; gap:3px; margin-top: auto; }
+/* Tags fill the band from the top and stop at its edge. Three rows fit
+   exactly; the handful of words carrying a fifth overtone lose their last row
+   rather than pushing the plate around, and the plate is still showing every
+   one of them as an icon. */
+.card .tags{
+  display:flex; flex-wrap:wrap; gap:3px;
+  align-content: flex-start; overflow: hidden;
+}
 .card .tg{
   font-size: 10px; font-weight:600; letter-spacing:.02em;
   padding: 2px 5px; border-radius: 3px;
@@ -677,6 +757,9 @@ button{ font-family: inherit; color: inherit; }
   box-shadow: 0 3px 0 var(--edge);
 }
 .reality.short{ background: var(--blind); box-shadow: 0 4px 0 var(--blind-d); }
+/* short, but the shelf has the answer on it — a decision, not a death notice */
+.reality.near{ background: var(--inset); box-shadow: 0 3px 0 var(--edge); }
+.reality.near .rk{ color: var(--gold); }
 .reality .rk{
   font-family: var(--f-display); font-size: 11px; letter-spacing:.06em;
   color: var(--green);
@@ -697,6 +780,12 @@ button{ font-family: inherit; color: inherit; }
 
 .panel p.shape{ color: var(--text-dim); font-size: 13.5px; }
 .panel p.shape b{ color: var(--gold); }
+
+.sellbtn.arming{
+  background: var(--blind); color:#FFF; box-shadow: 0 4px 0 var(--blind-d);
+  animation: armPulse .9s ease-in-out infinite;
+}
+@keyframes armPulse{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.22); } }
 
 .cost-warn{
   align-self:flex-start; font-family: var(--f-display); font-size:10px;
@@ -903,19 +992,22 @@ button{ font-family: inherit; color: inherit; }
    monitor the stage absorbed every spare pixel — a 500px empty slab that
    pushed the hand away from the board and made all the type look small.
    Let the content be its natural height and centre the whole thing. */
-@media (min-width: 1240px){
+@media (min-width: 1240px) and (min-height: 860px){
   #app{ max-width: 1320px; gap: 14px; justify-content: center; }
   .table{ flex: 0 0 auto; grid-template-columns: 268px 1fr; gap: 14px; }
   .stage{ flex: 0 0 auto; min-height: 240px; }
 
   /* bigger cards: the thing players actually read */
-  .card{ width: 122px; height: 196px; padding: 8px; }
-  .card .art{ height: 68px; gap: 6px; }
-  .card .art .icons{ gap: 6px; }
-  .card .art .ms{ font-size: 25px; }
-  .card .w{ font-size: 17px; }
+  /* 216 rather than 220: the tag band has to come out an exact multiple of a
+     tag row, or a fourth row starts inside it and gets sliced through. */
+  .card{ width: 122px; height: 216px; padding: 8px; --strip: 19px; }
+  .card .art{ height: 68px; padding: 0 5px; }
+  .card .art .icons{ gap: 4px; }
+  .card .art .ms{ font-size: 20px; }
+  .card .art .ms.hit{ padding: 5px; }
+  .card .w{ font-size: 16px; }
   .card .tg{ font-size: 11px; }
-  .card .base{ font-size: 12px; }
+  .card .base{ font-size: 14px; right: 8px; bottom: 6px; }
   .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 30px; }
   .pos{ width: 26px; height: 26px; font-size: 14px; top: -10px; left: -8px; }
 
@@ -1028,7 +1120,7 @@ button{ font-family: inherit; color: inherit; }
   .roundscore .v, .meter .v, .money{ font-size: 16px; line-height: 1.25; }
   .money{ padding-top: 13px; }
 
-  .lensbar{ padding: 5px 8px 6px; }
+  .lensbar{ padding: 4px 8px 5px; }
   .lensbar-head{ font-size: 10px; margin-bottom: 3px; }
   .lensbar-head b{ font-size: 11px; }
   .rail{
@@ -1061,7 +1153,7 @@ button{ font-family: inherit; color: inherit; }
   #app:not(.resolving) #stageCards{ gap: 0; }
 
   /* the board: the one band allowed to grow */
-  .stage{ min-height: 118px; padding: 10px 9px; gap: 7px; }
+  .stage{ min-height: 104px; padding: 9px; gap: 6px; }
   #app.resolving .stage{ min-height: 42vh; }
   #app.resolving .hand{
     max-height: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; opacity: 0;
@@ -1078,26 +1170,27 @@ button{ font-family: inherit; color: inherit; }
   .coach{ font-size: 11.5px; padding: 7px 11px; line-height: 1.3; max-width: none; }
 
   /* the hand: all seven readable at once, in two rows, no scrolling */
-  .handwrap{ gap: 7px; }
+  .handwrap{ gap: 5px; }
   .hand{
-    gap: 5px; min-height: 0; padding: 4px 0 2px;
+    gap: 5px; min-height: 0; padding: 2px 0 0;
     align-items: flex-start;
   }
   /* One fixed height for every card in the hand. Left to size themselves, a
      card was as tall as its own word (one line or two) plus its own tags (one
      row or four), so seven cards meant seven different rectangles. The word
      takes the slack, which puts every tag row on the same baseline. */
-  .card{ width: 80px; height: 104px; min-height: 0; padding: 5px 4px; border-radius: 6px; }
+  .card{ width: 80px; height: 116px; min-height: 0; padding: 5px 4px; border-radius: 6px; --strip: 13px; }
   .card-inner{ gap: 3px; height: 100%; }
   .card .art{ height: 36px; flex: none; border-radius: 4px; padding: 0 4px; gap: 4px; }
-  .card .art .icons{ gap: 3px; }
-  .card .art .ms{ font-size: 14px; }
+  .card .art .icons{ gap: 2px; }
+  .card .art .ms{ font-size: 12px; }
+  .card .art .ms.hit{ padding: 3px; }
   .card .w{ font-size: 11.5px; }
-  .card .base{ font-size: 9px; padding: 0 3px; line-height: 1.4; }
+  .card .base{ font-size: 10px; right: 5px; bottom: 4px; line-height: 1.1; }
   /* Two rows, always. Matching tags are sorted to the front in cardEl, so what
      a fourth long tag pushes out of sight is never one that scores — and the
      plate above still carries every overtone as an icon. */
-  .card .tags{ flex: none; height: 23px; overflow: hidden; align-content: flex-start; gap: 2px; }
+  .card .tags{ flex: none; height: 26px; overflow: hidden; align-content: flex-start; gap: 2px; }
   .card .tg{ font-size: 7px; padding: 1px 3px; letter-spacing: 0; line-height: 1.45; }
   .card.sel{ transform: translateY(-9px) scale(1.03); }
   .hand .card .card-inner{ animation: none; }
@@ -1125,20 +1218,24 @@ button{ font-family: inherit; color: inherit; }
 }
 
 /* ---------- short phones ----------
-   667px tall and under (iPhone SE, and anything with a big browser chrome).
-   Everything loses a few pixels rather than one band losing all of them. */
-@media (max-width: 620px) and (max-height: 790px){
-  #app{ gap: 4px; padding-block: 5px 0; }
-  .table{ gap: 5px; }
-  .sidebar{ gap: 5px; }
-  .board{ gap: 5px; }
+   Everything loses a few pixels rather than one band losing all of them.
+
+   The cut was at 790px, which is the wrong place: the roomier layout above it
+   needs about 850px of board, so an iPhone X, 11, 12, 13 or 14 (812 and 844)
+   got the big cards and then had to scroll to see the back half of its own
+   hand. The cut belongs where the big layout actually starts fitting. */
+@media (max-width: 620px) and (max-height: 860px){
+  #app{ gap: 3px; padding-block: 4px 0; }
+  .table{ gap: 4px; }
+  .sidebar{ gap: 4px; }
+  .board{ gap: 4px; }
   .masthead{ gap: 6px; }
   .wordmark{ font-size: 15px; }
   .chip-btn{ min-height: 30px; padding: 5px 9px; font-size: 11px; }
   .chip-btn .short{ font-size: 13px; }
   .runinfo{ font-size: 9px; }
 
-  .blind{ padding: 6px 8px; gap: 3px 8px; }
+  .blind{ padding: 5px 8px; gap: 3px 8px; }
   .blind-badge{ font-size: 12px; padding: 5px 7px; }
   .blind-wants .w{ font-size: 9px; padding: 2px 5px; }
   .blind-req .k{ font-size: 9px; }
@@ -1156,8 +1253,8 @@ button{ font-family: inherit; color: inherit; }
   .money{ padding-top: 10px; }
 
   .lensbar{ padding: 4px 7px 5px; }
-  .lensbar-head{ font-size: 9px; margin-bottom: 2px; }
-  .rail{ min-height: 34px; }
+  .lensbar-head{ font-size: 9px; margin-bottom: 1px; }
+  .rail{ min-height: 26px; }
   .lens{ min-width: 112px; padding: 5px 7px; }
   .lens.open{ min-width: 86%; }
   .lens .n{ font-size: 10px; }
@@ -1166,10 +1263,10 @@ button{ font-family: inherit; color: inherit; }
 
   /* The board's prose repeats the plaque above it, so here it is the short
      version of itself rather than a paragraph. */
-  .stage{ min-height: 68px; padding: 6px 7px; gap: 4px; }
-  .dc-icons .ms{ font-size: 25px; }
-  .dc-icons{ gap: 9px; }
-  .dc-text{ font-size: 11px; line-height: 1.35; }
+  .stage{ min-height: 58px; padding: 4px 6px; gap: 3px; }
+  .dc-icons .ms{ font-size: 21px; }
+  .dc-icons{ gap: 8px; }
+  .dc-text{ font-size: 11px; line-height: 1.25; }
   .demand-call{ gap: 4px; }
   .stage-hint{ font-size: 11px; line-height: 1.35; }
   .stage-hint .hand-name{ font-size: 11.5px; padding: 3px 9px; margin-bottom: 4px; }
@@ -1177,21 +1274,90 @@ button{ font-family: inherit; color: inherit; }
   .coach{ font-size: 10.5px; padding: 5px 9px; line-height: 1.28; }
 
   /* the hand stays readable; everything around a word gives up its padding */
-  .handwrap{ gap: 5px; }
-  .hand{ padding: 2px 0 0; gap: 4px; }
-  .card{ width: 74px; height: 94px; min-height: 0; padding: 4px 3px; }
+  .handwrap{ gap: 4px; }
+  .hand{ padding: 1px 0 0; gap: 4px; }
+  .card{ width: 74px; height: 98px; min-height: 0; padding: 4px 3px; --strip: 10px; }
   .card-inner{ gap: 3px; height: 100%; }
   .card .art{ height: 30px; flex: none; padding: 0 3px; gap: 3px; }
   .card .art .ms{ font-size: 11px; }
-  .card .art .icons{ gap: 2px; }
+  .card .art .ms.hit{ padding: 3px; }
+  .card .art .icons{ gap: 1px; }
   .card .w{ font-size: 10px; }
-  .card .base{ font-size: 8px; padding: 0 2px; line-height: 1.35; }
-  .card .tags{ flex: none; height: 20px; overflow: hidden; align-content: flex-start; gap: 2px; }
+  .card .base{ font-size: 9px; right: 4px; bottom: 3px; line-height: 1.1; }
+  .card .tags{ flex: none; height: 22px; overflow: hidden; align-content: flex-start; gap: 2px; }
   .card .tg{ font-size: 6.5px; padding: 0 3px; letter-spacing: 0; line-height: 1.4; }
   .card.sel{ transform: translateY(-7px) scale(1.03); }
 
   .btn{ min-height: 44px; font-size: 11.5px; padding: 10px 5px; }
   .controls{ padding: 6px 9px calc(6px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------- wide, but short ----------
+   A 1366x768 laptop is the most common screen there is, and in a maximised
+   browser it gives about 640px of viewport height. The phone layout has had a
+   strict vertical budget since the day it was written; the desktop layout had
+   none, and assumed a tall window. On that laptop the board came to 915px and
+   PLAY sat 270px BELOW THE FOLD — you had to scroll down to play a card.
+
+   So the same discipline, above 620px wide: every band gives up what it can
+   spare, and the two that carry the game (the stage and the hand) give up the
+   least. Purely additive, so tall windows keep the roomy layout.
+
+   The second query covers 621-1080px at any height: below 1080 the readout
+   stacks ABOVE the board rather than beside it, so that band is always tall
+   and always needs the same trims. */
+@media (min-width: 621px) and (max-height: 820px),
+       (min-width: 621px) and (max-width: 1080px){
+  #app{ padding-block: 6px 0; gap: 6px; }
+  .masthead{ gap: 8px; }
+  .wordmark{ font-size: 19px; }
+  .table{ gap: 7px; }
+  .board{ gap: 6px; }
+  .sidebar{ gap: 6px; }
+
+  .lensbar{ padding: 6px 9px; }
+  .lensbar-head{ font-size: 10px; margin-bottom: 4px; }
+  .rail{ min-height: 34px; gap: 6px; }
+
+  .stage{ min-height: 162px; padding: 10px; gap: 7px; }
+  #app.resolving .stage{ min-height: 196px; }
+  /* The preview is a readout, not a target you click, so here it is the size
+     of the phone's cards. Full-size preview cards grew the stage by 73px the
+     moment you picked your first word, which shoved the hand and the PLAY
+     button down the screen mid-decision. */
+  .stage .card.static{ width: 80px; height: 146px; padding: 5px 4px; --strip: 11px; }
+  .stage .card.static .art{ height: 36px; padding: 0 3px; }
+  .stage .card.static .art .ms{ font-size: 12px; }
+  .stage .card.static .art .ms.hit{ padding: 3px; }
+  .stage .card.static .art .icons{ gap: 2px; }
+  .stage .card.static .w{ font-size: 11.5px; }
+  .stage .card.static .base{ font-size: 10px; right: 5px; bottom: 4px; }
+  .stage .card.static .tg{ font-size: 7px; padding: 1px 3px; letter-spacing: 0; }
+  .dc-icons .ms{ font-size: 30px; }
+  .dc-icons{ gap: 13px; }
+  .dc-text{ font-size: 13.5px; }
+  .stage-hint{ font-size: 13px; }
+  .stage-hint .hand-name{ font-size: 14px; padding: 4px 13px; margin-bottom: 5px; }
+  .stage-total{ font-size: 40px; }
+  .coach{ font-size: 12.5px; padding: 7px 14px; }
+
+  /* the hand keeps its card size and gives up the air around it */
+  .handwrap{ gap: 7px; }
+  .hand{ padding-top: 10px; padding-bottom: 8px; gap: 7px; min-height: 0; }
+  .card{ width: 104px; height: 185px; --strip: 17px; }
+  .card .art{ height: 52px; }
+  .card .w{ font-size: 14px; }
+  .btn{ padding: 10px 22px; font-size: 14px; }
+
+  /* the readout beside the board loses type size, never a number */
+  .blind{ padding: 8px 10px; }
+  .blind-badge{ font-size: 14px; padding: 8px; }
+  .blind-req .v{ font-size: 23px; }
+  .blind-req .k, .roundscore .k, .meter .k{ font-size: 10.5px; }
+  .roundscore .v{ font-size: 21px; }
+  .tally .chips, .tally .multv{ font-size: 21px; padding: 6px 4px; }
+  .meter .v{ font-size: 19px; }
+  .money{ font-size: 21px; }
 }
 
 /* ---------- phone, landscape ----------
@@ -1207,8 +1373,14 @@ button{ font-family: inherit; color: inherit; }
   #app.resolving .stage{ min-height: 150px; }
   .lensbar{ padding: 5px 7px; }
   .rail{ min-height: 38px; }
-  .card{ width: 72px; min-height: 106px; }
-  .card .art{ height: 34px; }
+  .card{ width: 72px; height: 141px; padding: 5px 4px; --strip: 13px; }
+  .card .art{ height: 34px; padding: 0 3px; }
+  .card .art .ms{ font-size: 11px; }
+  .card .art .ms.hit{ padding: 3px; }
+  .card .art .icons{ gap: 1px; }
+  .card .base{ font-size: 9.5px; right: 4px; bottom: 3px; }
+  .card .w{ font-size: 12px; }
+  .card .tg{ font-size: 8px; padding: 1px 3px; letter-spacing: 0; }
   .btn{ min-height: 42px; padding: 9px 6px; }
   .controls{ padding-block: 6px; }
 }
@@ -2179,7 +2351,13 @@ function makeCard(entry, interpreted){
   };
 }
 
-function newRun(seedStr){
+/* `fresh` starts a run with nothing carried in. Memory — the Lens a finished
+   run hands to the next one — is the reason run 2 is not run 1, so it belongs
+   on the path where a run actually ended. Reaching for "New run" in the header
+   is the other thing: abandoning what you are doing and starting clean. Coming
+   back to a board holding a Lens you never bought reads as the game failing to
+   reset, not as a reward. */
+function newRun(seedStr, fresh){
   const daily = todayKey();
   const seed = seedStr || daily;
   rng = mulberry32(hashStr(seed));
@@ -2264,12 +2442,11 @@ function newRun(seedStr){
     shopSeen: []
   };
 
-  /* Memory: a lens carried in from a previous run. The visible reason run 2
-     is not run 1. */
-  const memory = store.get("memory", null);
+  /* Memory: a Lens carried in from a run you finished. */
+  const memory = fresh ? null : store.get("memory", null);
   if(memory){
     const l = LENSES.find(function(x){ return x.id===memory; });
-    if(l) G.lenses.push(l);
+    if(l){ G.lenses.push(l); G.memoryLens = l.id; }
   }
 
   for(const k in SEEN) delete SEEN[k];
@@ -2330,8 +2507,28 @@ function deckCeiling(round){
   G.ordeal = (G.ordealOrder && G.ordealOrder[round]) || null;
   G.discards = shape.discards;
 
-  const pool = G.deck.concat(G.discard, G.hand)
-    .slice().sort(function(a,b){ return b.base - a.base; }).slice(0, 9);
+  /* Two things were wrong with this pool, and together they made the shop
+     tell players a winnable round was impossible.
+
+     It held 9 cards while four plays of three need twelve, so the last play
+     always scored nothing; and it ranked by raw base value, which is the
+     smaller half of what a card is worth — a matching tag pays 25 on a deck
+     whose words average 23. A round the deck could actually make at 6,115 was
+     quoted at 5,040 against a target of 5,200, in red, with "no order of play
+     gets there" under it. A ceiling that says a round cannot be won when it
+     can is worse than no ceiling at all.
+
+     Rank by what the round will actually pay for, and hold enough cards that
+     every play has three to choose from. ~25ms. */
+  const want = d.tags;
+  const pool = G.deck.concat(G.discard, G.hand).slice()
+    .sort(function(a, b){
+      const fit = function(c){
+        return c.base + 30 * c.t.filter(function(t){ return want.indexOf(t) >= 0; }).length;
+      };
+      return fit(b) - fit(a);
+    })
+    .slice(0, shape.plays * MAX_PLAY + 6);
   const used = [];
   let total = 0;
   for(let p = 0; p < shape.plays; p++){
@@ -2751,18 +2948,63 @@ function openShop(reward){
     + '<b>Words add points. Lenses multiply them.</b></p>'
     + (function(){
         /* Perfect draws and perfect ordering, against what the round will
-           really ask. If this is short, no sequence of plays gets there and
-           the honest move is to sell something. */
+           really ask.
+
+           Being short here is the NORMAL state of a shop — the whole design is
+           that a deck alone never keeps up and the Lenses are what close the
+           gap, so a red "no order of play gets there" on every visit was both
+           alarming and useless. What a player actually needs to know is
+           whether anything on this shelf closes it, so work that out and say
+           so. Each candidate is priced, slotted and re-measured for real. */
         const can = deckCeiling(G.round);
-        const short = can < next.target;
-        return '<div class="reality' + (short ? ' short' : '') + '">'
-          + '<div class="rk">' + (short ? 'THIS DOES NOT REACH' : 'YOU CAN MAKE THIS')
+        const gap = next.target - can;
+        if(gap <= 0){
+          return '<div class="reality"><div class="rk">YOU CAN MAKE THIS</div><div class="rv">'
+            + 'Played perfectly, your deck makes about <b>' + can.toLocaleString()
+            + '</b> next round. It asks for <b>' + next.target.toLocaleString()
+            + '</b>.</div></div>';
+        }
+
+        /* Singles first, then pairs: by the middle of a run one Lens rarely
+           closes a gap on its own and two often do, and "nothing here closes
+           this" has to mean it. Six measurements at ~25ms, on a panel that
+           opens once a round. */
+        const buyable = (G.offers || []).filter(function(o){
+          return !o.bought && o.kind === "lens" && o.cost <= G.bank
+            && !G.lenses.some(function(l){ return l.id === o.lens.id; });
+        });
+        const reaches = function(lenses){
+          lenses.forEach(function(l){ G.lenses.push(l); });
+          const c = deckCeiling(G.round);
+          lenses.forEach(function(){ G.lenses.pop(); });
+          return c >= next.target;
+        };
+        let fix = null;
+        const room = LENS_SLOTS - G.lenses.length;
+        for(let i = 0; room >= 1 && !fix && i < buyable.length; i++){
+          if(reaches([buyable[i].lens])) fix = { n: buyable[i].lens.n, cost: buyable[i].cost };
+        }
+        for(let i = 0; room >= 2 && !fix && i < buyable.length; i++){
+          for(let j = i + 1; !fix && j < buyable.length; j++){
+            if(buyable[i].cost + buyable[j].cost > G.bank) continue;
+            if(reaches([buyable[i].lens, buyable[j].lens])){
+              fix = { n: buyable[i].lens.n + " and " + buyable[j].lens.n,
+                      cost: buyable[i].cost + buyable[j].cost };
+            }
+          }
+        }
+
+        return '<div class="reality ' + (fix ? 'near' : 'short') + '">'
+          + '<div class="rk">' + (fix ? 'YOUR DECK ALONE IS SHORT' : 'NOTHING HERE CLOSES THIS')
           + '</div><div class="rv">'
           + 'Played perfectly, your deck makes about <b>' + can.toLocaleString()
-          + '</b> next round. It asks for <b>' + next.target.toLocaleString() + '</b>.'
-          + (short
-              ? ' <b>No order of play gets there.</b> Buy something that changes it, or sell a Lens that is costing you more than it pays.'
-              : '')
+          + '</b> next round. It asks for <b>' + next.target.toLocaleString()
+          + '</b> &mdash; you are <b>' + gap.toLocaleString() + '</b> short.'
+          + (fix
+              ? ' <b>' + escapeHtml(fix.n) + '</b> ($' + fix.cost + ') covers it.'
+              : (G.lenses.length >= LENS_SLOTS
+                  ? ' Your slots are full &mdash; sell one and buy a louder one, or reroll.'
+                  : ' Reroll the shelf, or sell a Lens that is costing you more than it pays.'))
           + '</div></div>';
       })()
     + '<div class="offers" id="offers"></div>'
@@ -2818,10 +3060,31 @@ function openShop(reward){
         + (lv ? '<div class="grown">grown to +' + Math.round(lv).toLocaleString()
                 + ' &mdash; selling loses it</div>' : '')
         + '</div>';
+      /* Selling asks twice. It is the only irreversible thing in the shop —
+         it takes the Lens, every round of growth on it, and gives back half
+         the price — and it sits one row under the offers in a panel that
+         scrolls. Playtesting this, I destroyed my own run twice with stray
+         clicks meant for an offer. A flawed Lens warns you before you buy it;
+         this is louder and warns you after the fact, which is no warning. */
       const b = document.createElement("button");
       b.className = "btn sellbtn"; b.type = "button";
-      b.textContent = "Sell $" + sellValue(l);
-      b.onclick = function(){ sellLens(i, reward); };
+      const label = "Sell $" + sellValue(l);
+      b.textContent = label;
+      let armed = false, timer = null;
+      b.onclick = function(){
+        if(!armed){
+          armed = true;
+          b.classList.add("arming");
+          b.textContent = "Sell it? Tap again";
+          SFX.deny(); buzz([8, 40, 8]);
+          timer = setTimeout(function(){
+            armed = false; b.classList.remove("arming"); b.textContent = label;
+          }, 3200);
+          return;
+        }
+        clearTimeout(timer);
+        sellLens(i, reward);
+      };
       row.appendChild(b);
       ownedBox.appendChild(row);
     });
@@ -3422,7 +3685,17 @@ function cardEl(c, staticCard){
   base.className = "base"; base.textContent = c.base;
 
   const w = document.createElement("div");
-  w.className = "w"; w.textContent = c.w;
+  w.className = "w";
+  /* The word in its own element so that reading it back gives the word and
+     not the word with its value stuck to the end, and the value AFTER it. A
+     float placed ahead of the text narrows the first line, and a word is one
+     unbroken token — DEADLINE came out as "DEADLIN / E". Placed after, the
+     word keeps the whole line and the number is the thing that moves: it
+     shares the line when there is room and drops below when there is not. */
+  const wt = document.createElement("span");
+  wt.className = "wt"; wt.textContent = c.w;
+  w.appendChild(wt);
+  el.appendChild(base);
 
   const tags = document.createElement("div");
   tags.className = "tags";
@@ -3440,15 +3713,6 @@ function cardEl(c, staticCard){
     s.textContent = TAGS[t][0];
     tags.appendChild(s);
   });
-
-  /* The value used to sit absolutely over the icon plate, where a third icon
-     ran underneath it. It shares a row with the word now, so they cannot
-     collide however many overtones a card carries. */
-  /* The value sits in the plate's bottom corner. Sharing a row with the word
-     stole the width long words need (SOLSTICE broke mid-word), and floating it
-     over the centre of the plate ran it into a third icon — so the icons are
-     pushed to the top of the plate and the number takes thecorner. */
-  art.appendChild(base);
 
   const inner = document.createElement("div");
   inner.className = "card-inner";
@@ -3702,13 +3966,28 @@ function renderTut(){
 /* The stage itself now states the +25 rule, so this carries the one players
    actually miss: order is a decision. */
 const IDLE_HINT = "Pick up to 3 words, then hit PLAY.";
+/* "Three words beat one" is true of a bare deck and false of half the Lenses
+   in the shop. Holding ASCETIC it is the exact opposite of the right play, and
+   the board was still saying it — the game telling you to undo your own build.
+   A Lens that wants a particular shape of hand says so instead. */
+const HAND_SHAPE = {
+  asc:     "ASCETIC pays ×5 for a single word — one at a time beats three.",
+  oracle:  "THE ORACLE only pays your first word, so a lone word loses nothing.",
+  glut:    "GLUTTON wants exactly three.",
+  entropy: "ENTROPY wants three, each shorter than the last."
+};
 function idleHint(){
   const cap = maxPlay();
   const lead = cap < 3
     ? "Pick up to " + cap + " words, then hit PLAY."
     : IDLE_HINT;
   if(orderMatters()) return lead + " Your Lenses read left to right, so the order changes the score.";
-  return lead + (cap < 3 ? " " + G.ordeal.n + " is holding you to " + cap + "." : " Three words beat one.");
+  if(cap < 3) return lead + " " + G.ordeal.n + " is holding you to " + cap + ".";
+  for(let i = 0; i < G.lenses.length; i++){
+    const s = HAND_SHAPE[G.lenses[i].id];
+    if(s) return lead + " " + s;
+  }
+  return lead + " Three words beat one.";
 }
 const COACH = {
   pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
@@ -3841,7 +4120,8 @@ function renderRail(){
     d.title = l.d;
     d.setAttribute("aria-expanded", G.openLens === l.id ? "true" : "false");
     const lv = (G.lensState && G.lensState[l.id]) || 0;
-    d.innerHTML = '<div class="n">' + escapeHtml(l.n) + '</div>'
+    d.innerHTML = '<div class="n">' + escapeHtml(l.n)
+      + (G.memoryLens === l.id ? '<span class="mem">MEMORY</span>' : '') + '</div>'
       + '<div class="d">' + escapeHtml(l.d) + '</div>'
       /* A Lens that grows is the reason to keep playing one. Show the number. */
       + (lv ? '<div class="lv">+' + Math.round(lv).toLocaleString() + ' so far</div>' : '');
@@ -4076,7 +4356,9 @@ document.getElementById("interpBtn").onclick = openInterpreter;
 document.getElementById("helpBtn").onclick = showHelp;
 document.getElementById("soundBtn").onclick = showSettings;
 document.getElementById("newRunBtn").onclick = function(){
-  hidePanel(); newRun("free-" + Math.random().toString(36).slice(2,8));
+  hidePanel();
+  newRun("free-" + Math.random().toString(36).slice(2,8), true);
+  toast("Fresh run. No Lenses, no Memory.");
 };
 document.getElementById("tutNext").onclick = tutAdvance;
 document.getElementById("tutSkip").onclick = function(){ endTutorial(false); };

@@ -154,6 +154,26 @@ test.describe("playing a hand", () => {
     await expect(page.locator(".stage-hint .ord")).toHaveCount(0);
   });
 
+  test("stops telling you three words beat one when your Lens says otherwise", async ({ page }) => {
+    await open(page);
+    /* ASCETIC pays x5 for a single word. The board was still printing "Three
+       words beat one" underneath it — the game arguing with the build the
+       game just sold you. */
+    const bare = await page.evaluate(() => {
+      G.lenses = []; render();
+      return document.getElementById("stageHint").textContent;
+    });
+    expect(bare).toContain("Three words beat one");
+
+    const ascetic = await page.evaluate(() => {
+      G.lenses = [LENSES.find(l => l.id === "asc")];
+      render();
+      return document.getElementById("stageHint").textContent;
+    });
+    expect(ascetic).not.toContain("Three words beat one");
+    expect(ascetic).toContain("ASCETIC");
+  });
+
   test("says the order matters once a Lens actually reads position", async ({ page }) => {
     await open(page);
     await page.evaluate(() => {
@@ -278,7 +298,7 @@ test.describe("the Interpreter", () => {
     /* No window.claude over file://, so the house appraiser answers and says so. */
     const appraisal = page.locator("#appraisal");
     await expect(appraisal.locator(".card")).toBeVisible();
-    await expect(appraisal.locator(".card .w")).toHaveText("MITOCHONDRIA");
+    await expect(appraisal.locator(".card .wt")).toHaveText("MITOCHONDRIA");
     await expect(appraisal.locator(".src")).toContainText("House appraisal");
 
     await page.click("#interpGo");
@@ -393,15 +413,149 @@ test.describe("layout", () => {
         if (getComputedStyle(card).transform !== "none") return null;
         const icons = card.querySelector(".icons").getBoundingClientRect();
         const base = card.querySelector(".base").getBoundingClientRect();
-        const w = card.querySelector(".w").getBoundingClientRect();
+        /* The word's own text, not the band it sits in: the value lives in
+           that band too, floated to the end of the word's line. */
+        const w = card.querySelector(".wt").getBoundingClientRect();
+        const plate = card.querySelector(".art").getBoundingClientRect();
         const hits = (a, b) => !(b.right <= a.left + 0.5 || b.left >= a.right - 0.5 ||
                                  b.bottom <= a.top + 0.5 || b.top >= a.bottom - 0.5);
-        const word = card.querySelector(".w").textContent;
+        const word = card.querySelector(".wt").textContent;
         if (hits(icons, base)) return word + ": value on the icons";
         if (hits(w, base)) return word + ": value on the word";
+        if (hits(plate, base)) return word + ": value on the plate";
+        if (base.bottom > card.getBoundingClientRect().bottom + 0.5)
+          return word + ": value hanging off the card";
         return null;
       }).filter(Boolean));
     expect(clashes).toEqual([]);
+  });
+
+  test("every word in the lexicon makes the same shaped card", async ({ page }) => {
+    await open(page);
+    /* The bug a player reported as "the cards are misaligned and bad": the
+       card was a fixed height with a flex column inside it, so .art's 56px was
+       a starting size rather than a rule. A word carrying five overtones
+       overflowed, and flexbox took the difference out of the plate — one card
+       in a hand with a 40px plate beside a neighbour with 56px, its word and
+       its tags each starting on a different line.
+
+       Every word, not the seven in this hand: the three worst cases in the
+       lexicon are three cards in 249, and a dealt hand almost never holds one. */
+    const shapes = await page.evaluate(() => {
+      const host = document.createElement("div");
+      host.style.cssText = "position:fixed;left:-9999px;top:0;display:flex;flex-wrap:wrap;width:4000px";
+      document.body.appendChild(host);
+      const cards = LEXICON.map((row, i) => {
+        const el = cardEl({ id: "lex" + i, w: row.w, t: row.t, base: 20 }, true);
+        host.appendChild(el);
+        return el;
+      });
+      const uniq = f => [...new Set(cards.map(f))];
+      const clipped = cards.filter(el => {
+        const tags = el.querySelector(".tags").getBoundingClientRect();
+        return [...el.querySelectorAll(".tg")].some(t => {
+          const r = t.getBoundingClientRect();
+          return r.bottom > tags.bottom + 1 && r.top < tags.bottom - 1;
+        });
+      }).map(el => el.querySelector(".wt").textContent);
+      /* And the plate has to stay inside the card it belongs to. A grid item
+         will not shrink below its min-content width, so the moment the plate's
+         icons and value were wider than the card, the plate painted straight
+         out over the card's edges instead of clipping. */
+      const escaped = cards.filter(el => {
+        const c = el.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(el).paddingLeft);
+        const a = el.querySelector(".art").getBoundingClientRect();
+        return a.left < c.left + pad - 0.5 || a.right > c.right - pad + 0.5
+            || a.top < c.top + pad - 0.5;
+      }).map(el => el.querySelector(".wt").textContent);
+      const spilled = cards.filter(el => {
+        const icons = el.querySelector(".icons");
+        return icons.scrollWidth - icons.clientWidth > 1;
+      }).map(el => el.querySelector(".wt").textContent);
+
+      /* The value belongs in the card's bottom corner: below the plate, clear
+         of everything that is actually drawn, and inside the card. */
+      const onThePlate = cards.filter(el => {
+        const plate = el.querySelector(".art").getBoundingClientRect();
+        const v = el.querySelector(".base").getBoundingClientRect();
+        return v.top < plate.bottom - 0.5;
+      }).map(el => el.querySelector(".wt").textContent);
+      const overlapping = cards.filter(el => {
+        const v = el.querySelector(".base").getBoundingClientRect();
+        const hits = e => { const a = e.getBoundingClientRect();
+          return !(v.right <= a.left + 0.5 || v.left >= a.right - 0.5 ||
+                   v.bottom <= a.top + 0.5 || v.top >= a.bottom - 0.5); };
+        /* Tags below the band's edge are clipped out of sight; their rects
+           still sit where they would have been, which is under the value. */
+        const band = el.querySelector(".tags").getBoundingClientRect();
+        const drawn = [...el.querySelectorAll(".tg")]
+          .filter(t => t.getBoundingClientRect().bottom <= band.bottom + 1);
+        return hits(el.querySelector(".icons")) ||
+               hits(el.querySelector(".wt")) || drawn.some(hits);
+      }).map(el => el.querySelector(".wt").textContent);
+      const valueCut = cards.filter(el => {
+        const card = el.getBoundingClientRect();
+        const v = el.querySelector(".base").getBoundingClientRect();
+        return v.bottom > card.bottom + 0.5 || v.right > card.right + 0.5;
+      }).map(el => el.querySelector(".wt").textContent);
+
+      const out = {
+        n: cards.length,
+        cardHeights: uniq(el => el.offsetHeight),
+        plateHeights: uniq(el => el.querySelector(".art").offsetHeight),
+        wordTops: uniq(el => el.querySelector(".w").offsetTop),
+        tagTops: uniq(el => el.querySelector(".tags").offsetTop),
+        halfCutTags: clipped,
+        plateOutsideCard: escaped,
+        iconsTooWideForPlate: spilled,
+        valueOnThePlate: onThePlate,
+        valueOverlapping: overlapping,
+        valueCutOff: valueCut
+      };
+      host.remove();
+      return out;
+    });
+
+    expect(shapes.n).toBeGreaterThan(200);
+    expect(shapes.cardHeights, "cards came out different heights").toHaveLength(1);
+    expect(shapes.plateHeights, "the icon plate was squashed on some words").toHaveLength(1);
+    expect(shapes.wordTops, "the word starts on a different line card to card").toHaveLength(1);
+    expect(shapes.tagTops, "the tags start on a different line card to card").toHaveLength(1);
+    expect(shapes.halfCutTags, "a tag row was cut in half").toEqual([]);
+    expect(shapes.plateOutsideCard, "the icon plate painted outside the card").toEqual([]);
+    expect(shapes.iconsTooWideForPlate, "the icons do not fit the plate").toEqual([]);
+    expect(shapes.valueOnThePlate, "the value is sitting on the icon plate").toEqual([]);
+    expect(shapes.valueOverlapping, "the value is sitting on the icons or a tag").toEqual([]);
+    expect(shapes.valueCutOff, "the value hangs off the card").toEqual([]);
+  });
+
+  test("picking a word does not move the board under you", async ({ page }) => {
+    /* 1366x768 is the most common screen there is; maximised it gives about
+       640px of viewport. The whole board came to 915px there, PLAY sat 270px
+       below the fold, and picking your first word grew the stage by another 73
+       and pushed the hand down with it. */
+    await page.setViewportSize({ width: 1366, height: 640 });
+    await open(page);
+    const where = async () => page.evaluate(() => {
+      const b = document.querySelector(".controls .btn").getBoundingClientRect();
+      const hand = document.querySelector(".hand").getBoundingClientRect();
+      return { play: Math.round(b.bottom), hand: Math.round(hand.top), vh: innerHeight };
+    });
+    const idle = await where();
+    expect(idle.play, "PLAY starts below the fold").toBeLessThanOrEqual(idle.vh);
+
+    await page.keyboard.press("1");
+    await expect(page.locator("#stageCards .card")).toHaveCount(1);
+    const one = await where();
+    expect(Math.abs(one.play - idle.play), "PLAY moved when a word was picked").toBeLessThanOrEqual(4);
+    expect(Math.abs(one.hand - idle.hand), "the hand moved when a word was picked").toBeLessThanOrEqual(4);
+
+    await page.keyboard.press("2");
+    await page.keyboard.press("3");
+    const three = await where();
+    expect(Math.abs(three.play - idle.play), "PLAY moved as more words were picked").toBeLessThanOrEqual(4);
+    expect(three.play, "PLAY ended below the fold").toBeLessThanOrEqual(three.vh);
   });
 
   test("card words are not broken mid-word", async ({ page }) => {
@@ -411,12 +565,21 @@ test.describe("layout", () => {
     await expect(page.locator("#stageCards .card")).toHaveCount(3);
     /* A word that wraps is fine; a word that wraps because something else is
        taking its width is not — SOLSTICE once rendered as "SOLSTIC / E". */
+    /* Count the text's own line boxes, not the element's height: the word sits
+       in a box two lines tall on every card whether it needs the second line
+       or not, which is what keeps the tags below it on one line across a hand.
+       Dividing that box by the line height says "2" for every word alive. */
     const cramped = await page.locator("#stageCards .card .w").evaluateAll(ws =>
       ws.map(w => {
-        const line = parseFloat(getComputedStyle(w).lineHeight);
-        const lines = Math.round(w.getBoundingClientRect().height / line);
-        const chars = w.textContent.trim().length;
-        return (lines > 1 && chars <= 9) ? w.textContent + " wrapped onto " + lines + " lines" : null;
+        /* The word's own element, not the band: the band also carries the
+           floated value, whose rect would count as a line of its own. */
+        const text = w.querySelector(".wt");
+        if (!text) return null;
+        const r = document.createRange();
+        r.selectNodeContents(text);
+        const lines = r.getClientRects().length;
+        const chars = text.textContent.trim().length;
+        return (lines > 1 && chars <= 9) ? text.textContent + " wrapped onto " + lines + " lines" : null;
       }).filter(Boolean));
     expect(cramped).toEqual([]);
   });
@@ -839,23 +1002,57 @@ test.describe("the Bookseller tells the truth", () => {
     await expect(shape).toContainText("hand of 4");
   });
 
-  test("it says plainly when the deck cannot reach the next target", async ({ page }) => {
+  test("it says plainly when nothing on the shelf reaches the next target", async ({ page }) => {
     await open(page);
-    /* A losing build is the genre. An INVISIBLE losing build is a bug: the
-       measurement said 15.6% of rounds held while holding a flawed Lens cannot
-       be won by any sequence of plays. */
+    /* A losing build is the genre. An INVISIBLE losing build is a bug. But
+       being short at a shop is the NORMAL state — the deck never keeps up on
+       its own — so the red version has to mean what it says: not "you are
+       behind", but "nothing here closes it". */
     await page.evaluate(() => {
       G.round = 6;                       // a 23,500 target
       G.lenses = [LENSES.find(l => l.id === "curse")];   // doubled to 47,000
-      G.lensState = {}; G.bank = 12; G.offers = null;
+      G.lensState = {}; G.bank = 0; G.offers = null;     // and nothing affordable
       openShop(9);
     });
     const reality = page.locator(".reality");
     await expect(reality).toBeVisible();
     await expect(reality).toHaveClass(/short/);
-    await expect(reality).toContainText("THIS DOES NOT REACH");
-    await expect(reality).toContainText("No order of play gets there");
-    await expect(reality).toContainText("sell a Lens");
+    await expect(reality).toContainText("NOTHING HERE CLOSES THIS");
+    await expect(reality).toContainText("short");
+  });
+
+  test("when the shelf does close it, it names the Lens instead of crying wolf", async ({ page }) => {
+    await open(page);
+    const named = await page.evaluate(() => {
+      /* A bare deck tops out near 530 against round 2's 700. GLUTTON pays x2.5
+         for a three-word hand, which covers it. */
+      G.round = 1; G.lenses = []; G.lensState = {}; G.bank = 20;
+      G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "glut"), cost: 6 }];
+      openShop(9);
+      const el = document.querySelector(".reality");
+      return { cls: el.className, text: el.textContent };
+    });
+    expect(named.cls).toContain("near");
+    expect(named.text).toContain("YOUR DECK ALONE IS SHORT");
+    expect(named.text).toContain("GLUTTON");
+    expect(named.text).toMatch(/covers it/);
+  });
+
+  test("a flawed Lens is judged on what it costs, not just what it pays", async ({ page }) => {
+    await open(page);
+    const shown = await page.evaluate(() => {
+      /* THE CURSE is x3.5 on every hand, the loudest multiplier in the game,
+         and it doubles the target. Against round 3's 2,600 the multiplier is
+         not worth the doubling, so it must NOT be offered as the thing that
+         covers the gap. */
+      G.round = 2; G.lenses = []; G.lensState = {}; G.bank = 20;
+      G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "curse"), cost: 7 }];
+      openShop(9);
+      const el = document.querySelector(".reality");
+      return { cls: el.className, text: el.textContent };
+    });
+    expect(shown.cls).toContain("short");
+    expect(shown.text).not.toContain("covers it");
   });
 
   test("and says so when the deck is fine", async ({ page }) => {
@@ -1002,6 +1199,14 @@ test.describe("Ordeals", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("selling a Lens", () => {
+  /* Selling asks twice now, so the tests have to answer twice. */
+  async function sell(page, i) {
+    const b = page.locator(".sellbtn").nth(i);
+    await b.click();
+    await expect(b).toContainText("Tap again");
+    await b.click();
+  }
+
   async function shopWith(page, ids, bank) {
     await page.evaluate(({ ids, bank }) => {
       G.lenses = ids.map(id => LENSES.find(l => l.id === id));
@@ -1024,7 +1229,7 @@ test.describe("selling a Lens", () => {
     expect(await lensOffers.first().isDisabled()).toBe(true);
 
     const before = await page.evaluate(() => ({ bank: G.bank, n: G.lenses.length }));
-    await page.locator(".sellbtn").first().click();
+    await sell(page, 0);
 
     const after = await page.evaluate(() => ({ bank: G.bank, n: G.lenses.length }));
     expect(after.n, "the slot was not freed").toBe(before.n - 1);
@@ -1042,15 +1247,36 @@ test.describe("selling a Lens", () => {
     await expect(page.locator(".grown")).toContainText("grown to +440");
     await expect(page.locator(".grown")).toContainText("selling loses it");
 
-    await page.locator(".sellbtn").first().click();
+    await sell(page, 0);
     const kept = await page.evaluate(() => G.lensState.pyro);
     expect(kept, "the growth survived the sale").toBeUndefined();
+  });
+
+  test("one click does not sell", async ({ page }) => {
+    await open(page);
+    /* The sell buttons sit one row under the offers in a panel that scrolls,
+       and selling is the only irreversible thing in the shop — it takes the
+       Lens, every round of growth on it, and returns half the price. Playing a
+       run to see how it felt, I destroyed my own build twice with stray clicks
+       meant for an offer. */
+    await shopWith(page, ["pyro"], 5);
+    const before = await page.evaluate(() => ({ bank: G.bank, n: G.lenses.length }));
+    const b = page.locator(".sellbtn").first();
+    await b.click();
+
+    const after = await page.evaluate(() => ({ bank: G.bank, n: G.lenses.length }));
+    expect(after.n, "one click sold the Lens").toBe(before.n);
+    expect(after.bank, "one click paid out").toBe(before.bank);
+    await expect(b).toContainText("Tap again");
+
+    await b.click();
+    expect(await page.evaluate(() => G.lenses.length)).toBe(before.n - 1);
   });
 
   test("the slot freed can immediately be spent", async ({ page }) => {
     await open(page);
     await shopWith(page, ["pyro", "reso", "glut", "zoo", "night"], 12);
-    await page.locator(".sellbtn").first().click();
+    await sell(page, 0);
     const lensOffer = page.locator(".offer").filter({ hasNotText: "TWO NEW WORDS" }).first();
     expect(await lensOffer.isDisabled(), "still blocked after freeing a slot").toBe(false);
   });
