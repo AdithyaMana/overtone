@@ -62,6 +62,26 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `art/cards.csv` | Same list as data. |
 | `docs/brainstorming/` | The ideation log the design came out of — 86 logged ideas across seven techniques. |
 
+## The arcade display face
+
+Big text and every number are set in an arcade display face; the small print stays in a
+legible dot-matrix face, because a heavy arcade face is unreadable at 10px.
+
+The page ships with [Russo One](https://fonts.google.com/specimen/Russo+One) as the display
+face. To use your own arcade TTF instead — the artifact host’s CSP only serves fonts from
+`fonts.gstatic.com`, so it has to travel inside the page as a data URI:
+
+```bash
+npm run font -- ARCADE_R.TTF
+```
+
+That embeds it as `@font-face { font-family: "ArcadeLocal" }`, which `--f-display` already
+asks for first — so the swap needs no other change. `npm run font -- --clear` removes it and
+falls back to the web face. Then rebuild with `node build-artifact.js`.
+
+Check the licence first: embedding a font in a published page redistributes it, which many
+free-for-personal-use faces do not permit.
+
 ## Tests
 
 ```bash
