@@ -1,11 +1,11 @@
-<title>Overtone</title>
+<title>Wordhoard</title>
 <meta name="description" content="A word roguelite where meaning is the physics. Play words into an escalating scoring engine and warp the rules with Lenses.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
 <style>
 /* ============================================================
-   OVERTONE — CRT felt-table theme.
+   WORDHOARD — CRT felt-table theme.
    A dark blue-slate table under a monitor, chunky pressable slabs,
    and the blue/red chips-and-mult pairing doing the loudest talking.
    Single committed look; every colour painted explicitly.
@@ -215,7 +215,7 @@ button{ font-family: inherit; color: inherit; }
 .rail-empty{ font-size: 12px; color: var(--text-faint); align-self:center; padding: 4px 2px; }
 
 .stage{
-  flex:1; min-height: 224px; position:relative;
+  flex:1; min-height: 186px; position:relative;
   background: var(--felt);
   background-image: radial-gradient(90% 120% at 50% 0%, rgba(255,255,255,.045), transparent 70%);
   border-radius: 12px;
@@ -247,10 +247,10 @@ button{ font-family: inherit; color: inherit; }
 
 /* ---------- cards ---------- */
 .card{
-  position:relative; width: 100px; min-height: 140px;
+  position:relative; width: 104px; min-height: 178px;
   background: var(--card); color: var(--card-ink);
-  border-radius: 9px; padding: 8px 7px 7px;
-  display:flex; flex-direction:column; justify-content:space-between;
+  border-radius: 9px; padding: 7px 7px 7px;
+  display:flex; flex-direction:column; gap: 5px;
   cursor:pointer; user-select:none;
   box-shadow: 0 4px 0 var(--card-edge), 0 7px 14px rgba(0,0,0,.5);
   transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg));
@@ -267,15 +267,21 @@ button{ font-family: inherit; color: inherit; }
 }
 .card.sel:hover{ transform: translateY(calc(var(--dy, 0px) - 32px)) rotate(0deg) scale(1.08); }
 .card.static, .card.static:hover{ cursor:default; transform:none; z-index:auto; }
+.card .art{
+  border-radius: 6px; overflow: hidden; line-height: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+}
+.card .art svg{ display:block; width: 100%; height: 56px; }
 .card .w{
-  font-size: 16px; font-weight:700; line-height:1.05; letter-spacing:.01em;
+  font-size: 15px; font-weight:700; line-height:1.05; letter-spacing:.01em;
   text-transform: uppercase; word-break: break-word; hyphens:auto;
-  padding-right: 16px;
+  flex: 1;
 }
 .card .base{
-  position:absolute; top:6px; right:7px;
-  font-size: 12px; font-weight:700; color: var(--card-dim);
-  font-variant-numeric: tabular-nums;
+  position:absolute; top:8px; right:8px; z-index:2;
+  font-size: 11px; font-weight:700; color:#FFF;
+  background: rgba(0,0,0,.5); border-radius: 5px; padding: 0 5px;
+  font-variant-numeric: tabular-nums; text-shadow: 1px 1px 0 rgba(0,0,0,.6);
 }
 .card .tags{ display:flex; flex-wrap:wrap; gap:3px; }
 .card .tg{
@@ -314,7 +320,7 @@ button{ font-family: inherit; color: inherit; }
 
 /* ---------- hand + controls ---------- */
 .handwrap{ display:flex; flex-direction:column; gap: 22px; }
-.hand{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; min-height: 152px;
+.hand{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; min-height: 188px;
   align-items:flex-end; padding-top: 30px; padding-bottom: 34px; }
 .controls{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
 .btn{
@@ -417,23 +423,60 @@ button{ font-family: inherit; color: inherit; }
 }
 .toast[hidden]{ display:none !important; }
 
+.coach{
+  align-self:center; background: var(--gold); color:#2A1B02;
+  border-radius: 9px; padding: 9px 18px; max-width: 56ch; text-align:center;
+  font-size: 14px; font-weight:700; line-height:1.4;
+  box-shadow: 0 4px 0 var(--gold-d);
+  animation: coachIn .28s ease-out;
+}
+.coach[hidden]{ display:none !important; }
+@keyframes coachIn{ 0%{opacity:0; transform:translateY(-7px)} 100%{opacity:1; transform:none} }
+.hint-pulse{ animation: hintPulse 1.5s ease-in-out infinite; }
+@keyframes hintPulse{
+  0%,100%{ box-shadow: 0 4px 0 var(--edge), 0 0 0 0 rgba(239,163,29,.6); }
+  50%{ box-shadow: 0 4px 0 var(--edge), 0 0 0 10px rgba(239,163,29,0); }
+}
+.teach{ display:flex; flex-direction:column; gap:13px; margin: 4px 0 16px; }
+.teach-row{ display:flex; gap:12px; align-items:flex-start; }
+.teach-n{
+  flex:none; width:26px; height:26px; border-radius:7px;
+  background: var(--chips-d); color:#FFF; font-weight:700; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 3px 0 rgba(0,0,0,.4); text-shadow: 1px 1px 0 rgba(0,0,0,.4);
+}
+.teach-row p{ margin:0; font-size:14px; line-height:1.55; }
+.gold{ color: var(--gold); }
+.worked{
+  display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+  background: var(--inset); border-radius:10px; padding: 14px;
+  box-shadow: inset 0 2px 0 rgba(0,0,0,.35); margin-bottom: 14px;
+}
+.worked-sum{ font-size:13.5px; line-height:1.7; color: var(--text-dim); min-width: 210px; flex:1; }
+.worked-sum b{ color:#FFF; }
+.worked-tot{ display:block; margin-top:6px; font-size:17px; font-weight:700; color: var(--gold); }
+
 @media (max-width: 860px){
   .table{ grid-template-columns: 1fr; }
   .sidebar{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-items:start; }
-  .blind{ grid-column: 1 / -1; }
-  .tally{ grid-column: 1 / -1; }
-  .meters{ grid-column: 1 / -1; }
-  .runinfo{ grid-column: 1 / -1; }
+  /* Pair the two single-cell panels so the stack leaves no empty cells. */
+  .blind{ grid-column: 1 / -1; order:1; }
+  .tally{ grid-column: 1 / -1; order:2; }
+  .roundscore{ order:3; }
+  .money{ order:4; }
+  .meters{ grid-column: 1 / -1; order:5; }
+  .runinfo{ grid-column: 1 / -1; order:6; }
 }
 @media (max-width: 560px){
-  .card{ width: 82px; min-height: 118px; padding: 6px 5px 5px; }
-  .card .w{ font-size: 13px; padding-right: 14px; }
+  .card{ width: 84px; min-height: 150px; padding: 5px; }
+  .card .art svg{ height: 44px; }
+  .card .w{ font-size: 12.5px; }
   .card .tg{ font-size: 8px; }
   .wordmark{ font-size: 23px; }
   .stage-total{ font-size: 38px; }
   .tally .chips, .tally .multv{ font-size: 19px; }
   .blind-req .v{ font-size: 25px; }
-  .hand{ gap:5px; min-height: 128px; padding-top: 22px; padding-bottom: 24px; }
+  .hand{ gap:5px; min-height: 160px; padding-top: 22px; padding-bottom: 24px; }
   .handwrap{ gap: 16px; }
   .btn{ padding: 11px 16px; font-size: 14px; }
 }
@@ -447,7 +490,7 @@ button{ font-family: inherit; color: inherit; }
 <div id="app">
 
   <header class="masthead">
-    <h1 class="wordmark">OVER<span>TONE</span></h1>
+    <h1 class="wordmark">WORD<span>HOARD</span></h1>
     <div class="mast-actions">
       <button class="chip-btn" id="helpBtn" type="button">How to play</button>
       <button class="chip-btn" id="newRunBtn" type="button">New run</button>
@@ -509,10 +552,11 @@ button{ font-family: inherit; color: inherit; }
 
       <section class="stage" id="stage">
         <div class="stage-cards" id="stageCards"></div>
-        <div class="stage-hint" id="stageHint">Pick up to three words that resonate with the Demand.</div>
+        <div class="stage-hint" id="stageHint">Tap up to 3 words. Each gold tag pays +25 chips.</div>
       </section>
 
       <div class="handwrap">
+        <div class="coach" id="coach" hidden></div>
         <div class="hand" id="hand"></div>
         <div class="controls">
           <button class="btn primary" id="playBtn" type="button" disabled>Play</button>
@@ -534,7 +578,7 @@ button{ font-family: inherit; color: inherit; }
 <script>
 "use strict";
 /* ============================================================
-   OVERTONE
+   WORDHOARD
    A word roguelite where meaning is the physics.
 
    The lexicon below is the game's physics engine: every word carries
@@ -924,8 +968,8 @@ function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=ri(i+1); const t
 
 /* ---------- storage (may be blocked; never let it break the game) ---------- */
 const store = {
-  get:function(k,d){ try{ const v=localStorage.getItem("overtone:"+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
-  set:function(k,v){ try{ localStorage.setItem("overtone:"+k, JSON.stringify(v)); }catch(e){} }
+  get:function(k,d){ try{ const v=localStorage.getItem("wordhoard:"+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+  set:function(k,v){ try{ localStorage.setItem("wordhoard:"+k, JSON.stringify(v)); }catch(e){} }
 };
 
 /* ---------- audio: synthesised, no asset files ---------- */
@@ -1008,6 +1052,7 @@ function newRun(seedStr){
     total: 0,
     demandOrder: demandOrder,
     best: { word:"", mult:0, score:0 },
+    coachStep: null,
     interpreterUsed: false,
     interpretedWord: null,
     animating: false,
@@ -1024,6 +1069,7 @@ function newRun(seedStr){
     if(l) G.lenses.push(l);
   }
 
+  G.coachStep = coachDone() ? null : "pick";
   startRound();
 }
 
@@ -1154,6 +1200,7 @@ async function play(){
   if(res.total >= G.target * 0.5) document.getElementById("stage").classList.add("shake");
   setTimeout(function(){ document.getElementById("stage").classList.remove("shake"); }, 320);
 
+  if(G.coachStep === "play") G.coachStep = "score";
   renderDemand();
   await sleep(760);
   try{ totalEl.remove(); }catch(err){}
@@ -1166,7 +1213,7 @@ async function play(){
   if(G.plays <= 0){ endRun(false); return; }
 
   draw(HAND_SIZE - G.hand.length);
-  document.getElementById("stageHint").textContent = "Pick up to three words that resonate with the Demand.";
+  document.getElementById("stageHint").textContent = IDLE_HINT;
   render();
 }
 
@@ -1229,6 +1276,7 @@ function openShop(reward){
   const html = ''
     + '<h2>The Bookseller</h2>'
     + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
+    + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one — from here the targets climb faster than any deck can add.</p>')
     + '<p>Next Demand is <b>' + nextDemand.n + '</b>, which wants '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" and ")
     + '. Target <b>' + TARGETS[G.round].toLocaleString() + '</b>.</p>'
@@ -1262,7 +1310,7 @@ function openShop(reward){
     G.bank -= 1; G.offers = rollOffers(); tone(320,.08,"square",.05); openShop(reward);
   };
   document.getElementById("leaveShop").onclick = function(){
-    G.offers = null; hidePanel(); startRound();
+    G.offers = null; coachFinish(); hidePanel(); startRound();
   };
 }
 
@@ -1485,7 +1533,7 @@ function endRun(won){
 
 function shareText(won){
   const lines = [];
-  lines.push("OVERTONE — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
+  lines.push("WORDHOARD — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
@@ -1494,6 +1542,232 @@ function shareText(won){
       + G.interpretedWord.t.map(function(t){ return TAGS[t][0]; }).join("·"));
   }
   return lines.join("\n");
+}
+
+/* ---------- generative card art ----------
+   Every card's emblem is drawn from its own overtones, so the picture is a
+   view of the same data the scoring engine reads: a word tagged HEAT+DANGER
+   grows flames and spikes. Deterministic per word (seeded by the word
+   itself), so a card always looks the same — and any word the Interpreter
+   invents gets real art for free, with no asset to author.                  */
+
+const ART = {
+  HEA:{ c:"#FFB55C", d:"#B83A18" },
+  COL:{ c:"#CFEEFF", d:"#2E6A94" },
+  WET:{ c:"#7FD0F0", d:"#1B5580" },
+  MOT:{ c:"#FFD97A", d:"#8A6A1E" },
+  DAN:{ c:"#FF7B6B", d:"#8E2018" },
+  LOU:{ c:"#FF9ECF", d:"#8E2A63" },
+  BRI:{ c:"#FFE98A", d:"#A8781A" },
+  DAR:{ c:"#8E86C4", d:"#221D3D" },
+  ANI:{ c:"#F0A874", d:"#7A3E1C" },
+  PLA:{ c:"#8FDD92", d:"#26643A" },
+  NAT:{ c:"#7CC49A", d:"#1F5340" },
+  BOD:{ c:"#F5A0B0", d:"#8A2E47" },
+  FOO:{ c:"#FFC981", d:"#95571C" },
+  TOO:{ c:"#C6D2DE", d:"#46566B" },
+  TEC:{ c:"#7FE8D2", d:"#186A62" },
+  MON:{ c:"#FFDC6B", d:"#96721A" },
+  MIN:{ c:"#C4AEFF", d:"#4B3A8E" },
+  TIM:{ c:"#B9C9DA", d:"#3D5266" },
+  ABS:{ c:"#DCD4EE", d:"#4A4266" }
+};
+
+/* Which overtone paints the ground, in order of how well it reads as a
+   backdrop rather than a subject. */
+const GROUND_ORDER = ["DAR","NAT","WET","HEA","COL","BRI","TEC","MON","ABS","TIM","MIN","FOO","TOO","PLA","BOD","ANI","LOU","MOT","DAN"];
+/* Which overtones get drawn on top, most pictorial first. */
+const MOTIF_ORDER  = ["ANI","PLA","NAT","TOO","TEC","MON","BOD","FOO","TIM","MIN","BRI","HEA","COL","WET","DAN","LOU","MOT","DAR","ABS"];
+
+function n2(x){ return Math.round(x * 10) / 10; }
+
+const MOTIF = {
+  HEA: function(r,c){
+    let s = "";
+    for(let i=0;i<3;i++){
+      const x = 18 + i*26 + r()*7, top = 16 + r()*12;
+      s += '<path d="M'+n2(x)+' 50 C'+n2(x-8)+' 38 '+n2(x-5)+' '+n2(top+8)+' '+n2(x)+' '+n2(top)
+         + ' C'+n2(x+5)+' '+n2(top+8)+' '+n2(x+8)+' 38 '+n2(x)+' 50 Z" fill="'+c.c+'" opacity=".9"/>';
+    }
+    return s;
+  },
+  COL: function(r,c){
+    let s = "";
+    for(let i=0;i<4;i++){
+      const x = 10 + i*22 + r()*8, h = 16 + r()*16, w = 4 + r()*4;
+      s += '<polygon points="'+n2(x)+',0 '+n2(x+w)+',0 '+n2(x+w/2)+','+n2(h)+'" fill="'+c.c+'" opacity=".8"/>';
+    }
+    return s;
+  },
+  WET: function(r,c){
+    let s = "";
+    for(let i=0;i<3;i++){
+      const y = 30 + i*9 + r()*3;
+      s += '<path d="M0 '+n2(y)+' q 11 -6 22 0 t 22 0 t 22 0 t 22 0" fill="none" stroke="'+c.c
+         + '" stroke-width="2.6" stroke-linecap="round" opacity=".8"/>';
+    }
+    return s;
+  },
+  MOT: function(r,c){
+    let s = "";
+    for(let i=0;i<4;i++){
+      const y = 10 + i*11 + r()*4, len = 20 + r()*26, x = 6 + r()*18;
+      s += '<line x1="'+n2(x)+'" y1="'+n2(y)+'" x2="'+n2(x+len)+'" y2="'+n2(y-5)+'" stroke="'+c.c
+         + '" stroke-width="3" stroke-linecap="round" opacity=".85"/>';
+    }
+    return s;
+  },
+  DAN: function(r,c){
+    const y = 52;
+    let d = "M0 "+y;
+    for(let i=0;i<7;i++){ d += " L"+n2(i*13+6.5)+" "+n2(y-9-r()*7)+" L"+n2((i+1)*13)+" "+n2(y); }
+    return '<path d="'+d+' L88 56 L0 56 Z" fill="'+c.c+'" opacity=".85"/>';
+  },
+  LOU: function(r,c){
+    let s = "";
+    for(let i=0;i<3;i++){
+      const rad = 13 + i*11;
+      s += '<path d="M10 '+n2(28-rad)+' A '+rad+' '+rad+' 0 0 1 10 '+n2(28+rad)
+         + '" fill="none" stroke="'+c.c+'" stroke-width="2.6" stroke-linecap="round" opacity="'+n2(0.85-i*0.18)+'"/>';
+    }
+    return s;
+  },
+  BRI: function(r,c){
+    const cx = 30 + r()*28, cy = 16 + r()*14;
+    let s = '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="7" fill="'+c.c+'" opacity=".95"/>';
+    for(let i=0;i<8;i++){
+      const a = (i/8)*Math.PI*2 + r()*0.2;
+      s += '<line x1="'+n2(cx+Math.cos(a)*10)+'" y1="'+n2(cy+Math.sin(a)*10)+'" x2="'+n2(cx+Math.cos(a)*17)
+         + '" y2="'+n2(cy+Math.sin(a)*17)+'" stroke="'+c.c+'" stroke-width="2.2" stroke-linecap="round" opacity=".75"/>';
+    }
+    return s;
+  },
+  DAR: function(r,c){
+    const cx = 22 + r()*44;
+    return '<circle cx="'+n2(cx)+'" cy="20" r="13" fill="'+c.c+'" opacity=".55"/>'
+         + '<circle cx="'+n2(cx+6)+'" cy="17" r="12" fill="'+c.d+'" opacity=".9"/>';
+  },
+  ANI: function(r,c){
+    const cx = 30 + r()*28, cy = 24 + r()*8;
+    return '<ellipse cx="'+n2(cx)+'" cy="'+n2(cy)+'" rx="16" ry="10" fill="'+c.c+'" opacity=".95"/>'
+         + '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="5.5" fill="'+c.d+'"/>'
+         + '<circle cx="'+n2(cx+2)+'" cy="'+n2(cy-2)+'" r="1.8" fill="#FFFFFF" opacity=".9"/>';
+  },
+  PLA: function(r,c){
+    const x = 28 + r()*32;
+    let s = '<path d="M'+n2(x)+' 54 L'+n2(x)+' 18" stroke="'+c.c+'" stroke-width="2.8" stroke-linecap="round" fill="none"/>';
+    for(let i=0;i<3;i++){
+      const y = 24 + i*10, dir = i%2 ? 1 : -1;
+      s += '<path d="M'+n2(x)+' '+n2(y)+' q '+n2(dir*11)+' -7 '+n2(dir*15)+' 2 q '+n2(-dir*10)+' 6 '+n2(-dir*15)+' -2 Z" fill="'+c.c+'" opacity=".9"/>';
+    }
+    return s;
+  },
+  NAT: function(r,c){
+    const a = 18 + r()*10, b = 48 + r()*14;
+    return '<polygon points="'+n2(a)+',16 '+n2(a+22)+',56 '+n2(a-22)+',56" fill="'+c.c+'" opacity=".75"/>'
+         + '<polygon points="'+n2(b)+',24 '+n2(b+19)+',56 '+n2(b-19)+',56" fill="'+c.d+'" opacity=".85"/>';
+  },
+  BOD: function(r,c){
+    let s = "";
+    for(let i=0;i<3;i++){
+      const y = 20 + i*10;
+      s += '<path d="M22 '+n2(y)+' q 22 '+n2(9+i*2)+' 44 0" fill="none" stroke="'+c.c
+         + '" stroke-width="2.8" stroke-linecap="round" opacity=".85"/>';
+    }
+    return s;
+  },
+  FOO: function(r,c){
+    let s = '<path d="M18 30 q 26 22 52 0 Z" fill="'+c.c+'" opacity=".9"/>';
+    for(let i=0;i<3;i++){
+      s += '<circle cx="'+n2(30+i*14)+'" cy="'+n2(22-r()*6)+'" r="'+n2(3.5+r()*2)+'" fill="'+c.c+'" opacity=".8"/>';
+    }
+    return s;
+  },
+  TOO: function(r,c){
+    const x = 26 + r()*22;
+    return '<rect x="'+n2(x)+'" y="12" width="30" height="11" rx="2.5" fill="'+c.c+'" opacity=".95"/>'
+         + '<rect x="'+n2(x+11)+'" y="21" width="6" height="28" rx="2.5" fill="'+c.d+'" opacity=".95"/>';
+  },
+  TEC: function(r,c){
+    let s = "";
+    const pts = [];
+    for(let i=0;i<4;i++) pts.push([12+i*21+r()*7, 14+r()*28]);
+    for(let i=0;i<pts.length-1;i++){
+      s += '<line x1="'+n2(pts[i][0])+'" y1="'+n2(pts[i][1])+'" x2="'+n2(pts[i+1][0])+'" y2="'+n2(pts[i+1][1])
+         + '" stroke="'+c.c+'" stroke-width="2" opacity=".7"/>';
+    }
+    pts.forEach(function(p){ s += '<circle cx="'+n2(p[0])+'" cy="'+n2(p[1])+'" r="3.6" fill="'+c.c+'"/>'; });
+    return s;
+  },
+  MON: function(r,c){
+    let s = "";
+    for(let i=0;i<3;i++){
+      const cx = 26 + i*17, cy = 32 - i*5;
+      s += '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="10" fill="'+c.c+'" opacity=".95"/>'
+         + '<circle cx="'+n2(cx)+'" cy="'+n2(cy)+'" r="5" fill="none" stroke="'+c.d+'" stroke-width="2"/>';
+    }
+    return s;
+  },
+  MIN: function(r,c){
+    return '<path d="M44 30 m0 -14 a14 14 0 1 1 -10 4 a10 10 0 1 0 7 -3 a6 6 0 1 1 -4 2" fill="none" stroke="'
+         + c.c + '" stroke-width="2.8" stroke-linecap="round" opacity=".9"/>';
+  },
+  TIM: function(r,c){
+    const cx = 30 + r()*28;
+    return '<circle cx="'+n2(cx)+'" cy="27" r="15" fill="none" stroke="'+c.c+'" stroke-width="2.8"/>'
+         + '<line x1="'+n2(cx)+'" y1="27" x2="'+n2(cx)+'" y2="17" stroke="'+c.c+'" stroke-width="2.6" stroke-linecap="round"/>'
+         + '<line x1="'+n2(cx)+'" y1="27" x2="'+n2(cx+9)+'" y2="31" stroke="'+c.c+'" stroke-width="2.6" stroke-linecap="round"/>';
+  },
+  ABS: function(r,c){
+    let s = '<circle cx="44" cy="28" r="15" fill="none" stroke="'+c.c
+          + '" stroke-width="2.4" stroke-dasharray="5 5" opacity=".85"/>';
+    for(let i=0;i<3;i++){
+      s += '<circle cx="'+n2(18+r()*52)+'" cy="'+n2(10+r()*36)+'" r="2.4" fill="'+c.c+'" opacity=".8"/>';
+    }
+    return s;
+  }
+};
+
+const ART_CACHE = {};
+let ART_N = 0;
+
+function artFor(card){
+  const key = card.w + "|" + card.t.join(",");
+  if(ART_CACHE[key]) return ART_CACHE[key];
+
+  const r = mulberry32(hashStr(key));
+  const tags = card.t.length ? card.t : ["ABS"];
+
+  let ground = null;
+  for(let i=0;i<GROUND_ORDER.length;i++){
+    if(tags.indexOf(GROUND_ORDER[i]) >= 0){ ground = GROUND_ORDER[i]; break; }
+  }
+  if(!ground) ground = tags[0];
+  const gc = ART[ground] || ART.ABS;
+  const gid = "oa" + (++ART_N);
+
+  let s = '<svg viewBox="0 0 88 56" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        + '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0.3" y2="1">'
+        + '<stop offset="0" stop-color="'+gc.c+'"/><stop offset="1" stop-color="'+gc.d+'"/>'
+        + '</linearGradient></defs>'
+        + '<rect width="88" height="56" fill="url(#'+gid+')"/>';
+
+  /* Cap at three motifs — past that the emblem turns to mud. */
+  let drawn = 0;
+  for(let i=0;i<MOTIF_ORDER.length && drawn<3;i++){
+    const t = MOTIF_ORDER[i];
+    if(tags.indexOf(t) < 0 || t === ground) continue;
+    if(!MOTIF[t]) continue;
+    s += MOTIF[t](r, ART[t]);
+    drawn++;
+  }
+  /* A word whose only overtone painted the ground still needs a subject. */
+  if(drawn === 0 && MOTIF[ground]) s += MOTIF[ground](r, ART[ground]);
+
+  s += '<rect width="88" height="56" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2"/></svg>';
+
+  ART_CACHE[key] = s;
+  return s;
 }
 
 /* ---------- rendering ---------- */
@@ -1509,6 +1783,10 @@ function cardEl(c, staticCard){
   el.setAttribute("role", staticCard ? "img" : "button");
   el.setAttribute("aria-label", c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", "));
   if(!staticCard) el.tabIndex = 0;
+
+  const art = document.createElement("div");
+  art.className = "art";
+  art.innerHTML = artFor(c);
 
   const base = document.createElement("div");
   base.className = "base"; base.textContent = c.base;
@@ -1526,7 +1804,7 @@ function cardEl(c, staticCard){
     tags.appendChild(s);
   });
 
-  el.appendChild(base); el.appendChild(w); el.appendChild(tags);
+  el.appendChild(art); el.appendChild(base); el.appendChild(w); el.appendChild(tags);
 
   if(!staticCard){
     if(G.selected.indexOf(c.id) >= 0) el.classList.add("sel");
@@ -1545,7 +1823,32 @@ function toggleSel(id){
     if(G.selected.length >= MAX_PLAY){ toast("Three words at a time."); return; }
     G.selected.push(id); tone(420 + G.selected.length*90, .07, "sine", .05);
   }
+  if(G.coachStep === "pick" && G.selected.length) G.coachStep = "play";
+  else if(G.coachStep === "play" && !G.selected.length) G.coachStep = "pick";
   renderHand(); renderControls(); renderPreview();
+}
+
+/* ---------- first-run coaching ----------
+   A modal explains the game to someone who hasn't seen it yet, which is the
+   worst possible moment. This instead says one short thing at a time, on the
+   board, while they're doing the thing. It runs once, during round 1.      */
+const IDLE_HINT = "Tap up to 3 words. Each gold tag pays +25 chips.";
+const COACH = {
+  pick:  "Gold tags match the Demand. Tap two or three words that have one.",
+  play:  "Now press PLAY — the stage shows what you'd score before you commit.",
+  score: "That's Chips × Mult. Gold tags add chips; Lenses multiply them."
+};
+function coachDone(){ return store.get("coached", false); }
+function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
+function coachSet(step){
+  const el = document.getElementById("coach");
+  const btn = document.getElementById("playBtn");
+  if(!el) return;
+  if(btn) btn.classList.remove("hint-pulse");
+  if(!step || coachDone() || !COACH[step]){ el.hidden = true; return; }
+  el.textContent = COACH[step];
+  el.hidden = false;
+  if(step === "play" && btn) btn.classList.add("hint-pulse");
 }
 
 /* Named like a poker hand, so the player learns to aim for a shape rather
@@ -1559,7 +1862,7 @@ function renderPreview(){
   if(G.selected.length === 0){
     document.getElementById("stageCards").innerHTML = "";
     setTally(0, 1);
-    hint.textContent = "Pick up to three words that resonate with the Demand.";
+    hint.textContent = IDLE_HINT;
     return;
   }
   const cards = G.selected.map(function(id){ return G.hand.find(function(c){ return c.id===id; }); });
@@ -1583,7 +1886,7 @@ function renderDemand(){
   w.innerHTML = "";
   const lead = document.createElement("span");
   lead.style.cssText = "font-size:11px;letter-spacing:.08em;color:var(--text-faint);align-self:center;margin-right:1px";
-  lead.textContent = "WANTS";
+  lead.textContent = "PAYS FOR";
   w.appendChild(lead);
   G.demand.tags.forEach(function(t){
     const s = document.createElement("span");
@@ -1651,7 +1954,10 @@ function renderControls(){
   document.getElementById("seedLabel").textContent = (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase();
 }
 
-function render(){ renderDemand(); renderRail(); renderHand(); renderControls(); renderPreview(); }
+function render(){
+  renderDemand(); renderRail(); renderHand(); renderControls(); renderPreview();
+  coachSet(G.coachStep);
+}
 
 /* ---------- panels ---------- */
 function showPanel(html){
@@ -1669,21 +1975,52 @@ function toast(msg){
 }
 
 function showHelp(){
+  /* A worked example beats a rule list: the same card the player is about to
+     see, with the arithmetic spelled out on it. */
+  const ex = { w:"FURNACE", t:["HEA","TOO","DAN"], base: 5 + 3*7, interpreted:false };
+  const exTags = ex.t.map(function(t){
+    return '<span class="tg' + (t === "HEA" ? " match" : "") + '">' + TAGS[t][0] + '</span>';
+  }).join("");
+  const withLens = ex.base + 25 + 45;
+
   showPanel(''
-    + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Ninety seconds of reading, then never again</div>'
-    + '<ul class="helplist">'
-    + '<li>Every word carries <b>overtones</b> — the small tags along its bottom edge. AVALANCHE is COLD, MOTION, DANGER and LOUD all at once.</li>'
-    + '<li>Each round sets a <b>Demand</b>. Every overtone on a played word that matches the Demand pays <b>+25 chips</b>.</li>'
-    + '<li>You score <b>chips × mult</b>. Play up to three words; they resolve <b>left to right</b>, in the order you picked them, so ordering is part of the puzzle.</li>'
-    + '<li><b>Lenses</b> bought from the Bookseller rewrite the rules — CARNIVORE lets an animal eat the word to its left; ANTONYM ENGINE pays out when heat follows cold.</li>'
-    + '<li>Four plays and three discards per round. Miss the target and the run is over.</li>'
-    + '<li>Once per run, <b>the Interpreter</b> will take any word you type and turn it into a real card.</li>'
-    + '</ul>'
-    + '<p style="font-size:12.5px"><span class="kbd">1</span>–<span class="kbd">7</span> pick a word · '
-    + '<span class="kbd">Enter</span> play · <span class="kbd">D</span> discard · '
-    + '<span class="kbd">Space</span> hurry the scoring · <span class="kbd">Esc</span> close</p>'
-    + '<div class="rowend"><span></span><button class="btn primary" id="closeHelp" type="button">Play</button></div>');
+    + '<h2>How Wordhoard works</h2>'
+    + '<div class="sub">Three things, then you are fine</div>'
+
+    + '<div class="teach">'
+    +   '<div class="teach-row"><div class="teach-n">1</div>'
+    +     '<p><b>Match the Demand.</b> Each round pays for certain overtones — the small tags '
+    +     'along the bottom of every word. Tags that match light up <b class="gold">gold</b>, '
+    +     'and each gold tag pays <b>+25 chips</b>.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">2</div>'
+    +     '<p><b>You score Chips × Mult.</b> Play up to three words. They resolve '
+    +     '<b>left to right</b>, so the order you tap them in is part of the puzzle.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">3</div>'
+    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
+    +     'They are the engine — later targets grow faster than any deck can add.</p></div>'
+    + '</div>'
+
+    + '<div class="worked">'
+    +   '<div class="card static">'
+    +     '<div class="art">' + artFor(ex) + '</div>'
+    +     '<div class="base">' + ex.base + '</div>'
+    +     '<div class="w">' + ex.w + '</div>'
+    +     '<div class="tags">' + exTags + '</div>'
+    +   '</div>'
+    +   '<div class="worked-sum">'
+    +     'Say the Demand pays for <b>HEAT</b>.<br>'
+    +     'FURNACE is worth <b>' + ex.base + '</b> by itself, and its gold HEAT tag adds <b>+25</b>.<br>'
+    +     'Equip <b>PYROMANIAC</b> (+45 on every HEAT word) and it is '
+    +     '<b>' + withLens + ' chips</b>.'
+    +     '<span class="worked-tot">' + withLens + ' × 1 = ' + withLens + '</span>'
+    +   '</div>'
+    + '</div>'
+
+    + '<p style="font-size:13px"><span class="kbd">1</span>–<span class="kbd">7</span> pick &middot; '
+    + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
+    + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
+    + '<div class="rowend"><span></span>'
+    + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
   document.getElementById("closeHelp").onclick = hidePanel;
 }
 

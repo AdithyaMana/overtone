@@ -1,4 +1,4 @@
-# Overtone — design writeup
+# Wordhoard — design writeup
 
 A word roguelite where meaning is the physics.
 
@@ -6,7 +6,7 @@ A word roguelite where meaning is the physics.
 
 ## 1. The pitch
 
-**What it is.** Overtone is a five-minute roguelite built on a scoring engine that runs on
+**What it is.** Wordhoard is a five-minute roguelite built on a scoring engine that runs on
 *meaning* instead of spelling. Every word in the game carries **overtones** — semantic tags
 like HEAT, MOTION, DANGER, TIME. Each round sets a **Demand** (`THE FURNACE — wants HEAT,
 DANGER`) and a target score. You play up to three word-cards; they resolve left to right,
@@ -20,7 +20,7 @@ product: people who play a word game every morning (Wordle, Connections, Context
 who play build-a-broken-engine roguelites (Balatro, Slay the Spire, Luck be a Landlord). Word
 games are almost entirely pure puzzles with no build variety and no run structure. Deckbuilders
 are almost entirely fantasy-combat-themed and demand a rules vocabulary before they're fun.
-Overtone is a deckbuilder whose rules vocabulary is *the language you already speak*.
+Wordhoard is a deckbuilder whose rules vocabulary is *the language you already speak*.
 
 **Why someone plays it.** Because sixty seconds in, you notice that AVALANCHE is COLD and
 MOTION and DANGER and LOUD all at once, that you happen to own two Lenses that both care about
@@ -41,8 +41,8 @@ watch the engine resolve → spend the winnings on a rule that breaks the next r
 
 | Time | What happens |
 |---|---|
-| 0:00–0:15 | One screen, no account, no install. A six-bullet help card. Seven word-cards face up with their overtones printed on them. |
-| 0:15–0:50 | Player clicks a card. The stage shows a live **"would score"** preview before committing — the game teaches its own maths without a tutorial. They play. Cards resolve one at a time, each trigger popping a label and a rising tone. |
+| 0:00–0:15 | One screen, no account, no install. A help card with three numbered points and a worked example showing the arithmetic on a real card. Seven word-cards face up, each with a generated emblem and its overtones printed along the bottom. |
+| 0:15–0:50 | Player clicks a card. The stage shows a live **"would score"** preview before committing — the game teaches its own maths without a tutorial. A one-line coach sits above the hand and advances with them: pick → play → read the result, then retires for good. They play. Cards resolve one at a time, each trigger popping a label and a rising tone. |
 | 0:50–1:20 | Round 1 target (200) falls in about two plays. Unspent plays convert to money, which quietly teaches efficiency. |
 | 1:20–1:50 | **The Bookseller.** Three offers. The first Lens purchase is the moment the game stops being a word puzzle and becomes a roguelite. |
 | 1:50–3:30 | Rounds 2–4. Somewhere here the first real combo fires and the screen shakes. Most first runs die around round 4–5. |
@@ -156,6 +156,23 @@ Crucially it's **baked to a static table at build time**. The game runs at 0ms, 
 no API key and no per-session cost, and it's fully deterministic — which is what makes a shared
 daily seed possible at all.
 
+**The art comes out of the same table.** Every card's emblem is generated from its own
+overtones: the ground colour is picked from the word's most backdrop-ish overtone, then up to
+three motifs are drawn on top — flames for HEAT, shards for COLD, an eye for ANIMAL, coins for
+MONEY, a spiral for MIND. It's seeded by the word itself, so a card always looks the same, and
+capped at three motifs because past that the emblem turns to mud.
+
+This is worth more than decoration, for three reasons:
+
+- **It teaches.** Players start recognising card types by sight before they read a single tag.
+  The picture and the scoring rule are views of the same data, so learning one teaches the
+  other.
+- **It costs nothing to scale.** A lexicon pack of 200 new words ships with 200 pieces of art
+  and no artist. So does any word a player invents — the Interpreter's cards get real emblems
+  for free, which is exactly the case a hand-drawn asset library cannot serve.
+- **It stays honest to the brief.** No bitmaps, no external assets, nothing to load. The whole
+  art system is a few hundred lines of SVG primitives inside the same single file.
+
 ### 5.2 AI as a live participant in the game (runtime)
 
 **The Interpreter** is a real Claude call from inside the published page, via the artifact
@@ -262,11 +279,11 @@ pairing carrying the loudest colour in the UI. The structural steal is the left-
 panel — Demand badge, "score at least", round score, the chips × mult readout, plays and
 discards, money — with the board to its right: Lens row on top, resolution stage in the middle,
 a fanned hand at the bottom. Plays are announced with named shapes (`DOUBLE RESONANCE`,
-`OVERTONE CASCADE`) the way Balatro names poker hands, which teaches players to aim for a shape
+`WORDHOARD CASCADE`) the way Balatro names poker hands, which teaches players to aim for a shape
 instead of squinting at individual tags.
 
 *Did differently:* Balatro's hand is poker, so the skill floor is a memorised ranking table.
-Overtone's "hand" is meaning, which every player already has. And card *order* matters here in
+Wordhoard's "hand" is meaning, which every player already has. And card *order* matters here in
 a way it mostly doesn't there, which turns each play into a small ordering puzzle on top of a
 selection puzzle. The card faces carry words and overtones rather than rank and suit, so they
 run slightly larger and lean on type instead of pips — no art required either way.
@@ -275,7 +292,7 @@ run slightly larger and lean on type instead of pips — no art required either 
 *Borrowed:* the shared daily seed; a plain-text share block small enough to paste into a
 message; zero account, zero install, one screen.
 *Did differently:* Wordle is deliberately finite — one puzzle, then stop. That's excellent for
-habit and terrible for session length. Overtone keeps the daily seed as a *comparison* surface
+habit and terrible for session length. Wordhoard keeps the daily seed as a *comparison* surface
 but lets you play unlimited free runs, so it can be both a habit and a sitting.
 
 **Slay the Spire** — the run-structure reference.
@@ -288,14 +305,14 @@ blocks and shapes are fine."
 **Semantle / Contexto** — the proof that semantic distance is a legitimate mechanic.
 *Borrowed:* the core insight that meaning can be a scoring surface, not just a theme.
 *Did differently:* those games hide the semantic state and make you grind toward it one guess
-at a time, which is tense but slow and can feel like homework. Overtone **prints the overtones
+at a time, which is tense but slow and can feel like homework. Wordhoard **prints the overtones
 on the card**. Meaning becomes tactical information you act on immediately rather than hidden
 state you search for — which is what lets the loop run at roguelite speed.
 
 **Scrabble / Wordscapes** — the deliberate anti-reference.
 Both make vocabulary size and spelling the skill. That gates non-native speakers, rewards
 memorising two-letter word lists over actual thought, and makes losing feel like a verdict on
-your education. Overtone removes spelling from the skill entirely: you never construct a word,
+your education. Wordhoard removes spelling from the skill entirely: you never construct a word,
 you only choose and order ones you're shown.
 
 **Vampire Survivors** — borrowed exactly one lesson: if the numbers escalate hard enough and
@@ -311,6 +328,8 @@ the feedback is loud enough, nobody asks where the art is.
 | Rules that warp meaning | `LENSES` — 24 entries, `onCard` / `onPlay` hooks |
 | Order matters | `resolve()` iterates played cards left to right, emitting an event per trigger |
 | Teach the maths without a tutorial | `renderPreview()` — live "would score" before committing |
+| Card art from the same data | `artFor()` / `MOTIF` — generated emblems, no assets |
+| Teach in context, not up front | `COACH` / `coachSet()` — a one-line coach through round 1 |
 | Day-1 hook | `openInterpreter()` / `runAppraisal()` |
 | AI degrades, never breaks | `houseAppraise()` — the local fallback appraiser |
 | No unwinnable rounds | deck construction in `newRun()` — demand-aware floor |

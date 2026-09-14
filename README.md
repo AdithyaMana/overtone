@@ -1,4 +1,4 @@
-# Overtone
+# Wordhoard
 
 **A word roguelite where meaning is the physics.**
 
@@ -6,6 +6,10 @@ Every word carries *overtones* — semantic tags like HEAT, MOTION, DANGER, TIME
 a Demand (`THE FURNACE — wants HEAT, DANGER`) and a target. You play up to three word-cards,
 they resolve left to right, and every overtone that matches pays out. Between rounds you buy
 **Lenses** that rewrite how meaning scores, until the numbers get silly.
+
+Every card’s emblem is generated from its own overtones — flames for HEAT, shards for COLD,
+an eye for ANIMAL — so the picture and the scoring rule are views of the same data. No image
+assets: it is all SVG primitives, seeded by the word itself.
 
 Once per run, the **Interpreter** will take any word you type — your dog's name, your job
 title, anything — appraise its overtones, and shuffle it into your deck as a real card.
