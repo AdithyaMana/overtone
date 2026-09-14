@@ -886,21 +886,23 @@ test.describe("the scoring readout", () => {
 
     const total = page.locator(".stage-total");
     await total.waitFor({ state: "visible", timeout: 15000 });
-    const fits = await page.evaluate(() => {
+
+    /* The total slams in from scale(2.2) while the stage is still growing, so
+       the first frame is legitimately oversized and out of place. Poll for the
+       resting state rather than measuring the entrance. */
+    await expect.poll(() => page.evaluate(() => {
       const t = document.querySelector(".stage-total");
       if (!t) return null;
       const r = t.getBoundingClientRect();
-      return {
-        inViewport: r.top >= 0 && r.bottom <= window.innerHeight && r.left >= 0
-                    && r.right <= window.innerWidth,
-        hasSize: r.width > 20 && r.height > 20,
-        /* the old bug: overflow:hidden on a 76px-tall stage */
-        stageClips: getComputedStyle(document.getElementById("stage")).overflow === "hidden"
-      };
-    });
-    expect(fits.hasSize).toBe(true);
-    expect(fits.stageClips, "the stage is clipping its own scoring popup").toBe(false);
-    expect(fits.inViewport, "the total is off screen").toBe(true);
+      return r.width > 20 && r.height > 20
+        && r.top >= 0 && r.bottom <= window.innerHeight
+        && r.left >= 0 && r.right <= window.innerWidth;
+    }), { timeout: 6000, message: "the total never settled inside the viewport" }).toBe(true);
+
+    /* the old bug: overflow:hidden on a 76px-tall stage cut the readout in half */
+    const clips = await page.evaluate(() =>
+      getComputedStyle(document.getElementById("stage")).overflow === "hidden");
+    expect(clips, "the stage is clipping its own scoring popup").toBe(false);
     await settle(page);
   });
 
