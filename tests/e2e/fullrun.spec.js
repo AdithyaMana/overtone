@@ -11,6 +11,31 @@ const { pathToFileURL } = require("url");
 
 const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
 
+/* The game opens on a main menu now. Every spec starts on the board, so this
+   is the one place that knows how to get there. */
+async function enterGame(page){
+  const title = page.locator("#title");
+  /* The menu is drawn by start(), which may be deferred a tick by the artifact
+     host; asking isVisible() too early answers no and leaves the test on the
+     menu it thought it had walked past. */
+  await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (await title.isVisible()) await page.click("#titlePlay");
+  await expect(title).toBeHidden();
+}
+
+test.beforeEach(async ({ page }) => {
+  /* A fresh profile now starts on APPRENTICE, which is right for a person and
+     wrong for a spec: nearly everything here pins the game as balanced. */
+  await page.addInitScript(() => {
+    /* Only when nothing is stored: a spec starts on the balanced curve, and
+       never overrides a choice one of its own tests just made and reloaded. */
+    try {
+      if (localStorage.getItem("overtone:difficulty") === null)
+        localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
+    } catch (e) {}
+  });
+});
+
 /* Watch for anything the page complains about, from the first byte. */
 function watchForErrors(page) {
   const problems = [];
@@ -34,6 +59,7 @@ test.describe("a full run", () => {
       const problems = watchForErrors(page);
 
       await page.goto(GAME);
+      await enterGame(page);
       if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
       if (await page.locator("#veil").isVisible()) await page.click("#closeHelp");
       await expect(page.locator("#veil")).toBeHidden();
@@ -101,6 +127,7 @@ test.describe("a full run", () => {
       const problems = watchForErrors(page);
 
       await page.goto(GAME);
+      await enterGame(page);
       if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
 
       /* End a run holding a Lens, the short way — the long way is covered above.

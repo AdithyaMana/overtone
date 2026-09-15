@@ -50,6 +50,10 @@ function load(){
 
   const byId = Object.create(null);
   const store = Object.create(null);
+  /* A brand-new profile now starts on APPRENTICE, which is right for a person
+     and wrong for a test: nearly everything here pins the numbers of the game
+     as balanced. Tests that care about the gentler curve set it themselves. */
+  store["overtone:difficulty"] = JSON.stringify("scholar");
 
   /* The page starts its spotlight tutorial on a first visit, and that runs a
      setInterval which would hold Node's event loop open forever — node --test

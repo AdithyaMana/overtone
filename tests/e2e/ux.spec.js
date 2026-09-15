@@ -13,6 +13,31 @@ const { pathToFileURL } = require("url");
 
 const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
 
+/* The game opens on a main menu now. Every spec starts on the board, so this
+   is the one place that knows how to get there. */
+async function enterGame(page){
+  const title = page.locator("#title");
+  /* The menu is drawn by start(), which may be deferred a tick by the artifact
+     host; asking isVisible() too early answers no and leaves the test on the
+     menu it thought it had walked past. */
+  await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (await title.isVisible()) await page.click("#titlePlay");
+  await expect(title).toBeHidden();
+}
+
+test.beforeEach(async ({ page }) => {
+  /* A fresh profile now starts on APPRENTICE, which is right for a person and
+     wrong for a spec: nearly everything here pins the game as balanced. */
+  await page.addInitScript(() => {
+    /* Only when nothing is stored: a spec starts on the balanced curve, and
+       never overrides a choice one of its own tests just made and reloaded. */
+    try {
+      if (localStorage.getItem("overtone:difficulty") === null)
+        localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
+    } catch (e) {}
+  });
+});
+
 const overlap = (a, b) =>
   Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)) *
   Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
@@ -22,6 +47,7 @@ test.describe("the tutorial teaches the figure it can actually see", () => {
   /* Walk to the shape step: two Nexts, then three cards. */
   async function toShapeStep(page) {
     await page.goto(GAME);
+    await enterGame(page);
     await expect(page.locator("#tut")).toBeVisible();
     for (let i = 0; i < 2; i++) { await page.click("#tutNext"); await page.waitForTimeout(120); }
     for (let k = 0; k < 3; k++) {
@@ -76,6 +102,7 @@ test.describe("the tutorial teaches the figure it can actually see", () => {
   test("hands the deal back the way it was dealt when the tutorial ends",
     async ({ page }) => {
       await page.goto(GAME);
+      await enterGame(page);
       /* the arrangement is a teaching aid; left in place it pre-sorts a
          player's first three cards into a figure for the whole round */
       const arranged = await page.evaluate(() => G.hand.map(c => c.w));
@@ -98,6 +125,7 @@ test.describe("the tutorial teaches the figure it can actually see", () => {
 test.describe("labels do not land on each other", () => {
   test("nothing overlaps while a hand is scoring", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.waitForTimeout(250);
     /* three words on the same letter AND two matching tags each: the busiest
@@ -160,6 +188,7 @@ test.describe("labels do not land on each other", () => {
 
   test("the figure gets its own beat before the cards start", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.waitForTimeout(250);
     await page.evaluate(() => {
@@ -184,6 +213,7 @@ test.describe("it can be played sideways", () => {
     test("PLAY is reachable at " + vp.w + "x" + vp.h, async ({ page }) => {
       await page.setViewportSize({ width: vp.w, height: vp.h });
       await page.goto(GAME);
+      await enterGame(page);
       if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
       if (await page.locator("#veil").isVisible()) await page.click("#closeHelp");
       await page.waitForTimeout(400);
@@ -206,6 +236,7 @@ test.describe("it can be played sideways", () => {
     for (const vp of [{ w: 740, h: 400 }, { w: 932, h: 430 }, { w: 393, h: 727 }, { w: 375, h: 667 }]) {
       await page.setViewportSize({ width: vp.w, height: vp.h });
       await page.goto(GAME);
+      await enterGame(page);
       if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
       await page.waitForTimeout(350);
       /* Range rects count real line boxes, which element height cannot. */
@@ -232,6 +263,7 @@ test.describe("it can be played sideways", () => {
 test.describe("it can be played without looking at it", () => {
   test("a picked card says so, and says where it sits", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.waitForTimeout(250);
     const first = page.locator("#hand .card").first();
@@ -246,6 +278,7 @@ test.describe("it can be played without looking at it", () => {
 
   test("the board announces what the hand is worth", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.waitForTimeout(250);
     const say = page.locator("#say");
@@ -269,6 +302,7 @@ test.describe("the screens a player stops at", () => {
      Everything else is passed through. These take the board away properly. */
   const moment = async (page, how) => {
     await page.goto(GAME);
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.waitForTimeout(200);
     await page.evaluate(how);
@@ -327,6 +361,7 @@ test.describe("targets big enough to hit", () => {
     async ({ page }, info) => {
       test.skip(info.project.name !== "phone", "touch only");
       await page.goto(GAME);
+      await enterGame(page);
       if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
       await page.waitForTimeout(300);
       const small = await page.evaluate(() => {
@@ -351,4 +386,123 @@ test.describe("targets big enough to hit", () => {
       });
       expect(small, "controls under the 24px target minimum").toEqual([]);
     });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the main menu", () => {
+  test("is what you land on, and PLAY is always reachable", async ({ page }) => {
+    for (const vp of [{ w: 1280, h: 900 }, { w: 393, h: 727 }, { w: 375, h: 667 },
+                      { w: 740, h: 400 }, { w: 932, h: 430 }]) {
+      await page.setViewportSize({ width: vp.w, height: vp.h });
+      await page.goto(GAME);
+      await expect(page.locator("#title")).toBeVisible();
+      const m = await page.evaluate(() => {
+        const b = document.getElementById("titlePlay").getBoundingClientRect();
+        return { cut: Math.max(0, Math.round(b.bottom - innerHeight)),
+                 above: Math.round(b.top),
+                 sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      });
+      expect(m.cut, "PLAY is below the fold at " + vp.w + "x" + vp.h).toBe(0);
+      expect(m.above, "PLAY is above the fold at " + vp.w + "x" + vp.h).toBeGreaterThanOrEqual(0);
+      expect(m.sideways, "the menu scrolls sideways at " + vp.w + "x" + vp.h).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("the board is not playable until you press it", async ({ page }) => {
+    await page.goto(GAME);
+    await expect(page.locator("#title")).toBeVisible();
+    /* the cards are dealt behind it so PLAY is instant, but nothing on the
+       board can be reached through the menu */
+    const blocked = await page.evaluate(() => {
+      const card = document.querySelector("#hand .card");
+      if (!card) return "no card dealt";
+      const r = card.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return hit && (hit.closest("#title") ? "menu" : "board");
+    });
+    expect(blocked, "the board was clickable underneath the main menu").toBe("menu");
+    await page.click("#titlePlay");
+    await expect(page.locator("#title")).toBeHidden();
+    await expect(page.locator("#hand .card")).toHaveCount(7);
+  });
+
+  test("a returning player sees what they have done", async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("overtone:runs", "12");
+        localStorage.setItem("overtone:best", "38400");
+        localStorage.setItem("overtone:tutorial", "true");
+      } catch (e) {}
+    });
+    await page.goto(GAME);
+    await expect(page.locator("#title .runstat")).toContainText("12");
+    await expect(page.locator("#title .runstat")).toContainText("38,400");
+    await expect(page.locator("#titlePlay")).toContainText("daily");
+    /* and is not told where to start, because they know */
+    await expect(page.locator(".diffopt .tip")).toHaveCount(0);
+  });
+
+  test("every door on it comes back to it", async ({ page }) => {
+    await page.goto(GAME);
+    await page.click("#titleFigs");
+    await expect(page.locator(".figtab")).toBeVisible();
+    await page.click("#figsBack");
+    await expect(page.locator("#title")).toBeVisible();
+    await expect(page.locator("#veil")).toBeHidden();
+
+    await page.click("#titleHelp");
+    await expect(page.locator("#panel h2")).toContainText("How Overtone works");
+    await page.click("#helpBack");
+    await expect(page.locator("#title")).toBeVisible();
+
+    await page.click("#titleSound");
+    await expect(page.locator("#panel h2")).toHaveText("Menu");
+    await page.click("#closeSettings");
+    await expect(page.locator("#title")).toBeVisible();
+  });
+
+  test("the game can be left and come back to", async ({ page }) => {
+    await page.goto(GAME);
+    await page.click("#titlePlay");
+    await expect(page.locator("#title")).toBeHidden();
+    await page.locator("#tutSkip").click().catch(() => {});
+    await page.click("#menuBtn");
+    await page.click("#menuTitle");
+    await expect(page.locator("#title")).toBeVisible();
+    await expect(page.locator("#veil")).toBeHidden();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("round over reads as a popup", () => {
+  test("the board is taken away behind the stamp", async ({ page }) => {
+    await page.goto(GAME);
+    await enterGame(page);
+    if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+    await page.waitForTimeout(200);
+    await page.evaluate(() => stamp("ROUND CLEAR", false, 3000));
+    await page.waitForTimeout(300);
+    const look = await page.evaluate(() => {
+      const el = document.getElementById("stamp");
+      const cs = getComputedStyle(el);
+      return { shown: !el.hidden,
+               blur: cs.backdropFilter || cs.webkitBackdropFilter,
+               ground: cs.backgroundImage !== "none",
+               text: document.getElementById("stampText").textContent };
+    });
+    expect(look.shown).toBe(true);
+    expect(look.text).toBe("ROUND CLEAR");
+    expect(look.blur, "the board behind the stamp is not blurred back").toMatch(/blur/);
+    expect(look.ground, "nothing dims the board behind the stamp").toBe(true);
+  });
+
+  test("and comes back afterwards", async ({ page }) => {
+    await page.goto(GAME);
+    await enterGame(page);
+    if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+    await page.evaluate(() => stamp("OUT OF PLAYS", true, 700));
+    await expect(page.locator("#stamp")).toBeVisible();
+    await page.waitForTimeout(1100);
+    await expect(page.locator("#stamp")).toBeHidden();
+  });
 });

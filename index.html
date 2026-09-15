@@ -524,7 +524,17 @@ button{ font-family: inherit; color: inherit; }
 .stamp{
   position: fixed; inset: 0; z-index: 58; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
+  /* ROUND CLEAR landed on a board still lit up and scoring, so the loudest
+     sentence in the game competed with sixty cards for the eye. Take the board
+     away for the second it is up. */
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(60,74,110,.34), transparent 72%),
+    rgba(5,6,16,.72);
+  backdrop-filter: blur(5px) saturate(.6);
+  -webkit-backdrop-filter: blur(5px) saturate(.6);
+  animation: stampVeil .22s ease-out;
 }
+@keyframes stampVeil{ 0%{ opacity:0 } 100%{ opacity:1 } }
 .stamp[hidden]{ display: none !important; }
 .stamp span{
   font-family: var(--f-display);
@@ -535,6 +545,7 @@ button{ font-family: inherit; color: inherit; }
   animation: stampIn .62s cubic-bezier(.15,1.7,.35,1) forwards;
 }
 .stamp.bad span{ background: var(--blind); box-shadow: 0 7px 0 var(--blind-d); }
+.stamp.going{ opacity: 0; transition: opacity .3s ease-in; }
 @keyframes stampIn{
   0%{ transform: scale(3.2) rotate(-12deg); opacity: 0; }
   38%{ transform: scale(.92) rotate(-3deg); opacity: 1; }
@@ -903,7 +914,7 @@ button{ font-family: inherit; color: inherit; }
 
 /* ---------- overlays ---------- */
 .veil{
-  position: fixed; inset:0; z-index: 40;
+  position: fixed; inset:0; z-index: 80;
   background: rgba(11,11,28,.92);
   display:flex; align-items:center; justify-content:center;
   padding: 18px; overflow-y:auto;
@@ -1100,6 +1111,66 @@ button{ font-family: inherit; color: inherit; }
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
+/* ---------- the main menu ----------
+   The game used to deal you a hand before it had said what it was. This is the
+   first thing now: the name, what it is, how hard you want it, and PLAY. */
+.title{
+  /* Under the veil on purpose: a panel opened FROM the menu has to sit on top
+     of it, or reading the rules shows you a dimmed rectangle behind the menu
+     you were just looking at. Above the tutorial, which must never run here. */
+  position: fixed; inset: 0; z-index: 72;
+  display:flex; align-items:center; justify-content:center;
+  padding: 18px; overflow-y:auto;
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 38%, rgba(70,84,120,.34), transparent 70%),
+    var(--bg);
+}
+.title[hidden]{ display:none !important; }
+.title-card{
+  width:100%; max-width: 560px; margin: auto;
+  animation: titleIn .4s cubic-bezier(.2,1.2,.4,1) both;
+}
+@keyframes titleIn{ 0%{ opacity:0; transform: translateY(12px) } 100%{ opacity:1; transform:none } }
+.title-mark{ font-size: clamp(38px, 11vw, 62px); text-align:center; margin: 0 0 6px; }
+.tagline{
+  text-align:center; color: var(--text-dim); font-size: 14.5px;
+  margin: 0 0 22px; letter-spacing:.02em;
+}
+.title .sub{ font-size: 13px; color: var(--text-faint); letter-spacing:.05em; margin: 0 0 7px; }
+.title .diffpick{ margin-bottom: 8px; }
+.title .setnote{ margin-bottom: 18px; }
+.startrow{ display:flex; gap:10px; margin: 0 0 18px; }
+.startrow .btn{ flex:1; }
+.btn.huge{ padding: 17px 26px; font-size: 18px; }
+/* the one a first run should press, said once and then never again */
+.diffopt .tip{
+  font-size: 9px; letter-spacing:.09em; background: var(--gold); color:#12181C;
+  border-radius: 3px; padding: 2px 6px; margin-left: 8px; vertical-align: 1px;
+}
+.title .runstat{ margin-bottom: 14px; }
+.title-foot{
+  text-align:center; font-size: 11.5px; color: var(--text-faint);
+  letter-spacing:.06em; margin-top: 4px;
+}
+/* A title screen with PLAY below the fold is the one layout failure a menu
+   cannot have. Short screens get a compact version of it. */
+@media (max-height: 560px){
+  .title{ padding: 10px; align-items: flex-start; }
+  .title-mark{ font-size: clamp(26px, 7vw, 38px); margin-bottom: 2px; }
+  .tagline{ font-size: 12.5px; margin-bottom: 12px; }
+  .title .sub{ margin-bottom: 4px; }
+  .title .diffpick{ gap: 5px; margin-bottom: 5px; }
+  .title .diffopt{ padding: 7px 10px; }
+  .title .diffopt .dd{ font-size: 11px; line-height: 1.35; margin-top: 1px; }
+  .title .setnote{ margin-bottom: 10px; font-size: 11.5px; }
+  .btn.huge{ padding: 12px 20px; font-size: 16px; }
+  .startrow{ margin-bottom: 12px; }
+  .title .menugrid{ gap: 6px; margin-bottom: 10px; }
+  .title .menuitem{ padding: 8px 10px; }
+  .title .menuitem .md{ font-size: 11px; line-height: 1.35; }
+  .title .runstat{ gap: 6px; margin-bottom: 8px; }
+}
+
 #menuBtn{ display:inline-flex; align-items:center; gap:7px; }
 #menuBtn .ham{ font-size: 15px; line-height:1; }
 /* Sound lived on its own button and took its mute state with it when it moved
@@ -1655,6 +1726,7 @@ button{ font-family: inherit; color: inherit; }
   /* the dimming stays — it is the point; the movement goes */
   .veil.moment .panel h2, .veil.moment .panel > .sub,
   .veil.moment .stat.gold, .veil.moment .unlock{ animation: none; }
+  .stamp{ animation: none; }
 }
 
 </style>
@@ -1773,6 +1845,14 @@ button{ font-family: inherit; color: inherit; }
 </div>
 
 <div class="stamp" id="stamp" hidden><span id="stampText"></span></div>
+
+<div class="title" id="title">
+  <div class="title-card">
+    <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
+    <p class="tagline">A word roguelite where meaning is the physics.</p>
+    <div id="titleBody"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast" hidden></div>
 
@@ -2479,6 +2559,14 @@ const store = {
    people mute in public, sound effects are the one people mute at work, and
    vibration is the one that eats a battery. Lumping them behind a single
    mute button makes at least two of those a worse trade than they need to be. */
+/* Somebody opening this for the first time has no idea that four runs in five
+   end early on purpose, and finding out by losing six of them is not a lesson.
+   They start on APPRENTICE. Written down on the first boot rather than derived
+   every time, or the default would flip to SCHOLAR the moment their run counter
+   ticked past zero and the game would have changed difficulty behind them. */
+if(store.get("difficulty", null) === null){
+  store.set("difficulty", store.get("runs", 0) === 0 ? "apprentice" : "scholar");
+}
 const prefs = {
   sfx:     store.get("sfx", true),
   music:   store.get("music", true),
@@ -4234,9 +4322,15 @@ function stamp(text, bad, ms){
   if(!el) return;
   document.getElementById("stampText").textContent = text;
   el.classList.toggle("bad", !!bad);
+  el.classList.remove("going");
   el.hidden = false;
   clearTimeout(stamp._t);
-  stamp._t = setTimeout(function(){ el.hidden = true; }, ms || 1000);
+  clearTimeout(stamp._f);
+  /* Let the board come back before the words do, so the screen is not simply
+     switched on again underneath them. */
+  const life = ms || 1000;
+  stamp._f = setTimeout(function(){ el.classList.add("going"); }, Math.max(0, life - 300));
+  stamp._t = setTimeout(function(){ el.hidden = true; }, life);
 }
 
 /* Screen shake, scaled to the hit. */
@@ -4848,7 +4942,7 @@ function renderPreview(){
     call.appendChild(txt);
     sc.appendChild(call);
     const fl = txt.querySelector(".figlink");
-    if(fl) fl.onclick = showFigures;
+    if(fl) fl.onclick = function(){ showFigures(); };
     setTally(0, 1);
     hint.textContent = idleHint();
     return;
@@ -4909,7 +5003,7 @@ function renderPreview(){
             ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>'
             : ''));
   const nm = hint.querySelector(".hand-name");
-  if(nm && !solo) nm.onclick = showFigures;
+  if(nm && !solo) nm.onclick = function(){ showFigures(); };
   say((solo ? resonanceName(hits) : (fig ? fig.n : "No figure"))
       + (fig ? ", plus " + fig.chips + " and " + fig.mult + " multiplier" : "")
       + ". Worth " + res.total.toLocaleString() + " points."
@@ -4953,14 +5047,20 @@ function showFigures(back){
     + 'would make a better one in a different order. It will not reorder them for you.</p>'
     + '<div class="rowend">'
     + (back ? '<button class="btn" id="figsBack" type="button">Back to '
-              + (back === "menu" ? 'the menu' : 'how it works') + '</button>'
+              + (back === "how it works" ? 'how it works'
+                 : back === "help" ? 'how it works' : 'the menu') + '</button>'
             : '<span></span>')
     + '<button class="btn primary" id="closeFigs" type="button">Play</button></div>');
   document.getElementById("closeFigs").onclick = hidePanel;
   /* Opened from somewhere, this used to be a door that only went one way: the
      sole button said Play, so reading the table cost you your place. */
   const b = document.getElementById("figsBack");
-  if(b) b.onclick = back === "menu" ? showMenu : showHelp;
+  /* Bound, not handed over: assigning these straight to onclick passes the
+     CLICK EVENT as the first argument, and every one of them reads its first
+     argument as "where did you come from". */
+  if(b) b.onclick = back === "title" ? function(){ showTitle(); }
+                  : back === "menu" ? function(){ showMenu(); }
+                  : function(){ showHelp(); };
 }
 
 function renderDemand(){
@@ -5142,11 +5242,91 @@ function syncSoundBtn(){
   dot.hidden = !!(prefs.music || prefs.sfx);
 }
 
-/* ---------- the menu ----------
-   Difficulty, sound and the rules used to live behind a music note, which is
-   where nobody looks for how hard the game is. One door, and everything that
-   is not a move in the game is behind it. */
-function showMenu(){
+/* ---------- the main menu ----------
+   What a player lands on. The name, one line about what this is, how hard they
+   want it, and PLAY. Everything else is a smaller door underneath. */
+let titleOpen = false;
+function showTitle(){
+  titleOpen = true;
+  hidePanel();
+  const el = document.getElementById("title");
+  const runs = store.get("runs", 0);
+  const now = difficulty();
+  const first = runs === 0;
+
+  const pick = DIFFICULTIES.map(function(d){
+    return '<button class="diffopt" type="button" data-diff="' + d.id + '" aria-pressed="'
+      + (d.id === now.id ? "true" : "false") + '">'
+      + '<div class="dn">' + d.n
+      + (first && d.id === "apprentice" ? '<span class="tip">START HERE</span>' : '')
+      + '</div><div class="dd">' + d.d + '</div></button>';
+  }).join("");
+
+  const stat = function(k, v){
+    return '<div><div class="k">' + k + '</div><div class="v' + (v ? '' : ' none') + '">'
+      + (v ? v.toLocaleString() : '\u2014') + '</div></div>';
+  };
+
+  document.getElementById("titleBody").innerHTML = ''
+    + '<div class="sub">How hard</div>'
+    + '<div class="diffpick">' + pick + '</div>'
+    + '<p class="setnote">' + (first
+        ? 'Four runs in five end early on <b>SCHOLAR</b>. <b>APPRENTICE</b> is the same game '
+          + 'with room to be wrong in \u2014 you can change this any time.'
+        : 'You can change this between runs, from the menu.') + '</p>'
+    + '<div class="startrow">'
+    +   '<button class="btn primary huge" id="titlePlay" type="button">'
+    +     (first ? 'Play \u2192' : 'Play the daily \u2192') + '</button>'
+    + '</div>'
+    + '<div class="sub">Read up</div>'
+    + '<div class="menugrid">'
+    +   '<button class="menuitem" id="titleHelp" type="button">'
+    +     '<div class="mk">HOW TO PLAY</div>'
+    +     '<div class="md">Seven things, with the arithmetic on a real card.</div></button>'
+    +   '<button class="menuitem" id="titleFigs" type="button">'
+    +     '<div class="mk">THE FIGURES</div>'
+    +     '<div class="md">All five shapes and what each one pays.</div></button>'
+    +   '<button class="menuitem" id="titleSound" type="button">'
+    +     '<div class="mk">SOUND &amp; FEEL</div>'
+    +     '<div class="md">Music, effects and vibration.</div></button>'
+    + '</div>'
+    + (runs
+        ? '<div class="sub">Your runs</div><div class="runstat">'
+          + stat("Runs played", runs)
+          + stat("Best \u00b7 SCHOLAR", store.get("best", 0))
+          + stat("Best \u00b7 APPRENTICE", store.get("best:apprentice", 0))
+          + '</div>'
+        : '')
+    + '<div class="title-foot">TODAY\u2019S DAILY \u00b7 ' + todayKey().toUpperCase() + '</div>';
+
+  el.hidden = false;
+  document.getElementById("titlePlay").onclick = startFromTitle;
+  document.getElementById("titleHelp").onclick = function(){ showHelp("title"); };
+  document.getElementById("titleFigs").onclick = function(){ showFigures("title"); };
+  document.getElementById("titleSound").onclick = function(){ showMenu("title"); };
+  Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(b){
+    b.onclick = function(){ setPref("difficulty", b.dataset.diff); SFX.buy(); showTitle(); };
+  });
+}
+
+function hideTitle(){
+  titleOpen = false;
+  document.getElementById("title").hidden = true;
+}
+
+/* PLAY. A first-timer gets the tutorial on the board they are about to play. */
+function startFromTitle(){
+  hideTitle();
+  /* The click that got here IS the gesture, and the window-level hook has
+     already seen it — calling firstGesture() again starts a second theme over
+     the first. */
+  newRun(null);
+  if(!tutorialSeen()) startTutorial(false);
+}
+
+/* ---------- the in-game menu ----------
+   Difficulty, sound and the rules, reachable without leaving the table. */
+function showMenu(back){
   function row(key, label, desc){
     return '<div class="setrow"><div><div class="sl">' + label + '</div>'
       + '<div class="sd">' + desc + '</div></div>'
@@ -5204,14 +5384,20 @@ function showMenu(){
         + "browsers on iPhone don’t allow it.")
 
     + '<div class="rowend">'
-    + '<button class="btn" id="menuNewRun" type="button">Start a new run</button>'
-    + '<button class="btn primary" id="closeSettings" type="button">Back to the game</button></div>');
+    + '<button class="btn" id="menuTitle" type="button">'
+    +   (back === "title" ? 'Back to the menu' : 'Main menu') + '</button>'
+    + (back === "title" ? ''
+        : '<button class="btn" id="menuNewRun" type="button">Start a new run</button>')
+    + '<button class="btn primary" id="closeSettings" type="button">'
+    + (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
 
-  document.getElementById("closeSettings").onclick = hidePanel;
+  document.getElementById("closeSettings").onclick = back === "title" ? function(){ showTitle(); } : hidePanel;
+  document.getElementById("menuTitle").onclick = function(){ showTitle(); };
   document.getElementById("menuHelp").onclick = function(){ showHelp("menu"); };
   document.getElementById("menuFigs").onclick = function(){ showFigures("menu"); };
   document.getElementById("menuTut").onclick = function(){ hidePanel(); startTutorial(true); };
-  document.getElementById("menuNewRun").onclick = function(){
+  const nr = document.getElementById("menuNewRun");
+  if(nr) nr.onclick = function(){
     hidePanel();
     newRun("free-" + Math.random().toString(36).slice(2,8), true);
     toast(difficulty().n + " run. No Lenses, no Memory.");
@@ -5341,7 +5527,7 @@ function showHelp(back){
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
     + '<div class="rowend">'
-    + (back === "menu"
+    + (back
         ? '<button class="btn" id="helpBack" type="button">Back to the menu</button>'
         : '<button class="btn" id="replayTut" type="button">Run the tutorial</button>')
     + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
@@ -5350,15 +5536,15 @@ function showHelp(back){
   const rt = document.getElementById("replayTut");
   if(rt) rt.onclick = function(){ hidePanel(); startTutorial(true); };
   const hb = document.getElementById("helpBack");
-  if(hb) hb.onclick = showMenu;
+  if(hb) hb.onclick = back === "title" ? function(){ showTitle(); } : function(){ showMenu(); };
 }
 
 /* ---------- input ---------- */
 document.getElementById("playBtn").onclick = play;
 document.getElementById("discardBtn").onclick = discardSel;
 document.getElementById("interpBtn").onclick = openInterpreter;
-document.getElementById("helpBtn").onclick = showHelp;
-document.getElementById("menuBtn").onclick = showMenu;
+document.getElementById("helpBtn").onclick = function(){ showHelp(); };
+document.getElementById("menuBtn").onclick = function(){ showMenu(); };
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel();
   newRun("free-" + Math.random().toString(36).slice(2,8), true);
@@ -5401,11 +5587,10 @@ document.addEventListener("keydown", function(e){
 function start(restored){
   initIcons();
   syncSoundBtn();
+  /* The board is dealt behind the menu so PLAY is instant and the title has a
+     real run to show the daily for, but nothing is shown until they press it. */
   newRun(null);
-  /* A rules modal shown before the game has been seen is the worst moment to
-     explain anything. First-timers get the spotlight tutorial on the real
-     board instead; the modal stays one click away under "How to play". */
-  if(!tutorialSeen()) startTutorial(false);
+  showTitle();
 }
 try{
   if(window.claude && window.claude.hot){

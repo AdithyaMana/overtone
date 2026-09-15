@@ -37,7 +37,9 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
   is almost never a mistake — and clearing a round with plays and discards left pays more at the
   shop. Play fewer only when a Lens pays you to (ASCETIC gives ×5 for exactly one word).
 - **Four plays, three discards** per round. Miss the target and the run ends.
-- Two difficulties, under **☰ Menu**. **SCHOLAR** is the game as balanced. **APPRENTICE** lowers every
+- The game opens on a **main menu**: pick how hard, press Play. A first-time player is started
+  on APPRENTICE and told why; a returning one keeps what they chose and sees their run history.
+- Two difficulties. **SCHOLAR** is the game as balanced. **APPRENTICE** lowers every
   target by 40% and adds a fourth discard — same words, same Lenses, same Ordeals, more room to be
   wrong in.
 - Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
@@ -207,7 +209,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**416 tests, 0 failures.** 144 engine + 272 E2E. The engine tier uses Node’s built-in runner and needs no
+**434 tests, 0 failures.** 144 engine + 290 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -493,6 +495,12 @@ is usually a dead draw rather than a wrong choice.
 | discards | 3 | 4 |
 
 Measure it with `node tools/balance.js --difficulty apprentice`.
+
+**A first run starts on APPRENTICE.** Somebody opening this for the first time has no idea that
+four runs in five end early on purpose, and finding out by losing six of them is not a lesson. The
+default is written down on the first boot rather than derived every time, or it would flip to
+SCHOLAR the moment their run counter passed zero and the game would have changed difficulty behind
+them. Anyone who has already played keeps SCHOLAR.
 
 Three things keep it honest. The difficulty is **pinned at `newRun`**, so nobody switches at round
 7 to duck the wall. A total scored on the gentler curve is stored under its own key and **never

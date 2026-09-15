@@ -8,11 +8,37 @@ const { pathToFileURL } = require("url");
 
 const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
 
+/* The game opens on a main menu now. Every spec starts on the board, so this
+   is the one place that knows how to get there. */
+async function enterGame(page){
+  const title = page.locator("#title");
+  /* The menu is drawn by start(), which may be deferred a tick by the artifact
+     host; asking isVisible() too early answers no and leaves the test on the
+     menu it thought it had walked past. */
+  await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (await title.isVisible()) await page.click("#titlePlay");
+  await expect(title).toBeHidden();
+}
+
+test.beforeEach(async ({ page }) => {
+  /* A fresh profile now starts on APPRENTICE, which is right for a person and
+     wrong for a spec: nearly everything here pins the game as balanced. */
+  await page.addInitScript(() => {
+    /* Only when nothing is stored: a spec starts on the balanced curve, and
+       never overrides a choice one of its own tests just made and reloaded. */
+    try {
+      if (localStorage.getItem("overtone:difficulty") === null)
+        localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
+    } catch (e) {}
+  });
+});
+
 /* Open the game and clear the first-run help card. */
 /* Open the game past whatever first-run guidance is showing. The spotlight
    tutorial replaced the auto-opening help modal, so handle either. */
 async function open(page) {
   await page.goto(GAME);
+  await enterGame(page);
   const tut = page.locator("#tut");
   if (await tut.isVisible()) {
     await page.click("#tutSkip");
@@ -57,6 +83,7 @@ async function playAHand(page) {
 test.describe("first visit", () => {
   test("greets with the tutorial, not a wall of rules", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     await expect(page).toHaveTitle("Overtone");
     await expect(page.locator("#tut")).toBeVisible();
     await expect(page.locator("#veil"), "a rules modal opened itself").toBeHidden();
@@ -509,6 +536,7 @@ test.describe("layout", () => {
        was pointing at. It is the portrait run that catches this — at desktop
        width the Lens bar barely moves — but the check is cheap on both. */
     await page.goto(GAME);
+    await enterGame(page);
     await expect(page.locator("#tut")).toBeVisible();
 
     const drift = () => page.evaluate(() => {
@@ -836,11 +864,13 @@ test.describe("the opening tutorial", () => {
 
   test("is as long as it says it is", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     expect(await page.evaluate(() => TUT.length)).toBe(STEPS);
   });
 
   test("greets a first-time player instead of a rules modal", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     await expect(page.locator("#tut")).toBeVisible();
     await expect(page.locator("#tutStep")).toContainText("Overtone");
     await expect(page.locator("#tutText")).toContainText("overtones");
@@ -852,6 +882,7 @@ test.describe("the opening tutorial", () => {
 
   test("spotlights the real board, and lets the player touch it", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     await page.click("#tutNext");                       // -> what the round wants
     await expect(page.locator("#tutStep")).toContainText(at(2));
     await expect(page.locator("#tutText")).toContainText("wants");
@@ -876,6 +907,7 @@ test.describe("the opening tutorial", () => {
 
   test("answers how many words to take, and makes you take a second", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
 
@@ -898,6 +930,7 @@ test.describe("the opening tutorial", () => {
 
   test("names the case for playing fewer, so the rule has an exception", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
@@ -911,6 +944,7 @@ test.describe("the opening tutorial", () => {
 
   test("advances off a real play, then finishes and stays gone", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     /* straight to the play step */
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
@@ -932,21 +966,25 @@ test.describe("the opening tutorial", () => {
 
     /* and it does not ambush a returning player */
     await page.reload();
+    await enterGame(page);
     await expect(page.locator("#hand .card")).toHaveCount(7);
     await expect(page.locator("#tut")).toBeHidden();
   });
 
   test("can be skipped, and skipping sticks", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     await page.click("#tutSkip");
     await expect(page.locator("#tut")).toBeHidden();
     await expect(page.locator("#hand .card")).toHaveCount(7);
     await page.reload();
+    await enterGame(page);
     await expect(page.locator("#tut")).toBeHidden();
   });
 
   test("skipping leaves the lighter coach running", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     await page.click("#tutSkip");
     /* they opted out of the overlay, not out of ever being helped */
     await expect(page.locator("#coach")).toBeVisible();
@@ -955,6 +993,7 @@ test.describe("the opening tutorial", () => {
 
   test("finishing it retires the coach, which would only repeat itself", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
@@ -969,6 +1008,7 @@ test.describe("the opening tutorial", () => {
 
   test("only one guide runs at a time", async ({ page }) => {
     await page.goto(GAME);
+    await enterGame(page);
     await expect(page.locator("#tut")).toBeVisible();
     /* the coach would otherwise be giving its own instructions underneath */
     await expect(page.locator("#coach")).toBeHidden();
@@ -987,6 +1027,7 @@ test.describe("the opening tutorial", () => {
   test("docks the card clear of the spotlight on a phone", async ({ page }, info) => {
     test.skip(info.project.name !== "phone", "phone layout only");
     await page.goto(GAME);
+    await enterGame(page);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
@@ -1029,6 +1070,7 @@ test.describe("sound, vibration and motion", () => {
 
     await page.click("#closeSettings");
     await page.reload();
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.click("#menuBtn");
     await expect(page.locator('.switch[data-pref="music"]')).toHaveText("OFF");
@@ -1065,8 +1107,11 @@ test.describe("sound, vibration and motion", () => {
     const asked = [];
     page.on("request", r => { if (/theme\.mp3/.test(r.url())) asked.push(r.url()); });
     await page.goto(GAME);
-    await expect(page.locator("#tut")).toBeVisible();
-    expect(asked, "2MB of audio was pulled before the first frame").toEqual([]);
+    /* The main menu is the first frame now, and nobody has pressed anything on
+       it. PLAY is a real gesture and may legitimately start the theme. */
+    await expect(page.locator("#title")).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(asked, "2MB of audio was pulled before the player pressed anything").toEqual([]);
   });
 });
 
@@ -1360,6 +1405,7 @@ test.describe("Ordeals", () => {
   test("an Ordeal never lands on the round a first-timer is being taught",
     async ({ page }) => {
       await page.goto(GAME);
+      await enterGame(page);
       /* The tutorial runs on round 1. Meeting a rule-breaking round while
          still learning the rules would be indefensible. */
       const first = await page.evaluate(() => G.ordeal);

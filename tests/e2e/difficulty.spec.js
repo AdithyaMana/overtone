@@ -10,35 +10,88 @@ const { pathToFileURL } = require("url");
 
 const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
 
+/* The game opens on a main menu now. Every spec starts on the board, so this
+   is the one place that knows how to get there. */
+async function enterGame(page){
+  const title = page.locator("#title");
+  /* The menu is drawn by start(), which may be deferred a tick by the artifact
+     host; asking isVisible() too early answers no and leaves the test on the
+     menu it thought it had walked past. */
+  await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (await title.isVisible()) await page.click("#titlePlay");
+  await expect(title).toBeHidden();
+}
+
 async function open(page) {
   await page.goto(GAME);
+  await enterGame(page);
   if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
   if (await page.locator("#veil").isVisible()) await page.click("#closeHelp");
   await expect(page.locator("#veil")).toBeHidden();
 }
 
 test.describe("choosing how hard", () => {
-  test("the setting is there, and SCHOLAR is what you get by default", async ({ page }) => {
-    await open(page);
-    await page.click("#menuBtn");
-    await expect(page.locator("#panel h2")).toHaveText("Menu");
-    const opts = page.locator(".diffopt");
-    await expect(opts).toHaveCount(2);
-    await expect(page.locator('.diffopt[data-diff="scholar"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator('.diffopt[data-diff="apprentice"]')).toHaveAttribute("aria-pressed", "false");
-    /* it has to say what it does, not just its name */
-    await expect(page.locator('.diffopt[data-diff="apprentice"]')).toContainText("discard");
+  /* Everything below asserts the game as balanced, so it pins SCHOLAR. The two
+     tests about what a NEW player gets clear that themselves. */
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      /* Only when nothing is stored, so a test can make a choice, reload, and
+         still find it there. */
+      try {
+        if (localStorage.getItem("overtone:difficulty") === null)
+          localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
+      } catch (e) {}
+    });
+  });
+
+  test("it is on the main menu, described, with the current one marked",
+    async ({ page }) => {
+      await page.goto(GAME);
+      await expect(page.locator("#title")).toBeVisible();
+      const opts = page.locator("#title .diffopt");
+      await expect(opts).toHaveCount(2);
+      await expect(page.locator('#title .diffopt[data-diff="scholar"]'))
+        .toHaveAttribute("aria-pressed", "true");
+      /* it has to say what it does, not just its name */
+      await expect(page.locator('#title .diffopt[data-diff="apprentice"]')).toContainText("discard");
+    });
+
+  test("a first run starts on APPRENTICE, and is told why", async ({ page }) => {
+    /* nothing stored at all: somebody opening this for the first time */
+    await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+    await page.goto(GAME);
+    await expect(page.locator("#title")).toBeVisible();
+    await expect(page.locator('#title .diffopt[data-diff="apprentice"]'))
+      .toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".diffopt .tip")).toHaveText("START HERE");
+    await expect(page.locator(".setnote")).toContainText("Four runs in five");
+    expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
+  });
+
+  test("somebody who has played before is left where they were", async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.clear(); localStorage.setItem("overtone:runs", "9"); } catch (e) {}
+    });
+    await page.goto(GAME);
+    await expect(page.locator("#title")).toBeVisible();
+    expect(await page.evaluate(() => difficulty().id), "a returning player was moved to the easy curve")
+      .toBe("scholar");
+    await expect(page.locator(".diffopt .tip")).toHaveCount(0);
   });
 
   test("picking it sticks, and says it lands on the next run", async ({ page }) => {
     await open(page);
     await page.click("#menuBtn");
-    await page.click('.diffopt[data-diff="apprentice"]');
-    await expect(page.locator('.diffopt[data-diff="apprentice"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".setnote")).toContainText("still");
+    await expect(page.locator("#panel h2")).toHaveText("Menu");
+    /* the main menu carries the same control, so scope to the one on screen */
+    await page.click('#panel .diffopt[data-diff="apprentice"]');
+    await expect(page.locator('#panel .diffopt[data-diff="apprentice"]'))
+      .toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#panel .setnote")).toContainText("still");
     /* the run on the table is untouched */
     expect(await page.evaluate(() => runDifficulty().id)).toBe("scholar");
     await page.reload();
+    await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     expect(await page.evaluate(() => difficulty().id), "the choice did not survive a reload")
       .toBe("apprentice");
