@@ -2503,7 +2503,7 @@ const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
    what actually ends an early run is a dead draw, not a wrong choice. */
 const DIFFICULTIES = [
   { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"Lower targets and a fourth discard. Same words, same Ordeals, with more room to be wrong in." },
+    d:"Lower targets and a fourth discard. Same words, same Lenses, same Ordeals, with more room to be wrong in." },
   { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
     d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
 ];
@@ -2527,33 +2527,20 @@ function scholarOpen(){ return store.get("runs", 0) > 0; }
    They meet one in SCHOLAR, where the game is the game. From that moment the
    drawer is open everywhere, APPRENTICE included: taking a mechanic back off
    somebody who has already learned it would be the worse of the two mistakes. */
+/* Whether this player has been introduced to the Lenses that cost something.
+   They are on the shelf either way — hiding them was tried and it made the
+   gentler mode harder, not easier, because six of the biggest multipliers in
+   the game are what the curve is built to be climbed with. What a new player
+   needs is the explanation, not the absence. */
 function flawsSeen(){ return store.get("sawFlaw", false); }
-function flawsOpen(){ return difficulty().id !== "apprentice" || flawsSeen(); }
-/* Pinned at newRun for the same reason the difficulty is: the shop quotes the
-   next round's target before you spend, and a target that moves between the
-   quote and the round is the shop lying. */
-function runFlaws(){ return (G && typeof G.flaws === "boolean") ? G.flaws : flawsOpen(); }
 
-/* APPRENTICE without the flawed Lenses has no ceiling. Measured over 400 runs
-   through the real engine, taking the six biggest multipliers out of the shop
-   cost it 15.8 points of win rate — the gentler mode came out HARDER than it
-   went in. The targets come down to match, and go back up the day the drawer
-   opens, so both halves of APPRENTICE land in the same place. */
-function curveScale(){
-  const d = runDifficulty();
-  if(d.id !== "apprentice") return d.scale;
-  return runFlaws() ? d.scale : APPRENTICE_SOFT;
-}
+/* One place a target is scaled, so the shop and the round can never disagree. */
+function curveScale(){ return runDifficulty().scale; }
 /* What the run in progress was started under. Switching mid-run would let a
    player take the hard curve's shop money into the easy curve's round 7. */
 function runDifficulty(){
   return (G && DIFF_BY_ID[G.diff]) || difficulty();
 }
-/* What APPRENTICE asks for while the flawed Lenses are still off the shelf.
-   Measured, not guessed: 0.6 with the flawed Lenses wins 50.8% of runs, 0.6
-   without them 35.0%, 0.50 without 43.5%, 0.45 without 54.0%. This lands the
-   closed drawer back on the open one. */
-const APPRENTICE_SOFT = 0.47;
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
@@ -3114,7 +3101,6 @@ function newRun(seedStr, fresh){
     isDaily: seed === daily,
     /* Pinned for the whole run. The setting is what the NEXT one uses. */
     diff: difficulty().id,
-    flaws: flawsOpen(),
     round: 0,
     deck: shuffle(deck),
     discard: [],
@@ -3202,7 +3188,9 @@ function shapeFor(round, rules){
   return {
     target: Math.max(1, Math.round(probe.target)),
     plays: Math.max(1, probe.plays),
-    discards: Math.max(0, probe.discards),
+    /* A round that demands a forfeit has to leave a discard to make it with,
+       whatever else took them away and in whatever order. */
+    discards: Math.max(probe.mustForfeit ? 1 : 0, probe.discards),
     hand: Math.max(4, hand),
     maxPlay: cap,
     mustForfeit: !!probe.mustForfeit,
@@ -3251,13 +3239,26 @@ function roundShape(round){
    it is what this is for. */
 const RECKON_AT = 3, RECKON_FROM = 2;
 
+/* Ordeals that cannot both be obeyed. THE FORFEIT makes you spend a discard;
+   THE DROUGHT takes every discard away. Stacked, the round owes a debt it has
+   no currency for. Listed both ways round so the check does not depend on
+   which of the two the round was dealt. */
+const ORDEAL_CLASH = { forfeit:["drought"], drought:["forfeit"] };
+function clashes(a, b){
+  return (ORDEAL_CLASH[a] || []).indexOf(b) >= 0;
+}
+
 function reckonFor(round){
   if(!G || !G.demandOrder || round < RECKON_FROM) return null;
   const base = baseShape(round);
   const can = deckCeiling(round, base);
   if(can < base.target * RECKON_AT) return null;
   const own = (G.ordealOrder && G.ordealOrder[round]) || null;
-  const pool = ORDEALS.filter(function(o){ return !own || o.id !== own.id; });
+  const pool = ORDEALS.filter(function(o){
+    if(!own) return true;
+    if(o.id === own.id) return false;
+    return !clashes(own.id, o.id);
+  });
   const pick = mulberry32(hashStr(G.seed + ":reckon:" + round))();
   return pool[Math.floor(pick * pool.length) % pool.length];
 }
@@ -3387,7 +3388,7 @@ function startRound(){
      what the round has taken. */
   roundRules().forEach(function(o){ if(o.round) o.round(G); });
   G.plays = Math.max(1, G.plays);
-  G.discards = Math.max(0, G.discards);
+  G.discards = Math.max(G.mustForfeit ? 1 : 0, G.discards);
   G.target = Math.max(1, Math.round(G.target));
   G.selected = [];
   G.discard = G.discard.concat(G.hand);
@@ -3774,8 +3775,8 @@ function introduceFlaws(lens, reward){
     + 'to pay it off in, they are the best thing in the shop. Late, they are how '
     + 'a good run ends.</p>'
     + '<p class="gold">You can leave it. There is always another shelf.</p>'
-    + '<p style="font-size:13px;color:var(--text-faint)">They are on the shelf in '
-    + '<b>APPRENTICE</b> from now on as well, and its targets go up to match.</p>'
+    + '<p style="font-size:13px;color:var(--text-faint)">You will not be shown this '
+    + 'again. The full list is under <b>How to play</b>.</p>'
     + '<div class="rowend end">'
     + '<button class="btn primary" id="seenFlaw" type="button">Show me the shop</button></div>');
   document.getElementById("seenFlaw").onclick = function(){
@@ -3786,9 +3787,7 @@ function introduceFlaws(lens, reward){
 
 function rollOffers(){
   const owned = G.lenses.map(function(l){ return l.id; });
-  const avail = LENSES.filter(function(l){
-    return owned.indexOf(l.id) === -1 && (!l.flaw || runFlaws());
-  });
+  const avail = LENSES.filter(function(l){ return owned.indexOf(l.id)===-1; });
   shuffle(avail);
   const offers = avail.slice(0,2).map(function(l){ return { kind:"lens", lens:l, cost:l.cost }; });
   offers.push({ kind:"words", cost:3 });
@@ -4259,7 +4258,7 @@ function endRun(won){
         ? '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
           + '<p>Four runs in five end early even played perfectly. If you would rather '
           + 'have room to be wrong in, <b>APPRENTICE</b> lowers every target and hands you '
-          + 'a fourth discard. Same words, same Ordeals.</p>'
+          + 'a fourth discard. Same words, same Lenses, same Ordeals.</p>'
           + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
         : '')
     + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
@@ -4848,11 +4847,9 @@ const TUT = [
       return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>: a rule "
            + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
            + "and the targets climb faster than any deck can keep up with.<br><br>"
-           + "A few want fewer words: <b>ASCETIC</b> pays \u00d75 if you play exactly one."
-           + (flawsOpen()
-               ? " And the loudest ones are <b>flawed</b>: they pay more than anything else "
-                 + "and take a play, a discard or your income back for it."
-               : "")
+           + "A few want fewer words: <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
+           + "And the loudest ones are <b>flawed</b>: they pay more than anything else "
+           + "and take a play, a discard or your income back for it."
            + '<span class="do">'
            + (G.roundScore >= G.target
                 ? "You have already cleared " + G.demand.n + ". The Bookseller is next."
@@ -5638,14 +5635,9 @@ function paintDiff(){
     } else if(!locked && tag) tag.remove();
   });
 
-  const softer = now.id === "apprentice" && !flawsOpen();
   note.innerHTML = live && inRun.id !== now.id
     ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
-    : now.d
-      + (softer
-          ? ' The Lenses that take something back stay off the shelf until you have met one.'
-          : '')
-      + (shut ? ' <b>SCHOLAR</b> opens once you finish a run, win or lose.' : '');
+    : now.d + (shut ? ' <b>SCHOLAR</b> opens once you finish a run, win or lose.' : '');
 }
 
 /* The stops on the list, top to bottom. The difficulty switch is one stop, and
@@ -5892,12 +5884,9 @@ function showHelp(back){
     +   '<div class="teach-row"><div class="teach-n">5</div>'
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
     +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
-    +     'and holding it beats buying a bigger one late.'
-    +     (flawsOpen()
-        ? ' Some are <b class="gold">flawed</b>: the biggest numbers in the game, and every '
-          + 'one takes something back. A play, a discard, cards in hand, your income, or the '
-          + 'target itself.'
-        : '') + '</p></div>'
+    +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
+    +     'the biggest numbers in the game, and every one takes something back. A play, a '
+    +     'discard, cards in hand, your income, or the target itself.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">6</div>'
     +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
     +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '

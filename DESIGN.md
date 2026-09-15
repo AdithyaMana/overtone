@@ -750,62 +750,65 @@ perfect stair that answer nothing and you get the shape's points, but none of it
 
 ---
 
-## 6.12 Taking a mechanic away, and measuring what that costs
+## 6.12 Hiding a mechanic, and putting it back
 
 Flawed Lenses are the only thing in the shop that can make a run worse while looking like the best
 thing on the shelf. THE CURSE reads *multiplier ×3.5* and doubles every target you have left. A
-player who has not yet worked out what a multiplier is worth cannot price that, and pricing it is
-the whole decision. So APPRENTICE keeps them off the shelf until the player has actually met one.
+player who has not yet worked out what a multiplier is worth cannot price that, so the obvious move
+was to keep them off APPRENTICE's shelf until the player had met one in SCHOLAR.
 
-**Removing them made the easy mode harder.** Measured over 400 runs through the real engine, the
-same seeds with the six flawed Lenses gone:
+**It made the gentler mode harder.** 400 runs through the real engine, same seeds:
 
 | APPRENTICE | win rate | p90 multiplier |
 |---|---|---|
-| target scale 0.6, flawed Lenses on the shelf | 50.8% | ×65.6 |
-| target scale 0.6, flawed Lenses removed | **35.0%** | ×20.0 |
-| target scale 0.50, removed | 43.5% | |
-| target scale 0.45, removed | 54.0% | |
-| **target scale 0.47, removed (shipped)** | **47.8%** | |
+| with the flawed Lenses | 50.8% | ×65.6 |
+| without them | **35.0%** | **×20.0** |
 
-Taking the six biggest multipliers out of a mode does not make it gentler; it takes its ceiling
-away, and the curve is built on the assumption that a ceiling exists. This is the second time the
-same trap has caught this project — the first was APPRENTICE measuring *harder* than SCHOLAR
-because `startRound` read the targets raw while `shapeFor` scaled them. The lesson is the same
-one: a change meant to make something easier has to be measured, not reasoned about.
+Six of the biggest multipliers in the game are not decoration. The curve is built on the assumption
+that a ceiling exists, and removing the ceiling while leaving the curve is a difficulty increase
+wearing the word "easier". This is the second time the same trap has caught this project — the
+first was APPRENTICE measuring harder than SCHOLAR because `startRound` read the targets raw while
+`shapeFor` scaled them.
 
-So APPRENTICE has two states, and both land in the same place:
+Lowering APPRENTICE's targets to 0.47 did put the win rate back (47.8%). It was shipped and then
+taken out again, because the number being right was hiding that the change was wrong: it bought a
+gentler mode by making it *slacker*, and the flawed Lenses are the most interesting decision in the
+shop. A new player should get to make it. What they needed was never the absence of the mechanic.
+It was the explanation.
 
-| | flawed Lenses | target scale | win rate |
-|---|---|---|---|
-| before you have met one | off the shelf | 0.47 | 47.8% |
-| after | on the shelf | 0.6 | 50.0% |
+**What survived** is the part that was actually about understanding: the first flawed Lens anybody
+is offered gets a card of its own, once, on the shelf it is standing on — what it pays, what it
+takes, and that early with rounds to pay it off in they are the best thing in the shop while late
+they are how a good run ends. It costs the balance nothing, because it explains a Lens the player
+is already looking at.
 
-SCHOLAR is untouched by any of it, and that is checked rather than argued. The simulator is
-deterministic for a given configuration — the same run count gives the same number every time — so
-the same 300 runs scored against the commit before this change and the commit after it is an exact
-A/B, not an estimate. Both come back 23.7%, p50 x16.8, p90 x60.0. The engine test also pins
-SCHOLAR's round-1 target to the raw curve, so nothing can move it by accident later.
+The negative result is worth more than the feature would have been: **a change meant to make
+something easier has to be measured, not reasoned about**, and the measurement has to be of the
+thing you actually shipped rather than of the idea.
 
-(That determinism is worth knowing before reading any two numbers from this tool as a trend: a
-300-run and a 500-run measurement of the same build differ by about three points, and neither is
-noise. Compare like with like.)
+## 6.12a A round nobody can win is not a hard round
 
-Three rules keep the two states honest:
+THE FORFEIT makes you spend a discard before you may play. THE DROUGHT takes every discard away.
+THE RECKONING stacks a second Ordeal on top of the round's own, and a player hit the pair at round
+6: a debt of one discard and no currency to pay it in. The run ended on a rule rather than on a
+score.
 
-- **The state is pinned at `newRun`**, exactly like the difficulty, so the shop can never quote a
-  target the round will not ask for. The introduction card can only fire in a run where the drawer
-  is already open, so nothing moves under a run in progress.
-- **Both halves read one line.** `curveScale()` is the only place a target is scaled, and the
-  engine test walks every round of both states asserting `shapeFor` equals `startRound`.
-- **Nobody is taught a rule they cannot meet.** The "Lenses rewrite the rules" row and the
-  tutorial's last beat drop the flawed-Lens sentence while the drawer is shut. Teaching a mechanic
-  somebody cannot encounter is worse than teaching nothing: they go looking for it and it is not
-  there.
+The guard was already there — THE FORFEIT does `g.discards = Math.max(1, g.discards)` with a
+comment saying it exists so it can never meet THE DROUGHT — and it only worked in one order. The
+rules apply in the order they are listed, so FORFEIT then DROUGHT is `max(1, 4) = 4`, then `0`.
 
-And the drawer never shuts again. Taking a mechanic back off somebody who has already learned it is
-the worse of the two mistakes, so the moment they meet one it is open in APPRENTICE too, and the
-card says so while they are reading it.
+Fixed twice over, because one of them is a rule and the other is a guarantee:
+
+- **The Reckoning does not pair rules that contradict each other.** One table, both directions, so
+  the check does not depend on which of the two the round was dealt.
+- **A round that demands a forfeit leaves a discard to make it with**, clamped after every rule has
+  taken its cut, in both `shapeFor` and `startRound`. Order-independent, and it holds for any
+  combination anyone adds later.
+
+The tests walk *every* pair of Ordeals rather than the one that was reported, because the next
+contradiction will be somebody adding a tenth Ordeal, not this one coming back. All five fail
+against the commit that shipped the bug and pass against the fix — which is the only way to know a
+regression test tests anything.
 
 ## 6.13 One rule for the carried Lens
 

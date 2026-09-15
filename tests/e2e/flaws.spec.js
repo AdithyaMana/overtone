@@ -108,6 +108,7 @@ test.describe("the Lens you carry in is yours to decide", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* They are on every shelf. What a new player gets is the explanation, once. */
 test.describe("the Lenses that cost you something", () => {
   const newPlayer = () => {
     try {
@@ -119,31 +120,7 @@ test.describe("the Lenses that cost you something", () => {
     } catch (e) {}
   };
 
-  test("a first-timer on APPRENTICE is never shown one", async ({ page }) => {
-    await page.addInitScript(() => {
-      try {
-        localStorage.clear();
-        localStorage.setItem("overtone:sawFlaw", "false");
-        localStorage.setItem("overtone:tutorial", "true");
-        localStorage.setItem("overtone:difficulty", JSON.stringify("apprentice"));
-      } catch (e) {}
-    });
-    await page.goto(GAME);
-    await enterGame(page);
-    const flawed = await page.evaluate(() => {
-      let n = 0;
-      for (let i = 0; i < 120; i++)
-        n += rollOffers().filter(o => o.kind === "lens" && o.lens.flaw).length;
-      return n;
-    });
-    expect(flawed, "a flawed Lens reached a shelf it was meant to be off").toBe(0);
-
-    /* and the rules do not teach a mechanic they cannot meet */
-    await page.click("#helpBtn");
-    await expect(page.locator("#panel")).not.toContainText("flawed");
-  });
-
-  test("the first one in SCHOLAR gets a card of its own, once", async ({ page }) => {
+  test("the first one you are offered gets a card of its own, once", async ({ page }) => {
     await page.addInitScript(newPlayer);
     await page.addInitScript(() => {
       try { localStorage.setItem("overtone:difficulty", JSON.stringify("scholar")); } catch (e) {}
@@ -168,28 +145,4 @@ test.describe("the Lenses that cost you something", () => {
     await expect(page.locator("#panel h2")).toHaveText("The Bookseller");
   });
 
-  test("meeting one opens the drawer in APPRENTICE too", async ({ page }) => {
-    await page.addInitScript(newPlayer);
-    await page.addInitScript(() => {
-      try { localStorage.setItem("overtone:difficulty", JSON.stringify("apprentice")); } catch (e) {}
-    });
-    await page.goto(GAME);
-    await expect(page.locator("#title")).toBeVisible();
-    expect(await page.evaluate(() => flawsOpen())).toBe(false);
-
-    await page.evaluate(() => { store.set("sawFlaw", true); });
-    expect(await page.evaluate(() => flawsOpen()),
-      "a mechanic was taken back off a player who had already learned it").toBe(true);
-
-    /* and the targets go back up with it, so the gentler mode stays gentle
-       rather than becoming the harder one */
-    const shut = await page.evaluate(() => {
-      store.set("sawFlaw", false); setPref("difficulty", "apprentice");
-      newRun("t"); return G.target;
-    });
-    const open = await page.evaluate(() => {
-      store.set("sawFlaw", true); newRun("t"); return G.target;
-    });
-    expect(open).toBeGreaterThan(shut);
-  });
 });

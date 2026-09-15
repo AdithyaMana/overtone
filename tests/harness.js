@@ -131,7 +131,7 @@ function load(){
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES,
     FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue, arrangeForTutorial,
     DIFFICULTIES, difficulty, runDifficulty, prefs, setPref,
-    flawsSeen, flawsOpen, runFlaws, curveScale, scholarOpen, shapeFor, APPRENTICE_SOFT
+    flawsSeen, curveScale, scholarOpen, shapeFor, clashes, ORDEAL_CLASH
   };`, ctx);
 
   return { api: ctx.__api, ctx, byId, storage: store };

@@ -61,6 +61,11 @@ if (ARGS.includes("--noflaw")) {
   keep.forEach(l => api.LENSES.push(l));
 }
 
+/* --noordeals scores the same curve with the rule-changing rounds switched
+   off. Rounds 4, 6 and 8 are where APPRENTICE runs actually end, so the
+   question "is the easy mode too hard" is mostly a question about these. */
+if (ARGS.includes("--noordeals")) { api.ORDEAL_ROUNDS.length = 0; }
+
 const BUY = flag("buy", "value");
 
 /* ------------------------------------------------------------------ player */

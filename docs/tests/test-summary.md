@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**461 tests, 0 failures.** 153 engine tests + 308 E2E tests across two device profiles.
+**460 tests, 0 failures.** 156 engine tests + 304 E2E tests across two device profiles.
 
 The E2E run allows **one retry**. A handful of specs write a preference and reload in the same
 breath, and Chromium hands localStorage to the browser process over an async channel with no event
