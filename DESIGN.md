@@ -781,8 +781,15 @@ So APPRENTICE has two states, and both land in the same place:
 | before you have met one | off the shelf | 0.47 | 47.8% |
 | after | on the shelf | 0.6 | 50.0% |
 
-SCHOLAR is untouched by any of it and stays where it was; the engine test pins its round-1 target
-to the raw curve so nothing can move it by accident.
+SCHOLAR is untouched by any of it, and that is checked rather than argued. The simulator is
+deterministic for a given configuration — the same run count gives the same number every time — so
+the same 300 runs scored against the commit before this change and the commit after it is an exact
+A/B, not an estimate. Both come back 23.7%, p50 x16.8, p90 x60.0. The engine test also pins
+SCHOLAR's round-1 target to the raw curve, so nothing can move it by accident later.
+
+(That determinism is worth knowing before reading any two numbers from this tool as a trend: a
+300-run and a 500-run measurement of the same build differ by about three points, and neither is
+noise. Compare like with like.)
 
 Three rules keep the two states honest:
 
