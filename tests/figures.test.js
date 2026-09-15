@@ -11,15 +11,19 @@ const assert = require("node:assert");
 const { load } = require("./harness.js");
 
 const { api } = load();
-const card = w => api.makeCard({ w, t: [] }, false);
-const hand = (...words) => words.map(card);
+const card = (w, tags) => api.makeCard({ w, t: tags || [] }, false);
+const hand = (...words) => words.map(w => card(w));
+/* Words the round actually wants. A figure is only paid its multiplier for
+   these, so any test about the SCORE has to say whether the round wants the
+   hand — the tests that only ask what shape the words make do not care. */
+const wanted = (...words) => words.map(w => card(w, ["NAT"]));
 const name = (...words) => { const f = api.figureFor(hand(...words)); return f ? f.id : null; };
 
 /* Score a hand with no Lenses and a round that wants nothing, so the only thing
    moving the numbers is the figure itself. */
-function bare(cards, lensIds) {
+function bare(cards, lensIds, demandTags) {
   api.newRun("figures");
-  api.G.demand = { n: "TEST", tags: [] };
+  api.G.demand = { n: "TEST", tags: demandTags || [] };
   api.G.lenses = (lensIds || []).map(id => api.LENSES.find(l => l.id === id));
   api.G.lensState = {};
   return api.resolve(cards);
@@ -111,12 +115,12 @@ describe("which figure pays", () => {
 
 /* ================================================================== */
 describe("the figure in the score", () => {
-  test("it adds its points and its multiplier to a bare hand", () => {
+  test("it adds its points and its multiplier to a hand the round wants", () => {
     const pay = api.FIG_PAY.column[3];
-    const cards = hand("MOSS", "TIDE", "WOLF");
+    const cards = wanted("MOSS", "TIDE", "WOLF");
     const words = cards.reduce((s, c) => s + c.base, 0);
-    const r = bare(cards);
-    assert.strictEqual(r.chips, words + pay.chips);
+    const r = bare(cards, null, ["NAT"]);
+    assert.strictEqual(r.chips, words + pay.chips + 25 * 3, "chips, figure and three matches");
     assert.strictEqual(r.mult, 1 + pay.mult);
   });
 
@@ -124,7 +128,7 @@ describe("the figure in the score", () => {
     /* BRUTALIST is ×1.6 on every word of four letters or fewer. Three of them
        is also THE COLUMN. If the figure were a bonus stapled on at the end the
        multiplier would be 1 × 1.6³ + 3; it is (1 + 3) × 1.6³. */
-    const r = bare(hand("MOSS", "TIDE", "WOLF"), ["brut"]);
+    const r = bare(wanted("MOSS", "TIDE", "WOLF"), ["brut"], ["NAT"]);
     const want = (1 + api.FIG_PAY.column[3].mult) * Math.pow(1.6, 3);
     assert.ok(Math.abs(r.mult - want) < 1e-9, "got " + r.mult + ", wanted " + want);
   });
@@ -144,6 +148,62 @@ describe("the figure in the score", () => {
     assert.strictEqual(ev[0].fig, "column");
     assert.strictEqual(ev[0].txt.indexOf("THE COLUMN"), 0, "should lead with the name: " + ev[0].txt);
     assert.strictEqual(r.events.indexOf(ev[0]), 0, "and it should come first");
+  });
+});
+
+/* ================================================================== */
+describe("the round has to want your words", () => {
+  /* Three words the same length is THE COLUMN either way. What the round
+     thinks of them decides whether the multiplier is real.
+
+     This exists because the two layers used to run in parallel and the bigger
+     one simply won: measured over every play of 951 hands, ignoring the Demand
+     entirely was the exactly correct play 70% of the time in round 1. */
+  const pay = () => api.FIG_PAY.column[3];
+  const withAnswers = n => bare(
+    ["MOSS", "TIDE", "WOLF"].map((w, i) => card(w, i < n ? ["NAT"] : ["TOO"])),
+    null, ["NAT"]);
+
+  test("a figure the round wants pays in full", () => {
+    assert.strictEqual(withAnswers(3).mult, 1 + pay().mult);
+  });
+
+  test("a figure nothing in the hand answers pays no multiplier at all", () => {
+    assert.strictEqual(withAnswers(0).mult, 1, "a shape with nothing behind it");
+  });
+
+  test("otherwise it is paid for the words that answer, in proportion", () => {
+    assert.strictEqual(withAnswers(2).mult, 1 + 2, "two of three of a +3 figure");
+    assert.strictEqual(withAnswers(1).mult, 1 + 1, "one of three");
+  });
+
+  test("the points are never withheld — only the multiplier is conditional", () => {
+    const none = withAnswers(0);
+    const words = none.events.length;
+    assert.ok(words > 0);
+    /* the figure's chips land even when the round wants none of it */
+    assert.ok(none.chips >= pay().chips,
+      "the figure's " + pay().chips + " points went missing: " + none.chips);
+  });
+
+  test("the board is told when the round is not paying in full", () => {
+    const ev = withAnswers(0).events.find(e => e.fig);
+    assert.strictEqual(ev.paid, 0);
+    assert.strictEqual(ev.answering, 0);
+    assert.ok(/no answer/.test(ev.txt), ev.txt);
+    const full = withAnswers(3).events.find(e => e.fig);
+    assert.strictEqual(full.paid, pay().mult);
+    assert.ok(/\+3 mult/.test(full.txt), full.txt);
+  });
+
+  test("a two-word figure is judged the same way", () => {
+    const both = bare([card("OAK", ["NAT"]), card("KILN", ["NAT"])], null, ["NAT"]);
+    const one = bare([card("OAK", ["NAT"]), card("KILN", ["TOO"])], null, ["NAT"]);
+    const neither = bare([card("OAK", ["TOO"]), card("KILN", ["TOO"])], null, ["NAT"]);
+    const chain = api.FIG_PAY.chain[2].mult;
+    assert.strictEqual(both.mult, 1 + chain);
+    assert.strictEqual(one.mult, 1 + Math.round(chain / 2));
+    assert.strictEqual(neither.mult, 1);
   });
 });
 

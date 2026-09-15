@@ -264,6 +264,64 @@ test.describe("it can be played without looking at it", () => {
 });
 
 /* ------------------------------------------------------------------ */
+test.describe("the screens a player stops at", () => {
+  /* A round ending and a run ending are the only two panels a player stops on.
+     Everything else is passed through. These take the board away properly. */
+  const moment = async (page, how) => {
+    await page.goto(GAME);
+    if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+    await page.waitForTimeout(200);
+    await page.evaluate(how);
+    await page.waitForTimeout(500);
+  };
+
+  test("a run ending dims and blurs the board behind it", async ({ page }) => {
+    await moment(page, () => {
+      newRun("moment", true);
+      G.total = 41280; G.round = 5; G.best = { word: "", mult: 26, score: 9100 };
+      endRun(false);
+    });
+    const veil = page.locator("#veil");
+    await expect(veil).toHaveClass(/moment/);
+    const look = await page.evaluate(() => {
+      const cs = getComputedStyle(document.getElementById("veil"));
+      return { blur: cs.backdropFilter || cs.webkitBackdropFilter, bg: cs.backgroundImage !== "none" };
+    });
+    expect(look.blur, "the board behind is not blurred back").toMatch(/blur/);
+    expect(look.bg, "no light behind the panel").toBe(true);
+  });
+
+  test("a round ending does the same", async ({ page }) => {
+    await moment(page, () => { newRun("moment", true); G.round = 2; G.bank = 12; openShop(8); });
+    await expect(page.locator("#veil")).toHaveClass(/moment/);
+    await expect(page.locator("#panel")).toContainText("cleared");
+  });
+
+  test("a screen a player is only passing through does not", async ({ page }) => {
+    await moment(page, () => { newRun("moment", true); });
+    await page.click("#helpBtn");
+    await page.waitForTimeout(250);
+    await expect(page.locator("#veil")).not.toHaveClass(/moment/);
+  });
+
+  test("the number the player came for is the biggest thing on it", async ({ page }) => {
+    await moment(page, () => {
+      newRun("moment", true); G.total = 41280; G.round = 5; endRun(false);
+    });
+    const size = await page.evaluate(() => {
+      const gold = document.querySelector("#panel .stat.gold .v");
+      const other = document.querySelector("#panel .stat:not(.gold) .v");
+      return { gold: parseFloat(getComputedStyle(gold).fontSize),
+               other: parseFloat(getComputedStyle(other).fontSize),
+               text: gold.textContent.trim() };
+    });
+    expect(size.text).toBe("41,280");
+    expect(size.gold, "the total is not lifted above the other stats")
+      .toBeGreaterThan(size.other);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 test.describe("targets big enough to hit", () => {
   test("every control clears 24px of hit area on a touch screen",
     async ({ page }, info) => {

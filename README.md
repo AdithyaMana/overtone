@@ -70,6 +70,25 @@ Only the best figure pays, and every figure but THE PAIR has to bind **every wor
 two words that chain stop chaining the moment you lay a third beside them. That is the decision
 the mechanic exists to create: three words for the chips, or two for the figure.
 
+**And the round has to want your words.** A figure's *multiplier* is paid only for the words that
+answer the Demand. Three words the same length that the round wants nothing of is a shape with
+nothing behind it: the points still land, the multiplier does not. Two of three answering pays two
+thirds of it.
+
+This is a correction, not a flourish. Measured over every possible play of 951 hands, the two
+layers ran in parallel and the bigger one simply won — "take the best figure and ignore the
+Demand" was the *exactly correct* play 70% of the time in round 1 and cost nothing at all through
+round 4, while "take the best tags and ignore the shape" gave up 63–79% of the hand. That is the
+same complaint that started this work, pointed the other way. Coupling them fixed it:
+
+| | ignore the Demand | ignore the shape | weigh both |
+|---|---|---|---|
+| **before**, round 1 | best play **70%** | best play 3% | best play 100% |
+| **after**, round 1 | best play 45% | best play 5% | best play 73% |
+| **after**, round 7 | best play 23% | best play 11% | best play 31% |
+
+No heuristic solves the hand now, at any point in a run.
+
 **The ranking is measured, not guessed.** The first cut of this table had THE CHAIN as the rare
 jackpot at +6 mult. A seven-card hand holds 210 ordered triples, so a three-word chain turns up in
 36% of them; three words sharing an initial turns up in 8%. The pay table follows the measurement,
@@ -184,7 +203,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**371 tests, 0 failures.** 135 engine + 236 E2E. The engine tier uses Node’s built-in runner and needs no
+**385 tests, 0 failures.** 141 engine + 244 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -420,10 +439,10 @@ them. The first three rounds were a formality.
 
 | | at first | after pass one | before figures | now |
 |---|---|---|---|---|
-| optimal player (searches every ordering) | 70% | 43% | 23.4% | **30.0%** |
-| realistic player (`--play human`) | — | 33% | 18.2% | **18.0%** |
-| careless player (`--play greedy`, never reorders) | — | 12% | 12.8% | **10.5%** |
-| round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) | 28,000 | **58,000** |
+| optimal player (searches every ordering) | 70% | 43% | 23.4% | **28.3%** |
+| realistic player (`--play human`) | — | 33% | 18.2% | **17.0%** |
+| careless player (`--play greedy`, never reorders) | — | 12% | 12.8% | **9.0%** |
+| round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) | 28,000 | **46,000** |
 | best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% | | |
 | worst single Lens | CHRONICLER, 3% | 21% | | |
 
@@ -434,8 +453,8 @@ difficulty number that had moved would mean I did one while claiming the other. 
 doubled to pay for it (`--nofigures` scores the same seeds with the layer switched off, which is
 how the before and after columns were separated).
 
-What did move is the **spread**. Careless to optimal used to be 10.6 points; it is 19.5 now.
-Reading the words is worth about twice what it was, and ignoring them costs more than it did.
+What moved is the **spread**. Careless to optimal was 10.6 points before figures existed; it is
+19.3 now. Reading the board is worth about twice what it was, and ignoring it costs more.
 
 Three findings did most of the work:
 

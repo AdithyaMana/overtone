@@ -246,9 +246,12 @@ test.describe("playing a hand", () => {
 test.describe("the figure on the board", () => {
   /* Deal a known hand: the shape of three words is the whole subject here, so
      it cannot be left to the shuffle. */
+  /* Cards that ANSWER the round: a figure is only paid its multiplier for the
+     words the Demand wants, so a hand of words it does not want is a shape with
+     nothing behind it and proves nothing about the figure moving the score. */
   async function deal(page, words){
     await page.evaluate((ws) => {
-      G.hand = ws.map(w => makeCard({ w: w, t: ["TOO"] }, false));
+      G.hand = ws.map(w => makeCard({ w: w, t: G.demand.tags.slice() }, false));
       G.selected = [];
       render();
     }, words);
@@ -1185,10 +1188,10 @@ test.describe("the Bookseller tells the truth", () => {
          date, which would make this test start failing on a Tuesday for no
          reason anyone could find.
 
-         On this seed a bare deck tops out at 5,540 against round 4's 11,500.
+         On this seed a bare deck tops out at 4,484 against round 3's 6,500.
          GLUTTON pays x2.5 for a three-word hand, which covers it. */
       newRun("reality-near", true);
-      G.round = 3; G.lenses = []; G.lensState = {}; G.bank = 20;
+      G.round = 2; G.lenses = []; G.lensState = {}; G.bank = 20;
       G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "glut"), cost: 6 }];
       openShop(9);
       const el = document.querySelector(".reality");

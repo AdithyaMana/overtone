@@ -151,6 +151,7 @@ button{ font-family: inherit; color: inherit; }
     padding: 14px 15px;
   }
   .tut-box.dock-top{ top: 8px !important; bottom: auto !important; }
+  .tut-box{ overflow-y: auto; }
   .tut-text{ font-size: 14px; line-height: 1.55; }
   .tut-text .do{ font-size: 13.5px; padding: 7px 10px; margin-top: 8px; }
   .tut-next{ padding: 11px 18px; }
@@ -406,6 +407,9 @@ button{ font-family: inherit; color: inherit; }
   display:inline-block; margin-left:9px; font-size:13.5px; font-weight:700;
   color: var(--gold); letter-spacing:.02em; vertical-align: middle;
 }
+/* a figure the round is not paying for in full says so, and says why */
+.stage-hint .fig-pay.short{ color: #F0C27A; }
+.stage-hint .fig-pay i{ font-style: normal; font-weight: 600; opacity: .8; font-size: 12px; }
 /* A hand with no figure still gets named, because the absence is information:
    it is the one thing on the board you can still fix by picking differently. */
 .stage-hint .hand-name.none{ color:#93A6B3; box-shadow: 0 3px 0 var(--edge); }
@@ -905,6 +909,47 @@ button{ font-family: inherit; color: inherit; }
   padding: 18px; overflow-y:auto;
 }
 .veil[hidden]{ display:none !important; }
+
+/* ---------- the two moments that end something ----------
+   A round clearing and a run ending are the only screens a player stops at.
+   Everything else — the shop shelf, the Interpreter, the rules — is somewhere
+   they are passing through. These two get the board taken away properly:
+   darker, blurred back, and a light behind the panel so the eye lands on the
+   number rather than wandering over the cards it can no longer use. */
+.veil.moment{
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(70,84,120,.30), transparent 70%),
+    rgba(5,6,16,.965);
+  backdrop-filter: blur(7px) saturate(.55);
+  -webkit-backdrop-filter: blur(7px) saturate(.55);
+  animation: veilIn .3s ease-out;
+}
+@keyframes veilIn{ 0%{ opacity:0 } 100%{ opacity:1 } }
+.veil.moment .panel{
+  box-shadow: 0 5px 0 var(--edge), 0 26px 70px rgba(0,0,0,.55);
+}
+/* The headline is the sentence the run ended on; give it the room it earns. */
+.veil.moment .panel h2{ font-size: 30px; animation: heroIn .42s cubic-bezier(.2,1.3,.4,1) both; }
+.veil.moment .panel > .sub{ animation: heroIn .42s .06s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes heroIn{ 0%{ opacity:0; transform: translateY(9px) } 100%{ opacity:1; transform:none } }
+
+/* The one number a player is actually here for. */
+.veil.moment .stat.gold{
+  background: linear-gradient(180deg, rgba(239,163,29,.16), rgba(239,163,29,.06));
+  box-shadow: inset 0 0 0 1px rgba(239,163,29,.34);
+  animation: heroIn .42s .12s cubic-bezier(.2,1.3,.4,1) both;
+}
+.veil.moment .stat.gold .v{ font-size: 30px; }
+.veil.moment .unlock{ animation: heroIn .42s .18s cubic-bezier(.2,1.3,.4,1) both; }
+
+@media (max-width: 620px){
+  .veil.moment .panel h2{ font-size: 23px; }
+  .veil.moment .stat.gold .v{ font-size: 25px; }
+}
+@media (max-height: 500px) and (orientation: landscape){
+  .veil.moment .panel h2{ font-size: 20px; }
+  .veil.moment .stat.gold .v{ font-size: 21px; }
+}
 .panel{
   background: var(--panel); border-radius: 9px; padding: 22px;
   max-width: 640px; width:100%;
@@ -1547,6 +1592,9 @@ button{ font-family: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .01ms !important; animation-iteration-count: 1 !important;
      transition-duration: .01ms !important; }
+  /* the dimming stays — it is the point; the movement goes */
+  .veil.moment .panel h2, .veil.moment .panel > .sub,
+  .veil.moment .stat.gold, .veil.moment .unlock{ animation: none; }
 }
 
 </style>
@@ -2163,13 +2211,13 @@ const DEMANDS = [
    Rounds 1 and 2 are not set from that curve at all. They are set from what a
    player who has understood nothing yet can make - first three cards as dealt,
    no reordering, no discards, four plays - which tools/balance.js --floor puts
-   at a median of 855 and a 5th percentile of 455. Round 1 sits under the floor
+   at a median of 627 and a 5th percentile of 355. Round 1 sits under the floor
    so that nobody loses their first round to a rule they have not been shown;
    round 2 sits just above its median, which is where clicking stops working and
    the board starts being worth reading. Dying in round 2 reads as the game
    cheating, dying in round 6 reads as your build being wrong, and only one of
    those makes someone start again. */
-const TARGETS = [450, 1100, 6500, 11500, 24000, 29000, 43000, 58000];
+const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
@@ -3014,13 +3062,33 @@ function resolve(cards){
   };
 
   /* The figure lands before any card is counted, so every Lens that multiplies
-     multiplies it too. It is the worth of the hand, not a bonus on top. */
+     multiplies it too. It is the worth of the hand, not a bonus on top.
+
+     Its MULTIPLIER, though, is only paid for the words that answer the round.
+
+     This is the correction to a real problem. Measured over every possible play
+     of 951 hands, "take the best figure and ignore the Demand" was the exactly
+     correct play 70% of the time in round 1 and cost nothing at all through
+     round 4, while "take the best tags and ignore the shape" gave up 63-79% of
+     the hand. The two layers ran in parallel and the bigger one simply won —
+     which is the same complaint that started the figures work, pointed the
+     other way. Parallel systems do not make a decision; one of them makes it.
+
+     So they are coupled. Three words the same length, none of which the round
+     wants, is a shape with nothing behind it and pays no multiplier at all. The
+     chips still land — the words are still worth what they are worth — but the
+     thing that multiplies them has to be earned twice. */
   const fig = figureFor(cards);
   if(fig){
     chips += fig.chips;
-    mult += fig.mult;
-    events.push({ k:"card", i:-1, cls:"m", fig:fig.id,
-                  txt: fig.n + " +" + fig.chips + " and +" + fig.mult + " mult",
+    const answering = cards.filter(function(c){
+      return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+    }).length;
+    const paid = Math.round(fig.mult * answering / cards.length);
+    mult += paid;
+    events.push({ k:"card", i:-1, cls:"m", fig:fig.id, answering:answering, paid:paid,
+                  txt: fig.n + " +" + fig.chips
+                     + (paid ? " and +" + paid + " mult" : " \u2014 no answer, no multiplier"),
                   chips:chips, mult:mult });
   }
 
@@ -3478,7 +3546,8 @@ function openShop(reward){
     + '<button class="btn ' + (G.lenses.length ? 'primary' : 'danger') + '" id="leaveShop" type="button">'
     + (G.lenses.length ? 'Back to the table →' : 'Leave with no Lens') + '</button>'
     + '</div>';
-  showPanel(html);
+  /* the round just ended — this is a moment, not a menu */
+  showPanel(html, true);
 
   const box = document.getElementById("offers");
   G.offers.forEach(function(o, idx){
@@ -3788,7 +3857,7 @@ function endRun(won){
     +   '<button class="btn" id="againSeed" type="button">Same seed again</button>'
     +   '<button class="btn primary" id="againNew" type="button">New run →</button>'
     + '</div>';
-  showPanel(html);
+  showPanel(html, true);
 
   document.getElementById("copyShare").onclick = function(){
     try{
@@ -4292,19 +4361,26 @@ const TUT = [
       }).filter(Boolean);
       const f = figureFor(cards);
       const better = figureByReorder(cards);
+      const answering = cards.filter(function(c){
+        return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+      }).length;
+      const paid = f ? Math.round(f.mult * answering / cards.length) : 0;
       const found = f
-        ? "Yours make <b>" + f.n + "</b> &mdash; " + f.d.charAt(0).toLowerCase() + f.d.slice(1)
-          + ". That is <b>+" + f.chips + "</b> and <b>+" + f.mult + " to the multiplier</b>, "
-          + "before a single card is counted."
+        ? "Yours make <b>" + f.n + "</b>: " + f.d.charAt(0).toLowerCase() + f.d.slice(1)
+          + ". <b>+" + f.chips + "</b> and <b>+" + paid + " multiplier</b>"
+          + (paid < f.mult
+              ? " &mdash; the shape is worth +" + f.mult + ", but only " + answering
+                + " of your " + cards.length + " words answer the round."
+              : ", and the round wants every one of them.")
         : (better
             ? "Yours make <b>nothing</b> in this order &mdash; but the board says they would "
               + "make <b>" + better.n + "</b> in another one."
             : "Yours make <b>nothing</b>: no two share a length, and no two link letters. "
               + "That is worth knowing too &mdash; it is the one thing here you can still fix "
               + "by picking differently.");
-      return "Now read the words themselves rather than their tags. Their shape is a "
-           + "<b>figure</b>, and it is scored <b>before</b> everything else, which is why it "
-           + "is usually the largest thing on the board.<br><br>" + found
+      return "Now read the words themselves, not their tags. Their shape is a <b>figure</b>, "
+           + "scored <b>before</b> everything else &mdash; but its multiplier is only paid for "
+           + "the words the round wants.<br><br>" + found
            + '<span class="do">Swap a word and watch the name above it change.</span>'; } },
 
   { sel: "#tally", pos: "right", label: "The score",
@@ -4485,11 +4561,18 @@ function pointTut(){
          sitting on top of the readout it was telling players to watch. */
       const t = el.getBoundingClientRect();
       const bh = box.offsetHeight;
+      const topRoom = t.top - 16, bottomRoom = window.innerHeight - t.bottom - 16;
       const topCovers = 8 + bh > t.top - 8;
       const bottomCovers = window.innerHeight - 8 - bh < t.bottom + 8;
-      if(bottomCovers && !topCovers) box.classList.add("dock-top");
-      else if(bottomCovers && topCovers
-              && t.top + t.height / 2 > window.innerHeight * 0.5) box.classList.add("dock-top");
+      const goTop = (bottomCovers && !topCovers)
+        || (bottomCovers && topCovers && t.top + t.height / 2 > window.innerHeight * 0.5);
+      if(goTop) box.classList.add("dock-top");
+      /* Copy grows; the screen does not. Cap the card to the room on the side
+         it docked to, so no future edit can quietly push it back over the
+         board. It scrolls before it covers anything. */
+      box.style.maxHeight = Math.max(120, goTop ? topRoom : bottomRoom) + "px";
+    } else {
+      box.style.maxHeight = "";
     }
   }
   if(!r){
@@ -4678,10 +4761,21 @@ function renderPreview(){
   const fig = figureFor(cards);
   const better = figureByReorder(cards);
   const solo = cards.length < 2;
+  /* A figure only pays its multiplier for the words that answer the round, so
+     the board has to show that sum rather than the headline number — otherwise
+     it promises a multiplier the score will not deliver. */
+  const answering = cards.filter(function(c){
+    return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+  }).length;
+  const paid = fig ? Math.round(fig.mult * answering / cards.length) : 0;
+  const short = fig && paid < fig.mult;
   hint.innerHTML =
       '<span class="hand-name' + (solo || fig ? '' : ' none') + '">'
     +   (solo ? resonanceName(hits) : (fig ? fig.n : "NO FIGURE")) + '</span>'
-    + (fig ? '<span class="fig-pay">+' + fig.chips + ' and +' + fig.mult + ' mult</span>' : '')
+    + (fig ? '<span class="fig-pay' + (short ? ' short' : '') + '">+' + fig.chips
+             + ' and +' + paid + ' mult'
+             + (short ? ' <i>(' + answering + ' of ' + cards.length + ' answer)</i>' : '')
+             + '</span>' : '')
     + '<br>'
     + (solo ? '' : resonanceName(hits) + ' &middot; ')
     + 'worth <b>' + res.total.toLocaleString() + '</b> points'
@@ -4718,8 +4812,13 @@ function showFigures(back){
     + '<p>Every hand is scored for its <b>shape</b> first &mdash; how long the words are, '
     + 'what letter they open on, what letter they close on. A figure adds its points and '
     + 'its multiplier <b>before a single card is counted</b>, so every Lens that multiplies '
-    + 'multiplies the figure too. That is why a round-one hand can be worth three times what '
-    + 'it looks like.</p>'
+    + 'multiplies the figure too.</p>'
+    + '<p class="gold"><b>But the round has to want your words.</b> A figure\'s multiplier is '
+    + 'paid only for the words that answer the Demand &mdash; three the same length that the '
+    + 'round wants nothing of is a shape with nothing behind it. The points still land. Two '
+    + 'words of three answering pays two thirds of the multiplier; none answering pays none '
+    + 'of it. That is the whole decision: the best three words for the round are rarely the '
+    + 'best three for the shape.</p>'
     + '<table class="figtab">'
     +   '<thead><tr><th>Figure</th><th>Two words</th><th>Three words</th></tr></thead>'
     +   '<tbody>' + rows + '</tbody></table>'
@@ -4876,12 +4975,16 @@ function render(){
 }
 
 /* ---------- panels ---------- */
-function showPanel(html){
+/* `moment` marks the two panels a player stops at rather than passes through:
+   a round ending and a run ending. They take the board away properly. */
+function showPanel(html, moment){
   /* The round-clear stamp outlives its animation by design; if a panel opens
      underneath it (a skipped celebration, a fast reader) it has to go. */
   document.getElementById("stamp").hidden = true;
   document.getElementById("panel").innerHTML = html;
-  document.getElementById("veil").hidden = false;
+  const veil = document.getElementById("veil");
+  veil.classList.toggle("moment", !!moment);
+  veil.hidden = false;
 }
 function hidePanel(){ document.getElementById("veil").hidden = true; }
 
@@ -4976,8 +5079,9 @@ function showHelp(){
     +     '<p><b>The shape of your hand pays first.</b> Before any card is counted, your words '
     +     'are scored for what they <b>are</b> rather than what they mean &mdash; three of the '
     +     'same length, three climbing by the same step, each one opening where the last one '
-    +     'closed. A <b>figure</b> lifts the multiplier, and it reads left to right, so the '
-    +     'order you tap in is part of it. '
+    +     'closed. A <b>figure</b> lifts the multiplier &mdash; but only for the words the '
+    +     'round actually wants, so you have to earn it twice. It reads left to right too, so '
+    +     'the order you tap in is part of it. '
     +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
     +     '<p><b>Take three words, nearly always.</b> Each one adds its own points, and even a '

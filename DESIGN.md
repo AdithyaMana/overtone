@@ -642,6 +642,36 @@ The first attempt scaled the targets uniformly, put round 1 at 1,400, and the fu
 which plays the first three cards in dealt order and never discards — died in round one. That
 test exists for precisely that mistake.
 
+### The correction: a shape needs something behind it
+
+The first version of this ran the two layers in parallel, and a gameplay pass caught what that
+costs. Over every possible play of 951 hands:
+
+| | ignore the Demand | ignore the shape |
+|---|---|---|
+| round 1, no Lenses | the exactly correct play **70%** of the time | 3% |
+| round 4, two Lenses | 55% | 7% |
+| round 7, five Lenses | 34% | 7% |
+
+"Read the figure, ignore the round" was free through the first half of every run. That is the
+complaint that started this section, arriving again from the other direction — and it is what
+parallel systems do. Two scoring layers that never touch are not a decision; the bigger one makes
+it for you.
+
+So they touch. **A figure's multiplier is paid only for the words that answer the Demand.** The
+chips land either way — the words are worth what they are worth — but the thing that multiplies
+them has to be earned twice. Three words the same length that the round wants nothing of is a
+shape with nothing behind it.
+
+| | ignore the Demand | ignore the shape | weigh both |
+|---|---|---|---|
+| round 1 | 45% | 5% | 73% |
+| round 4 | 36% | 9% | 43% |
+| round 7 | 23% | 11% | 31% |
+
+Nothing solves the hand now. The cost was about 20% off every score, which came back out of the
+targets; the realistic win rate is where it was.
+
 ### Saying it on the board
 
 A mechanic nobody can see is a tax on guessing. Balatro shows its hand rankings from the first
