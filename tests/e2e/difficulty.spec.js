@@ -53,20 +53,51 @@ test.describe("choosing how hard", () => {
       await expect(page.locator('#title .diffopt[data-diff="scholar"]'))
         .toHaveAttribute("aria-pressed", "true");
       /* it has to say what it does, not just its name */
-      await expect(page.locator('#title .diffopt[data-diff="apprentice"]')).toContainText("discard");
+      await expect(page.locator("#title .setnote")).toContainText("multiplying");
+      await page.click('#title .diffopt[data-diff="apprentice"]');
+      await expect(page.locator("#title .setnote")).toContainText("discard");
     });
 
-  test("a first run starts on APPRENTICE, and is told why", async ({ page }) => {
-    /* nothing stored at all: somebody opening this for the first time */
-    await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
-    await page.goto(GAME);
-    await expect(page.locator("#title")).toBeVisible();
-    await expect(page.locator('#title .diffopt[data-diff="apprentice"]'))
-      .toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".diffopt .tip")).toHaveText("START HERE");
-    await expect(page.locator(".setnote")).toContainText("Four runs in five");
-    expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
-  });
+  test("a first run starts on APPRENTICE, and cannot start anywhere else",
+    async ({ page }) => {
+      /* nothing stored at all: somebody opening this for the first time */
+      await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+      await page.goto(GAME);
+      await expect(page.locator("#title")).toBeVisible();
+      await expect(page.locator('#title .diffopt[data-diff="apprentice"]'))
+        .toHaveAttribute("aria-pressed", "true");
+      /* SCHOLAR ends four runs in five; handing it to somebody on their first
+         screen is how a first session becomes their only one */
+      const scholar = page.locator('#title .diffopt[data-diff="scholar"]');
+      await expect(scholar).toBeDisabled();
+      await expect(scholar.locator(".tip")).toHaveText("Locked");
+      await expect(page.locator("#title .setnote")).toContainText("opens when you finish a run");
+      expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
+
+      /* and pressing it changes nothing */
+      await scholar.click({ force: true }).catch(() => {});
+      expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
+    });
+
+  test("finishing one run opens it, and says so where they are looking",
+    async ({ page }) => {
+      await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+      await page.goto(GAME);
+      await page.click("#titlePlay");
+      if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+      await page.evaluate(() => { G.plays = 0; endRun(false); });
+      await expect(page.locator("#panel .unlock.open")).toContainText("SCHOLAR");
+
+      /* and it is live on the menu from then on, with the run they just
+         finished left where it was */
+      await page.click("#againNew");
+      await page.click("#homeBtn");
+      const scholar = page.locator('#title .diffopt[data-diff="scholar"]');
+      await expect(scholar).toBeEnabled();
+      await expect(scholar.locator(".tip")).toHaveCount(0);
+      await scholar.click();
+      expect(await page.evaluate(() => difficulty().id)).toBe("scholar");
+    });
 
   test("somebody who has played before is left where they were", async ({ page }) => {
     await page.addInitScript(() => {
@@ -77,19 +108,25 @@ test.describe("choosing how hard", () => {
     expect(await page.evaluate(() => difficulty().id), "a returning player was moved to the easy curve")
       .toBe("scholar");
     await expect(page.locator(".diffopt .tip")).toHaveCount(0);
+    await expect(page.locator('#title .diffopt[data-diff="scholar"]')).toBeEnabled();
   });
 
   test("picking it sticks, and says it lands on the next run", async ({ page }) => {
     await open(page);
-    await page.click("#menuBtn");
-    await expect(page.locator("#panel h2")).toHaveText("Menu");
-    /* the main menu carries the same control, so scope to the one on screen */
-    await page.click('#panel .diffopt[data-diff="apprentice"]');
-    await expect(page.locator('#panel .diffopt[data-diff="apprentice"]'))
+    /* mid-run, from the board: the way back to the menu is a door on the
+       masthead, not a line inside a panel */
+    await page.click("#homeBtn");
+    await expect(page.locator("#title")).toBeVisible();
+    await page.click('#title .diffopt[data-diff="apprentice"]');
+    await expect(page.locator('#title .diffopt[data-diff="apprentice"]'))
       .toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#panel .setnote")).toContainText("still");
-    /* the run on the table is untouched */
+    await expect(page.locator("#title .setnote")).toContainText("still");
+    /* the run on the table is untouched, and resuming it does not re-deal */
     expect(await page.evaluate(() => runDifficulty().id)).toBe("scholar");
+    await page.click("#titleResume");
+    await expect(page.locator("#title")).toBeHidden();
+    expect(await page.evaluate(() => runDifficulty().id)).toBe("scholar");
+
     await page.reload();
     await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
@@ -227,60 +264,90 @@ test.describe("the offer to somebody the curve is beating", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("the menu", () => {
-  /* Difficulty, sound and the rules used to be behind a music note, which is
-     not where anyone looks for how hard a game is. One door now. */
-  test("one door holds difficulty, sound, the rules and your runs", async ({ page }) => {
+  /* There are two, and they are not the same menu. The title screen holds
+     everything you decide BETWEEN runs — how hard, the rules, your record.
+     The button on the board holds the one thing you reach for DURING one. */
+  test("the board's button is sound, and only sound", async ({ page }) => {
     await open(page);
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
-    await expect(panel.locator("h2")).toHaveText("Menu");
-    await expect(panel.locator(".diffopt")).toHaveCount(2);        // how hard
-    await expect(panel.locator(".switch")).toHaveCount(3);          // sound & feel
-    await expect(panel.locator(".menuitem")).toHaveCount(3);        // read up
-    await expect(panel.locator(".runstat > div")).toHaveCount(3);   // your runs
-    await expect(panel).toContainText("Runs played");
+    await expect(panel.locator("h2")).toHaveText("Sound & feel");
+    await expect(panel.locator(".switch")).toHaveCount(3);
+    /* the second copy of the title screen that used to live in here */
+    await expect(panel.locator(".diffopt")).toHaveCount(0);
+    await expect(panel.locator(".runstat")).toHaveCount(0);
+    /* and one way out of it, not two saying the same thing */
+    await expect(panel.locator(".rowend .btn")).toHaveCount(1);
   });
 
-  test("it shows what the game has been quietly keeping", async ({ page }) => {
-    await open(page);
-    await page.evaluate(() => {
-      localStorage.setItem("overtone:runs", "14");
-      localStorage.setItem("overtone:best", "41280");
-      localStorage.setItem("overtone:best:apprentice", "88120");
+  test("the title screen shows what the game has been quietly keeping",
+    async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem("overtone:runs", "14");
+          localStorage.setItem("overtone:best", "41280");
+          localStorage.setItem("overtone:best:apprentice", "88120");
+        } catch (e) {}
+      });
+      await page.goto(GAME);
+      const stats = page.locator("#title .runstat");
+      await expect(stats).toContainText("14");
+      await expect(stats).toContainText("41,280");
+      await expect(stats).toContainText("88,120");
     });
-    await page.click("#menuBtn");
-    const stats = page.locator(".runstat");
-    await expect(stats).toContainText("14");
-    await expect(stats).toContainText("41,280");
-    await expect(stats).toContainText("88,120");
-  });
 
-  test("every door out of it comes back to it", async ({ page }) => {
+  test("the board has a door back to the title, and it keeps the run",
+    async ({ page }) => {
+      await open(page);
+      await page.click("#hand .card >> nth=0");
+      await page.click("#homeBtn");
+      await expect(page.locator("#title")).toBeVisible();
+      /* the run is still there, and the menu offers it before it offers a new one */
+      await expect(page.locator("#titleResume")).toBeVisible();
+      await page.click("#titleResume");
+      await expect(page.locator("#title")).toBeHidden();
+      await expect(page.locator("#hand .card.sel")).toHaveCount(1);
+    });
+
+  test("the tutorial can be run again from the title", async ({ page }) => {
     await open(page);
-    await page.click("#menuBtn");
-    await page.click("#menuFigs");
-    await expect(page.locator(".figtab")).toBeVisible();
-    await page.click("#figsBack");
-    await expect(page.locator("#panel h2")).toHaveText("Menu");
-
-    await page.click("#menuHelp");
-    await expect(page.locator("#panel h2")).toContainText("How Overtone works");
-    await page.click("#helpBack");
-    await expect(page.locator("#panel h2")).toHaveText("Menu");
-  });
-
-  test("the tutorial can be run again from it", async ({ page }) => {
-    await open(page);
-    await page.click("#menuBtn");
-    await page.click("#menuTut");
+    await page.click("#homeBtn");
+    await page.click("#titleTut");
+    await expect(page.locator("#title")).toBeHidden();
     await expect(page.locator("#veil")).toBeHidden();
     await expect(page.locator("#tut")).toBeVisible();
     await expect(page.locator("#tutStep")).toContainText("1 of");
   });
 
+  test("the arrow keys walk it, the way a menu is walked", async ({ page }) => {
+    /* somebody with a run behind them, so both difficulties are open and
+       left/right has somewhere to go */
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("overtone:runs", "3");
+        localStorage.setItem("overtone:tutorial", "true");
+      } catch (e) {}
+    });
+    await page.goto(GAME);
+    await expect(page.locator("#title")).toBeVisible();
+    await page.keyboard.press("ArrowDown");                 // onto PLAY
+    expect(await page.evaluate(() => document.activeElement.id)).toBe("titlePlay");
+    await page.keyboard.press("ArrowDown");                 // onto how hard
+    expect(await page.evaluate(() =>
+      document.activeElement.className)).toContain("diffopt");
+    /* left and right change the setting you are standing on */
+    const was = await page.evaluate(() => difficulty().id);
+    await page.keyboard.press("ArrowRight");
+    expect(await page.evaluate(() => difficulty().id)).not.toBe(was);
+    await page.keyboard.press("ArrowUp");
+    expect(await page.evaluate(() => document.activeElement.id)).toBe("titlePlay");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#title")).toBeHidden();
+  });
+
   test("the board still says when the sound is off", async ({ page }) => {
     await open(page);
-    /* it moved into the menu, so the state has to be legible without opening it */
+    /* it is one button away, so the state has to be legible without pressing it */
     await expect(page.locator("#muteDot")).toBeHidden();
     await page.click("#menuBtn");
     await page.locator('.switch[data-pref="music"]').click();

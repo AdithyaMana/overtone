@@ -689,6 +689,31 @@ second and is better for it: the list is not a spoiler, it is the puzzle. So:
 
 ---
 
+## 6.11 The title screen
+
+What a player lands on, and what they come back to. The first version of it was a settings page
+with a PLAY button on top: every entry carried a sentence explaining itself, the difficulty
+carried two, and the whole thing read as documentation rather than a way in. **If an entry needs a
+paragraph, it is the wrong entry.** What it is now is a stack of terse entries with a caret on the
+one you are on, walked with ↑/↓, chosen with Enter, and with ←/→ changing the setting you are
+standing on — the arrow keys are most of what makes a menu read as a game's rather than a page's.
+
+Three rules hold it:
+
+- **Two menus, and they are not the same menu.** Everything you decide *between* runs — how hard,
+  the rules, the figures, your record, the tutorial — is on the title. The one thing you reach for
+  *during* a run is sound, and that is the button on the board. The version that put both in one
+  panel had the difficulty picker in two places disagreeing about which was the menu, and opening
+  the sound settings from the title showed you two buttons both saying "Back to the menu".
+- **The way back to the title is a door on the board**, in the masthead, not a line inside a
+  panel — and it does not cost you the run. Reaching the menu mid-run offers **Resume run** above
+  **New run**, so pressing the top entry never quietly throws a run away.
+- **Nothing is on the board that the menu did not name.** A Lens sitting in the rail at round 1
+  with nothing said about it reads as the game dealing at random; it is Memory, and the title says
+  `Carrying in — <LENS>` with its rule before you press Play.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or

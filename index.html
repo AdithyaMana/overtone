@@ -1019,6 +1019,7 @@ button{ font-family: inherit; color: inherit; }
 }
 
 .rowend{ display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
+.rowend.end{ justify-content: flex-end; }
 .purse{ font-size: 17px; font-weight:700; color: var(--gold); text-shadow: var(--drop); }
 
 .share{
@@ -1039,6 +1040,11 @@ button{ font-family: inherit; color: inherit; }
 .unlock .k{ font-size:11.5px; color:#D8CCF5; letter-spacing:.06em; }
 .unlock .v{ font-size:15px; font-weight:700; color:#FFF; margin-top:3px; text-shadow: var(--drop-sm); }
 .unlock .d{ font-size:12.5px; color:#E3DAF8; margin-top:3px; }
+/* the difficulty that just opened is not a Lens, and should not read as one */
+.unlock.open{ background: var(--green); box-shadow: 0 4px 0 var(--green-d); }
+.unlock.open .k{ color:#0A2E21; }
+.unlock.open .v{ color:#08241A; text-shadow:none; }
+.unlock.open .d{ color:#0D3728; }
 
 #interpInput{
   width:100%; padding: 13px 14px; font-family: var(--f-display);
@@ -1111,118 +1117,213 @@ button{ font-family: inherit; color: inherit; }
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
-/* ---------- the main menu ----------
-   The game used to deal you a hand before it had said what it was. This is the
-   first thing now: the name, what it is, how hard you want it, and PLAY. */
+/* ---------- the title screen ----------
+   Not a settings page with a PLAY button on it. A short stack of entries you
+   walk with the arrow keys, anchored left the way a game menu is, over a
+   vignette and a scanline. Everything that needed a paragraph to explain
+   itself was the wrong entry. */
 .title{
   /* Under the veil on purpose: a panel opened FROM the menu has to sit on top
      of it, or reading the rules shows you a dimmed rectangle behind the menu
      you were just looking at. Above the tutorial, which must never run here. */
   position: fixed; inset: 0; z-index: 72;
-  display:flex; align-items:center; justify-content:center;
-  padding: 18px; overflow-y:auto;
+  display: flex; align-items: flex-start;
+  padding: 26px clamp(20px, 9vw, 120px);
+  overflow-y: auto;
   background:
-    radial-gradient(ellipse 65% 55% at 50% 38%, rgba(70,84,120,.34), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 22% 26%, rgba(0,147,255,.14), transparent 62%),
+    radial-gradient(ellipse 62% 55% at 88% 88%, rgba(254,95,85,.12), transparent 60%),
     var(--bg);
 }
+/* Centred only where centring cannot clip: a flex item with auto margins in a
+   scroller loses its own top once the content outgrows the box. */
+@media (min-height: 720px){ .title{ align-items: center; } }
 .title[hidden]{ display:none !important; }
+/* the room the cabinet is standing in */
+.title::before{
+  content:""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background:
+    repeating-linear-gradient(rgba(0,0,0,0) 0 2px, rgba(0,0,0,.17) 2px 4px),
+    radial-gradient(ellipse 72% 66% at 42% 46%, transparent 42%, rgba(0,0,0,.55));
+}
 .title-card{
-  width:100%; max-width: 560px; margin: auto;
-  animation: titleIn .4s cubic-bezier(.2,1.2,.4,1) both;
+  position: relative; z-index: 2;
+  width: 100%; max-width: 430px; margin: auto 0;
+  animation: titleIn .45s cubic-bezier(.2,1,.3,1) both;
 }
-@keyframes titleIn{ 0%{ opacity:0; transform: translateY(12px) } 100%{ opacity:1; transform:none } }
-.title-mark{ font-size: clamp(38px, 11vw, 62px); text-align:center; margin: 0 0 6px; }
+@keyframes titleIn{ 0%{ opacity:0; transform: translateY(14px) } 100%{ opacity:1; transform:none } }
+
+.title-head{ margin: 0 0 20px; }
+.title .title-mark{
+  font-size: clamp(34px, 8.5vw, 56px); margin: 0 0 9px; letter-spacing: .04em;
+  text-shadow: 4px 4px 0 var(--mult), 0 0 36px rgba(254,95,85,.3);
+}
 .tagline{
-  text-align:center; color: var(--text-dim); font-size: 14.5px;
-  margin: 0 0 22px; letter-spacing:.02em;
+  margin: 0; color: var(--text-dim);
+  font-size: 12px; letter-spacing: .13em; text-transform: uppercase;
 }
-.title .sub{ font-size: 13px; color: var(--text-faint); letter-spacing:.05em; margin: 0 0 7px; }
-.title .diffpick{ margin-bottom: 8px; }
-.title .setnote{ margin-bottom: 18px; }
-.startrow{ display:flex; gap:10px; margin: 0 0 18px; }
-.startrow .btn{ flex:1; }
-.btn.huge{ padding: 17px 26px; font-size: 18px; }
-/* the one a first run should press, said once and then never again */
-.diffopt .tip{
-  font-size: 9px; letter-spacing:.09em; background: var(--gold); color:#12181C;
-  border-radius: 3px; padding: 2px 6px; margin-left: 8px; vertical-align: 1px;
-}
-.title .runstat{ margin-bottom: 14px; }
-.title-foot{
-  text-align:center; font-size: 11.5px; color: var(--text-faint);
-  letter-spacing:.06em; margin-top: 4px;
-}
-/* A title screen with PLAY below the fold is the one layout failure a menu
-   cannot have. Short screens get a compact version of it. */
-@media (max-height: 560px){
-  .title{ padding: 10px; align-items: flex-start; }
-  .title-mark{ font-size: clamp(26px, 7vw, 38px); margin-bottom: 2px; }
-  .tagline{ font-size: 12.5px; margin-bottom: 12px; }
-  .title .sub{ margin-bottom: 4px; }
-  .title .diffpick{ gap: 5px; margin-bottom: 5px; }
-  .title .diffopt{ padding: 7px 10px; }
-  .title .diffopt .dd{ font-size: 11px; line-height: 1.35; margin-top: 1px; }
-  .title .setnote{ margin-bottom: 10px; font-size: 11.5px; }
-  .btn.huge{ padding: 12px 20px; font-size: 16px; }
-  .startrow{ margin-bottom: 12px; }
-  .title .menugrid{ gap: 6px; margin-bottom: 10px; }
-  .title .menuitem{ padding: 8px 10px; }
-  .title .menuitem .md{ font-size: 11px; line-height: 1.35; }
-  .title .runstat{ gap: 6px; margin-bottom: 8px; }
+.title-rule{
+  height: 2px; margin: 15px 0 12px;
+  background: linear-gradient(90deg, var(--gold), rgba(239,163,29,0) 78%);
 }
 
-#menuBtn{ display:inline-flex; align-items:center; gap:7px; }
+/* ---------- the entries ---------- */
+.mlist{ display: flex; flex-direction: column; gap: 5px; }
+.mrow{
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  text-align: left; cursor: pointer; border: 0; border-radius: 0 6px 6px 0;
+  padding: 12px 14px;
+  font-family: var(--f-display); font-size: 14px; letter-spacing: .09em;
+  text-transform: uppercase; text-shadow: var(--drop-sm);
+  color: var(--text-dim);
+  background: linear-gradient(90deg, rgba(44,65,80,.92), rgba(44,65,80,.12));
+  border-left: 3px solid rgba(112,136,154,.4);
+  transition: color .12s ease, background .12s ease, border-color .12s ease,
+              transform .1s ease;
+}
+/* the caret, which is the whole point of a menu you walk rather than read */
+.mrow .mk{
+  flex: none; width: 8px; height: 11px; opacity: 0;
+  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transition: opacity .12s ease;
+}
+.mrow .ml{ flex: 1; }
+.mrow .mx{
+  font-family: var(--f); font-size: 11px; letter-spacing: .08em;
+  text-transform: none; text-shadow: none; color: var(--text-faint);
+}
+.mrow.sel, .mrow:hover{
+  color: #FFF; border-left-color: var(--gold); transform: translateX(5px);
+  background: linear-gradient(90deg, rgba(239,163,29,.3), rgba(44,65,80,.12));
+}
+.mrow.sel .mk, .mrow:hover .mk{ opacity: 1; }
+.mrow.sel .mx, .mrow:hover .mx{ color: var(--text-dim); }
+.mrow:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.mrow:active{ transform: translateX(5px) scale(.992); }
+/* the entry the screen exists for */
+.mrow.go{
+  font-size: 18px; padding: 15px 14px; color: #FFF;
+  background: linear-gradient(90deg, rgba(0,147,255,.6), rgba(0,147,255,.06));
+  border-left-color: var(--chips);
+}
+.mrow.go.sel, .mrow.go:hover{
+  background: linear-gradient(90deg, rgba(0,147,255,.92), rgba(0,147,255,.14));
+  border-left-color: var(--gold);
+}
+
+/* ---------- how hard, as a switch rather than two essays ---------- */
+.mseg{
+  margin: 13px 0 0; padding: 12px 14px; border-radius: 0 6px 6px 0;
+  border-left: 3px solid rgba(112,136,154,.4);
+  background: linear-gradient(90deg, rgba(44,65,80,.55), rgba(44,65,80,.06));
+  transition: border-color .12s ease;
+}
+.mseg.sel{ border-left-color: var(--gold); }
+.msl{
+  font-family: var(--f-display); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px;
+}
+.segs{
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  background: var(--inset); border-radius: 7px; padding: 4px;
+  box-shadow: inset 0 2px 0 rgba(0,0,0,.4);
+}
+.diffopt{
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-wrap: wrap; min-height: 44px; padding: 9px 6px;
+  border: 0; border-radius: 5px; cursor: pointer; background: transparent;
+  font-family: var(--f-display); font-size: 12px; letter-spacing: .07em;
+  color: var(--text-faint); text-shadow: var(--drop-sm);
+  transition: background .12s ease, color .12s ease;
+}
+.diffopt:hover{ color: #FFF; }
+.diffopt[aria-pressed="true"]{
+  background: var(--lens); color: #FFF; box-shadow: 0 3px 0 var(--lens-d);
+}
+.diffopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+/* what is not yours yet, marked on the thing it is not */
+.diffopt .tip{
+  font-size: 8.5px; letter-spacing: .1em; text-shadow: none;
+  background: var(--gold); color: #12181C; border-radius: 3px; padding: 2px 5px;
+}
+.diffopt .tip.lock{ background: rgba(112,136,154,.45); color: var(--text-dim); }
+.diffopt:disabled{ cursor: not-allowed; opacity: .75; }
+.diffopt:disabled:hover{ color: var(--text-faint); }
+
+/* the Lens the last finished run handed forward, named before PLAY rather
+   than discovered on the board */
+.carry{
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 9px;
+  margin: 5px 0 0; padding: 9px 14px; border-radius: 0 6px 6px 0;
+  border-left: 3px solid var(--lens);
+  background: linear-gradient(90deg, rgba(155,123,224,.24), rgba(155,123,224,.03));
+}
+.carry .k{
+  font-family: var(--f-display); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--lens-lit);
+}
+.carry .v{
+  font-family: var(--f-display); font-size: 12.5px; letter-spacing: .05em;
+  color: #FFF; text-shadow: var(--drop-sm);
+}
+.carry .d{ flex: 1 0 100%; font-size: 11.5px; line-height: 1.45; color: var(--text-dim); }
+.setnote{ font-size: 12.5px; color: var(--text-faint); margin: 0 0 15px; }
+.title .setnote{ margin: 9px 0 0; font-size: 12px; line-height: 1.55; }
+
+/* ---------- what the game has been keeping ---------- */
+.title .runstat{
+  display: flex; flex-wrap: wrap; gap: 3px 22px; margin: 0;
+  background: none; padding: 0;
+}
+.runstat > div{ background: none; padding: 0; }
+.runstat .k{
+  font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.runstat .v{
+  font-family: var(--f-display); font-size: 17px; color: #FFF;
+  font-variant-numeric: tabular-nums; line-height: 1.3; text-shadow: var(--drop-sm);
+}
+.runstat .v.none{ color: var(--text-faint); }
+
+
+/* A title screen with PLAY below the fold is the one layout failure a menu
+   cannot have. A short screen is a wide screen turned on its side, so it gets
+   the name on the left and the entries beside it rather than a squeeze. */
+@media (max-height: 560px){
+  .title{ padding: 14px clamp(14px, 5vw, 60px); }
+  .title-card{
+    max-width: 780px; display: grid; align-items: center; gap: 0 28px;
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  }
+  .title-head{ margin: 0; }
+  .title .title-mark{ font-size: clamp(26px, 5vw, 40px); text-shadow: 3px 3px 0 var(--mult); }
+  .tagline{ font-size: 10.5px; }
+  .title-rule{ margin: 11px 0 9px; }
+  .mrow{ padding: 9px 12px; font-size: 13px; }
+  .mrow.go{ padding: 11px 12px; font-size: 15.5px; }
+  .mseg{ margin-top: 8px; padding: 9px 12px; }
+  .msl{ margin-bottom: 6px; }
+  .diffopt{ min-height: 38px; padding: 7px 5px; }
+  .carry{ padding: 7px 12px; }
+  .carry .d{ display: none; }
+  .title .setnote{ margin-top: 6px; font-size: 11px; }
+  .runstat .v{ font-size: 15px; }
+}
+@media (max-height: 560px) and (max-width: 660px){
+  .title-card{ grid-template-columns: 1fr; }
+}
+
+#menuBtn, #homeBtn{ display:inline-flex; align-items:center; gap:7px; }
 #menuBtn .ham{ font-size: 15px; line-height:1; }
 /* Sound lived on its own button and took its mute state with it when it moved
    into the menu. The state still has to be visible from the board. */
 #menuBtn .mute{
-  font-size: 10px; line-height:1; color: var(--text-faint);
-  text-decoration: line-through; margin-left: -2px;
+  font-size: 9px; line-height:1; letter-spacing:.09em; color: var(--mult);
+  font-weight: 700; margin-left: -2px;
 }
 #menuBtn .mute[hidden]{ display:none; }
 
-/* ---------- the menu ---------- */
-.menugrid{ display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0 0 16px; }
-.menuitem{
-  text-align:left; background: var(--inset); border:0; border-radius:8px;
-  padding: 12px 13px; cursor:pointer; color: var(--text-dim); font: inherit;
-  box-shadow: 0 3px 0 var(--edge);
-}
-.menuitem .mk{
-  font-family: var(--f-display); font-size: 12px; letter-spacing:.06em; color:#FFF;
-}
-.menuitem .md{ font-size: 12px; line-height:1.45; margin-top: 3px; }
-.menuitem:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
-.menuitem:active{ transform: translateY(3px); box-shadow:none; }
-.runstat{
-  display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:8px;
-  margin: 0 0 16px;
-}
-.runstat div{ background: var(--inset); border-radius:8px; padding: 9px 11px; }
-.runstat .k{ font-size:11px; color: var(--text-faint); }
-.runstat .v{
-  font-size:19px; font-weight:700; color:#FFF;
-  font-variant-numeric: tabular-nums; line-height:1.2;
-}
-.runstat .v.none{ color: var(--text-faint); font-size: 14px; }
-
-.diffpick{ display:grid; gap:8px; margin: 0 0 6px; }
-.diffopt{
-  text-align:left; background: var(--inset); border:0; border-radius: 8px;
-  padding: 11px 13px; cursor:pointer; color: var(--text-dim);
-  box-shadow: 0 3px 0 var(--edge); font: inherit;
-}
-.diffopt .dn{
-  font-family: var(--f-display); font-size: 13px; letter-spacing:.06em; color:#FFF;
-  display:flex; align-items:center; gap:8px;
-}
-.diffopt .dd{ font-size: 12.5px; line-height:1.5; margin-top: 3px; }
-.diffopt[aria-pressed="true"]{
-  background: var(--lens); box-shadow: 0 4px 0 var(--lens-d); color:#F3EEFF;
-}
-.diffopt[aria-pressed="true"] .dn::after{ content:"CURRENT"; font-size:9px; opacity:.85; }
-.diffopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
-.setnote{ font-size:12.5px; color: var(--text-faint); margin: 0 0 15px; }
 /* offered on the result screen to somebody the curve is beating, not to everyone */
 .softer{
   background: var(--inset); border-radius:8px; padding: 12px 14px; margin: 14px 0;
@@ -1738,10 +1839,14 @@ button{ font-family: inherit; color: inherit; }
   <header class="masthead">
     <h1 class="wordmark">OVER<span>TONE</span></h1>
     <div class="mast-actions">
-      <button class="chip-btn" id="menuBtn" type="button" aria-label="Menu"
-              aria-haspopup="dialog" title="Difficulty, sound, and the rules"
-        ><span class="ham" aria-hidden="true">&#9776;</span><span class="long">Menu</span
-        ><span class="mute" id="muteDot" aria-hidden="true" hidden>&#9834;</span></button>
+      <button class="chip-btn" id="homeBtn" type="button" aria-label="Main menu"
+              title="Back to the main menu"
+        ><span class="ham" aria-hidden="true">&#9776;</span
+        ><span class="long">Main menu</span></button>
+      <button class="chip-btn" id="menuBtn" type="button" aria-label="Sound and feel"
+              aria-haspopup="dialog" title="Music, effects and vibration"
+        ><span class="ham" aria-hidden="true">&#9834;</span><span class="long">Sound</span
+        ><span class="mute" id="muteDot" aria-hidden="true" hidden>OFF</span></button>
       <button class="chip-btn" id="helpBtn" type="button" aria-label="How to play"
         ><span class="long">How to play</span><span class="short">?</span></button>
       <button class="chip-btn" id="newRunBtn" type="button" aria-label="New run"
@@ -1848,9 +1953,13 @@ button{ font-family: inherit; color: inherit; }
 
 <div class="title" id="title">
   <div class="title-card">
-    <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
-    <p class="tagline">A word roguelite where meaning is the physics.</p>
-    <div id="titleBody"></div>
+    <div class="title-head">
+      <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
+      <p class="tagline">Meaning is the physics</p>
+      <div class="title-rule" aria-hidden="true"></div>
+      <div class="runstat" id="titleStats"></div>
+    </div>
+    <div class="title-main" id="titleBody"></div>
   </div>
 </div>
 
@@ -2382,6 +2491,12 @@ const DIFF_BY_ID = {};
 DIFFICULTIES.forEach(function(d){ DIFF_BY_ID[d.id] = d; });
 /* The setting, which is what the NEXT run will use. */
 function difficulty(){ return DIFF_BY_ID[prefs.difficulty] || DIFF_BY_ID.scholar; }
+/* SCHOLAR is the game as balanced, and four runs in five end early on it.
+   Offering that on the first screen somebody ever sees is how a first session
+   becomes their only one — so it is shut until they have finished a run, won
+   or lost. One run is enough: what it buys is knowing what the curve feels
+   like before choosing to stand in front of it. */
+function scholarOpen(){ return store.get("runs", 0) > 0; }
 /* What the run in progress was started under. Switching mid-run would let a
    player take the hard curve's shop money into the easy curve's round 7. */
 function runDifficulty(){
@@ -4052,6 +4167,14 @@ function endRun(won){
         : '')
     + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
         + unlocked.n + '</div><div class="d">' + unlocked.d + '</div></div>' : '')
+    /* Their first finished run, whichever way it went, opens the real curve.
+       Said here because it is the screen they are already reading, and not as
+       a question — they carry on with whatever they were doing. */
+    + (runs === 1
+        ? '<div class="unlock open"><div class="k">Unlocked</div><div class="v">SCHOLAR</div>'
+          + '<div class="d">The game as it is balanced: the targets it was tuned to and one '
+          + 'discard fewer. It is on the main menu whenever you want it.</div></div>'
+        : '')
     + '<div class="share" id="shareBox">' + escapeHtml(share) + '</div>'
     + '<div class="rowend">'
     +   '<button class="btn" id="copyShare" type="button">Copy result</button>'
@@ -5045,22 +5168,22 @@ function showFigures(back){
     + 'words sharing a length is enough.</p>'
     + '<p>The board names your figure while you pick, and tells you when the same words '
     + 'would make a better one in a different order. It will not reorder them for you.</p>'
-    + '<div class="rowend">'
-    + (back ? '<button class="btn" id="figsBack" type="button">Back to '
-              + (back === "how it works" ? 'how it works'
-                 : back === "help" ? 'how it works' : 'the menu') + '</button>'
+    + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
+    + (back ? '<button class="btn' + (back === "title" ? ' primary' : '')
+              + '" id="figsBack" type="button">Back to '
+              + (back === "title" ? 'the menu' : 'how it works') + '</button>'
             : '<span></span>')
-    + '<button class="btn primary" id="closeFigs" type="button">Play</button></div>');
-  document.getElementById("closeFigs").onclick = hidePanel;
+    + (back === "title" ? ''
+        : '<button class="btn primary" id="closeFigs" type="button">Play</button>') + '</div>');
+  const cf = document.getElementById("closeFigs");
+  if(cf) cf.onclick = hidePanel;
   /* Opened from somewhere, this used to be a door that only went one way: the
      sole button said Play, so reading the table cost you your place. */
   const b = document.getElementById("figsBack");
   /* Bound, not handed over: assigning these straight to onclick passes the
      CLICK EVENT as the first argument, and every one of them reads its first
      argument as "where did you come from". */
-  if(b) b.onclick = back === "title" ? function(){ showTitle(); }
-                  : back === "menu" ? function(){ showMenu(); }
-                  : function(){ showHelp(); };
+  if(b) b.onclick = back === "title" ? function(){ showTitle(); } : function(){ showHelp(); };
 }
 
 function renderDemand(){
@@ -5235,78 +5358,190 @@ function toast(msg){
 }
 
 function syncSoundBtn(){
-  /* Sound moved into the menu; its state still has to read from the board, so
-     the menu button carries a struck-through note when everything is off. */
+  /* Whether the game is making any noise has to read off the board without
+     opening anything, so the sound button says OFF when nothing is on. */
   const dot = document.getElementById("muteDot");
   if(!dot) return;
-  dot.hidden = !!(prefs.music || prefs.sfx);
+  const on = !!(prefs.music || prefs.sfx);
+  dot.hidden = on;
+  const btn = document.getElementById("menuBtn");
+  if(btn) btn.setAttribute("aria-label", on ? "Sound and feel" : "Sound and feel — currently off");
 }
 
-/* ---------- the main menu ----------
-   What a player lands on. The name, one line about what this is, how hard they
-   want it, and PLAY. Everything else is a smaller door underneath. */
-let titleOpen = false;
+/* ---------- the title screen ----------
+   What a player lands on, and what they come back to. A stack of entries with
+   a caret on the one you are on, walked with the arrow keys or the mouse. The
+   first version of this was a settings page with a PLAY button at the top of
+   it: every entry carried a sentence explaining itself, which is what a form
+   looks like, not a menu. If an entry needs explaining, it is the wrong
+   entry — the only prose left on it is the one line about how hard you want
+   the game, because that is a choice rather than a door. */
+let titleOpen = false, titleSel = 0;
+/* Whether the board behind the menu is a run somebody walked out of. Reaching
+   the menu mid-run must not cost you the run, and PLAY must not quietly mean
+   "throw that away". */
+let titleFromGame = false;
+
 function showTitle(){
   titleOpen = true;
   hidePanel();
   const el = document.getElementById("title");
   const runs = store.get("runs", 0);
-  const now = difficulty();
-  const first = runs === 0;
+  const now = difficulty(), first = runs === 0;
+  const live = titleFromGame && G && !G.over;
+  const inRun = G ? runDifficulty() : now;
+  const mem = store.get("memory", null);
+  const memLens = mem && LENSES.find(function(l){ return l.id === mem; });
 
-  const pick = DIFFICULTIES.map(function(d){
-    return '<button class="diffopt" type="button" data-diff="' + d.id + '" aria-pressed="'
-      + (d.id === now.id ? "true" : "false") + '">'
-      + '<div class="dn">' + d.n
-      + (first && d.id === "apprentice" ? '<span class="tip">START HERE</span>' : '')
-      + '</div><div class="dd">' + d.d + '</div></button>';
+  function row(id, label, cls, acc){
+    return '<button class="mrow' + (cls ? " " + cls : "") + '" type="button" id="' + id + '">'
+      + '<span class="mk" aria-hidden="true"></span>'
+      + '<span class="ml">' + label + '</span>'
+      + (acc ? '<span class="mx">' + acc + '</span>' : '')
+      + '</button>';
+  }
+
+  /* Never lock the one they are standing on, whatever storage says. */
+  const shut = !scholarOpen() && now.id !== "scholar";
+  const pills = DIFFICULTIES.map(function(d){
+    const locked = shut && d.id === "scholar";
+    return '<button class="diffopt" type="button" data-diff="' + d.id + '"'
+      + (locked ? ' disabled aria-disabled="true"' : '')
+      + ' aria-pressed="' + (d.id === now.id ? "true" : "false") + '">' + d.n
+      + (locked ? '<span class="tip lock">Locked</span>' : '')
+      + '</button>';
   }).join("");
+
+  /* What it means to press the thing you just chose, in one line. A player who
+     has a run on the table is told the run keeps the difficulty it was dealt,
+     because changing it under them would be the game cheating. */
+  const note = live && inRun.id !== now.id
+    ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
+    : now.d + (shut
+        ? ' <b>SCHOLAR</b> opens when you finish a run &mdash; win or lose.'
+        : '');
+
+  document.getElementById("titleBody").innerHTML = ''
+    + '<div class="mlist">'
+    +   (live ? row("titleResume", "Resume run", "go", "Round " + (G.round + 1)) : '')
+    +   row("titlePlay", live ? "New run" : (first ? "Play" : "Play the daily"),
+            live ? "" : "go", todayKey())
+    +   (!live && memLens
+          ? '<div class="carry"><span class="k">Carrying in</span>'
+            + '<span class="v">' + escapeHtml(memLens.n) + '</span>'
+            + '<span class="d">' + escapeHtml(memLens.d) + '</span></div>'
+          : '')
+    +   '<div class="mseg">'
+    +     '<div class="msl" id="titleDiffLabel">How hard</div>'
+    +     '<div class="segs" role="group" aria-labelledby="titleDiffLabel">' + pills + '</div>'
+    +     '<p class="setnote">' + note + '</p>'
+    +   '</div>'
+    +   row("titleHelp", "How to play")
+    +   row("titleFigs", "The figures")
+    +   row("titleTut", "Run the tutorial")
+    +   row("titleSound", "Sound &amp; feel")
+    + '</div>';
 
   const stat = function(k, v){
     return '<div><div class="k">' + k + '</div><div class="v' + (v ? '' : ' none') + '">'
       + (v ? v.toLocaleString() : '\u2014') + '</div></div>';
   };
-
-  document.getElementById("titleBody").innerHTML = ''
-    + '<div class="sub">How hard</div>'
-    + '<div class="diffpick">' + pick + '</div>'
-    + '<p class="setnote">' + (first
-        ? 'Four runs in five end early on <b>SCHOLAR</b>. <b>APPRENTICE</b> is the same game '
-          + 'with room to be wrong in \u2014 you can change this any time.'
-        : 'You can change this between runs, from the menu.') + '</p>'
-    + '<div class="startrow">'
-    +   '<button class="btn primary huge" id="titlePlay" type="button">'
-    +     (first ? 'Play \u2192' : 'Play the daily \u2192') + '</button>'
-    + '</div>'
-    + '<div class="sub">Read up</div>'
-    + '<div class="menugrid">'
-    +   '<button class="menuitem" id="titleHelp" type="button">'
-    +     '<div class="mk">HOW TO PLAY</div>'
-    +     '<div class="md">Seven things, with the arithmetic on a real card.</div></button>'
-    +   '<button class="menuitem" id="titleFigs" type="button">'
-    +     '<div class="mk">THE FIGURES</div>'
-    +     '<div class="md">All five shapes and what each one pays.</div></button>'
-    +   '<button class="menuitem" id="titleSound" type="button">'
-    +     '<div class="mk">SOUND &amp; FEEL</div>'
-    +     '<div class="md">Music, effects and vibration.</div></button>'
-    + '</div>'
-    + (runs
-        ? '<div class="sub">Your runs</div><div class="runstat">'
-          + stat("Runs played", runs)
-          + stat("Best \u00b7 SCHOLAR", store.get("best", 0))
-          + stat("Best \u00b7 APPRENTICE", store.get("best:apprentice", 0))
-          + '</div>'
-        : '')
-    + '<div class="title-foot">TODAY\u2019S DAILY \u00b7 ' + todayKey().toUpperCase() + '</div>';
+  /* A roguelite that keeps your record in localStorage and never shows it to
+     you is keeping a secret for no reason. Shown flat, not as three tiles. */
+  document.getElementById("titleStats").innerHTML = runs
+    ? stat("Runs", runs)
+      + stat("Best \u00b7 Scholar", store.get("best", 0))
+      + stat("Best \u00b7 Apprentice", store.get("best:apprentice", 0))
+    : '';
 
   el.hidden = false;
-  document.getElementById("titlePlay").onclick = startFromTitle;
+
+  const resume = document.getElementById("titleResume");
+  if(resume) resume.onclick = function(){ titleFromGame = false; hideTitle(); };
+  document.getElementById("titlePlay").onclick = function(){ startFromTitle(); };
   document.getElementById("titleHelp").onclick = function(){ showHelp("title"); };
   document.getElementById("titleFigs").onclick = function(){ showFigures("title"); };
   document.getElementById("titleSound").onclick = function(){ showMenu("title"); };
-  Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(b){
-    b.onclick = function(){ setPref("difficulty", b.dataset.diff); SFX.buy(); showTitle(); };
+  document.getElementById("titleTut").onclick = function(){
+    titleFromGame = false;
+    hideTitle();
+    if(!live) newRun(null);
+    startTutorial(true);
+  };
+  Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(btn){
+    btn.onclick = function(){
+      if(btn.getAttribute("aria-pressed") === "true") return;
+      setPref("difficulty", btn.dataset.diff);
+      SFX.buy();
+      showTitle();                 /* redraw so the note and the marks agree */
+    };
   });
+
+  /* Hover moves the caret without stealing the keyboard's place in the list. */
+  titleItems().forEach(function(n, i){
+    const stop = n.closest(".mrow") || n.closest(".mseg");
+    if(stop) stop.onmouseenter = function(){ titleMark(i); };
+    n.addEventListener("focus", function(){ titleMark(i); });
+  });
+  titleMark(titleSel);
+}
+
+/* The stops on the list, top to bottom. The difficulty switch is one stop, and
+   the pill you are on is the one that is currently chosen. */
+function titleItems(){
+  const el = document.getElementById("title");
+  if(!el || el.hidden) return [];
+  return Array.prototype.map.call(el.querySelectorAll(".mrow, .segs"), function(n){
+    return n.classList.contains("mrow") ? n
+      : (n.querySelector('.diffopt[aria-pressed="true"]') || n.querySelector(".diffopt"));
+  }).filter(Boolean);
+}
+
+function titleMark(i){
+  const items = titleItems();
+  if(!items.length) return;
+  titleSel = (i + items.length) % items.length;
+  items.forEach(function(n, k){
+    const stop = n.closest(".mrow") || n.closest(".mseg");
+    if(stop) stop.classList.toggle("sel", k === titleSel);
+  });
+}
+
+function titleMove(i, quiet){
+  titleMark(i);
+  const n = titleItems()[titleSel];
+  if(!n) return;
+  try{ n.focus({ preventScroll: true }); }catch(e){ n.focus(); }
+  if(!quiet) SFX.button();
+}
+
+/* Arrows only. Enter and Space belong to the focused button, and handling them
+   here as well would fire every entry twice. */
+function titleKey(e){
+  const k = e.key;
+  if(k !== "ArrowDown" && k !== "ArrowUp" && k !== "ArrowLeft" && k !== "ArrowRight") return;
+  const items = titleItems();
+  if(!items.length) return;
+  e.preventDefault();
+
+  const here = document.activeElement && document.activeElement.closest
+    && document.activeElement.closest("#title");
+  if(!here && (k === "ArrowDown" || k === "ArrowUp")){
+    titleMove(k === "ArrowUp" ? items.length - 1 : 0);
+    return;
+  }
+  if(k === "ArrowDown" || k === "ArrowUp"){
+    titleMove(titleSel + (k === "ArrowDown" ? 1 : -1));
+    return;
+  }
+  /* left and right change the setting you are standing on, the way they do on
+     every console options screen */
+  const cur = items[titleSel];
+  if(!cur || !cur.classList.contains("diffopt")) return;
+  const all = Array.prototype.slice.call(document.querySelectorAll("#title .diffopt"));
+  const at = all.indexOf(cur);
+  const next = all[(at + (k === "ArrowRight" ? 1 : all.length - 1)) % all.length];
+  if(next && next !== cur){ next.click(); titleMove(titleSel, true); }
 }
 
 function hideTitle(){
@@ -5316,6 +5551,7 @@ function hideTitle(){
 
 /* PLAY. A first-timer gets the tutorial on the board they are about to play. */
 function startFromTitle(){
+  titleFromGame = false;
   hideTitle();
   /* The click that got here IS the gesture, and the window-level hook has
      already seen it — calling firstGesture() again starts a second theme over
@@ -5324,8 +5560,11 @@ function startFromTitle(){
   if(!tutorialSeen()) startTutorial(false);
 }
 
-/* ---------- the in-game menu ----------
-   Difficulty, sound and the rules, reachable without leaving the table. */
+/* ---------- sound and feel ----------
+   The only thing you reach for without leaving the table. Difficulty, the
+   rules and your record are on the title screen, which is where somebody
+   looks for them — a second copy of all of it behind a button on the board
+   was two menus disagreeing about which one was the menu. */
 function showMenu(back){
   function row(key, label, desc){
     return '<div class="setrow"><div><div class="sl">' + label + '</div>'
@@ -5333,82 +5572,19 @@ function showMenu(back){
       + '<button class="switch" type="button" data-pref="' + key + '" aria-pressed="'
       + (prefs[key] ? "true" : "false") + '">' + (prefs[key] ? "ON" : "OFF") + '</button></div>';
   }
-  const now = difficulty(), inRun = G ? runDifficulty() : now;
-  const pick = DIFFICULTIES.map(function(d){
-    return '<button class="diffopt" type="button" data-diff="' + d.id + '" aria-pressed="'
-      + (d.id === now.id ? "true" : "false") + '">'
-      + '<div class="dn">' + d.n + '</div><div class="dd">' + d.d + '</div></button>';
-  }).join("");
 
-  /* What the player has actually done. It was all in storage and none of it on
-     screen, which is a strange thing for a roguelite to keep to itself. */
-  const runs = store.get("runs", 0);
-  const stat = function(k, v){
-    return '<div><div class="k">' + k + '</div><div class="v'
-      + (v ? '' : ' none') + '">' + (v ? v.toLocaleString() : '—') + '</div></div>';
-  };
-
-  showPanel('<h2>Menu</h2>'
-    + '<div class="sub">Difficulty, sound, and the rules &middot; saved on this device</div>'
-
-    + '<div class="sub" style="margin:0 0 7px">How hard</div>'
-    + '<div class="diffpick">' + pick + '</div>'
-    + '<p class="setnote">' + (G && inRun.id !== now.id
-        ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
-        : 'Changing this takes effect on your next run.') + '</p>'
-
-    + '<div class="sub" style="margin:0 0 7px">Read up</div>'
-    + '<div class="menugrid">'
-    +   '<button class="menuitem" id="menuHelp" type="button">'
-    +     '<div class="mk">HOW TO PLAY</div>'
-    +     '<div class="md">Seven things, with the arithmetic on a real card.</div></button>'
-    +   '<button class="menuitem" id="menuFigs" type="button">'
-    +     '<div class="mk">THE FIGURES</div>'
-    +     '<div class="md">All five shapes and what each one pays.</div></button>'
-    +   '<button class="menuitem" id="menuTut" type="button">'
-    +     '<div class="mk">RUN THE TUTORIAL</div>'
-    +     '<div class="md">The guided first round, again.</div></button>'
-    + '</div>'
-
-    + '<div class="sub" style="margin:0 0 7px">Your runs</div>'
-    + '<div class="runstat">'
-    +   stat("Runs played", runs)
-    +   stat("Best · SCHOLAR", store.get("best", 0))
-    +   stat("Best · APPRENTICE", store.get("best:apprentice", 0))
-    + '</div>'
-
-    + '<div class="sub" style="margin:0 0 7px">Sound &amp; feel</div>'
+  showPanel('<h2>Sound &amp; feel</h2>'
+    + '<div class="sub">Saved on this device</div>'
     + row("music", "Music", "The track that loops under the game.")
     + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
-    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry — "
-        + "browsers on iPhone don’t allow it.")
-
-    + '<div class="rowend">'
-    + '<button class="btn" id="menuTitle" type="button">'
-    +   (back === "title" ? 'Back to the menu' : 'Main menu') + '</button>'
-    + (back === "title" ? ''
-        : '<button class="btn" id="menuNewRun" type="button">Start a new run</button>')
+    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry \u2014 "
+        + "browsers on iPhone don\u2019t allow it.")
+    + '<div class="rowend end">'
     + '<button class="btn primary" id="closeSettings" type="button">'
-    + (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
+    +   (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
 
-  document.getElementById("closeSettings").onclick = back === "title" ? function(){ showTitle(); } : hidePanel;
-  document.getElementById("menuTitle").onclick = function(){ showTitle(); };
-  document.getElementById("menuHelp").onclick = function(){ showHelp("menu"); };
-  document.getElementById("menuFigs").onclick = function(){ showFigures("menu"); };
-  document.getElementById("menuTut").onclick = function(){ hidePanel(); startTutorial(true); };
-  const nr = document.getElementById("menuNewRun");
-  if(nr) nr.onclick = function(){
-    hidePanel();
-    newRun("free-" + Math.random().toString(36).slice(2,8), true);
-    toast(difficulty().n + " run. No Lenses, no Memory.");
-  };
-  Array.prototype.forEach.call(document.querySelectorAll(".diffopt"), function(b){
-    b.onclick = function(){
-      setPref("difficulty", b.dataset.diff);
-      SFX.buy();
-      showMenu();              /* redraw so the note and the marks agree */
-    };
-  });
+  document.getElementById("closeSettings").onclick = back === "title"
+    ? function(){ showTitle(); } : hidePanel;
   Array.prototype.forEach.call(document.querySelectorAll(".switch"), function(b){
     b.onclick = function(){
       const k = b.dataset.pref, v = !prefs[k];
@@ -5526,17 +5702,19 @@ function showHelp(back){
     + '<p style="font-size:13px"><span class="kbd">1</span>&ndash;<span class="kbd">7</span> pick &middot; '
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
-    + '<div class="rowend">'
-    + (back
-        ? '<button class="btn" id="helpBack" type="button">Back to the menu</button>'
-        : '<button class="btn" id="replayTut" type="button">Run the tutorial</button>')
-    + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
-  document.getElementById("closeHelp").onclick = hidePanel;
+    + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
+    + (back === "title"
+        ? '<button class="btn primary" id="helpBack" type="button">Back to the menu</button>'
+        : '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
+          + '<button class="btn primary" id="closeHelp" type="button">Play</button>')
+    + '</div>');
+  const ch = document.getElementById("closeHelp");
+  if(ch) ch.onclick = hidePanel;
   document.getElementById("helpFigs").onclick = function(){ showFigures("help"); };
   const rt = document.getElementById("replayTut");
   if(rt) rt.onclick = function(){ hidePanel(); startTutorial(true); };
   const hb = document.getElementById("helpBack");
-  if(hb) hb.onclick = back === "title" ? function(){ showTitle(); } : function(){ showMenu(); };
+  if(hb) hb.onclick = function(){ showTitle(); };
 }
 
 /* ---------- input ---------- */
@@ -5545,6 +5723,14 @@ document.getElementById("discardBtn").onclick = discardSel;
 document.getElementById("interpBtn").onclick = openInterpreter;
 document.getElementById("helpBtn").onclick = function(){ showHelp(); };
 document.getElementById("menuBtn").onclick = function(){ showMenu(); };
+document.getElementById("homeBtn").onclick = function(){
+  /* the spotlight has no board to point at once the menu is over it, and the
+     hand it rearranged has to go back the way it was */
+  if(tutActive()) endTutorial(false);
+  titleFromGame = true;
+  titleSel = 0;
+  showTitle();
+};
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel();
   newRun("free-" + Math.random().toString(36).slice(2,8), true);
@@ -5574,6 +5760,7 @@ document.addEventListener("keydown", function(e){
   if(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
   if(e.key === "Escape"){ if(tutActive()) endTutorial(false); hidePanel(); return; }
   if(!document.getElementById("veil").hidden) return;
+  if(titleOpen){ titleKey(e); return; }
   if(e.key === " "){ if(G && G.animating){ e.preventDefault(); skipAnim = true; } return; }
   if(G && G.animating) return;
   if(e.key >= "1" && e.key <= "7"){
@@ -5590,6 +5777,7 @@ function start(restored){
   /* The board is dealt behind the menu so PLAY is instant and the title has a
      real run to show the daily for, but nothing is shown until they press it. */
   newRun(null);
+  titleSel = 0;
   showTitle();
 }
 try{

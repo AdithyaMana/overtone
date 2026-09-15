@@ -827,7 +827,7 @@ test.describe("the end of a run", () => {
     await expect(panel.locator(".share")).toContainText("OVERTONE");
     await expect(panel.locator(".share")).toContainText("AVALANCHE");
     /* a Lens was owned, so something carries into the next run */
-    await expect(panel.locator(".unlock")).toBeVisible();
+    await expect(panel.locator(".unlock:not(.open)")).toBeVisible();
     await expect(panel).toContainText("PYROMANIAC");
 
     /* and the run is genuinely restartable */
@@ -1052,8 +1052,8 @@ test.describe("sound, vibration and motion", () => {
     await open(page);
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
-    /* sound shares one menu with difficulty and the rules now */
-    await expect(panel).toContainText("Menu");
+    /* the board's button is sound; everything else is on the title screen */
+    await expect(panel).toContainText("Sound & feel");
     await expect(panel.locator(".switch")).toHaveCount(3);
     /* the iPhone gap is stated rather than quietly shipped */
     await expect(panel).toContainText("Android only");
@@ -1062,7 +1062,7 @@ test.describe("sound, vibration and motion", () => {
     await expect(music).toHaveText("ON");
     await music.click();
     await expect(music).toHaveText("OFF");
-    /* sound lives in the menu now; the board shows it through the menu button */
+    /* the board shows the state on the button itself */
     await expect(page.locator("#muteDot")).toBeHidden(); // sfx still on
 
     await panel.locator('.switch[data-pref="sfx"]').click();

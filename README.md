@@ -37,11 +37,14 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
   is almost never a mistake — and clearing a round with plays and discards left pays more at the
   shop. Play fewer only when a Lens pays you to (ASCETIC gives ×5 for exactly one word).
 - **Four plays, three discards** per round. Miss the target and the run ends.
-- The game opens on a **main menu**: pick how hard, press Play. A first-time player is started
-  on APPRENTICE and told why; a returning one keeps what they chose and sees their run history.
+- The game opens on a **title screen**: your record, how hard you want it, and Play. It is a
+  stack of entries you walk with the arrow keys, not a settings page — the only prose on it is
+  the one line saying what the difficulty you are on does. The board's masthead holds the way
+  back to it, and one button beside that for sound.
 - Two difficulties. **SCHOLAR** is the game as balanced. **APPRENTICE** lowers every
   target by 40% and adds a fourth discard — same words, same Lenses, same Ordeals, more room to be
-  wrong in.
+  wrong in. A new player starts on APPRENTICE and **SCHOLAR is shut until they have finished a
+  run**, won or lost.
 - Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
   multiplying will stall around round 4.
 
@@ -496,11 +499,20 @@ is usually a dead draw rather than a wrong choice.
 
 Measure it with `node tools/balance.js --difficulty apprentice`.
 
-**A first run starts on APPRENTICE.** Somebody opening this for the first time has no idea that
-four runs in five end early on purpose, and finding out by losing six of them is not a lesson. The
-default is written down on the first boot rather than derived every time, or it would flip to
-SCHOLAR the moment their run counter passed zero and the game would have changed difficulty behind
-them. Anyone who has already played keeps SCHOLAR.
+**A first run starts on APPRENTICE, and cannot start anywhere else.** Somebody opening this for
+the first time has no idea that four runs in five end early on purpose, and finding out by losing
+six of them is not a lesson. The default is written down on the first boot rather than derived
+every time, or it would flip to SCHOLAR the moment their run counter passed zero and the game
+would have changed difficulty behind them. Anyone who has already played keeps SCHOLAR.
+
+**SCHOLAR is locked until one run has ended.** Offering the steeper curve on the first screen
+somebody ever sees is how a first session becomes their only one, so the pill is disabled and says
+`Locked` until `runs > 0` — a win or a loss, either will do; what one run buys is knowing what
+the curve feels like before choosing to stand in front of it. The unlock is announced on the
+result screen they are already reading, styled apart from a Memory unlock so the two are not
+mistaken for each other, and it changes nothing under them: they carry on with whatever they were
+doing. The lock never applies to the difficulty currently selected, so a profile that already
+holds SCHOLAR is never told it cannot have it.
 
 Three things keep it honest. The difficulty is **pinned at `newRun`**, so nobody switches at round
 7 to duck the wall. A total scored on the gentler curve is stored under its own key and **never

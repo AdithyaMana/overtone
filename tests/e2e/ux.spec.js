@@ -442,6 +442,37 @@ test.describe("the main menu", () => {
     await expect(page.locator(".diffopt .tip")).toHaveCount(0);
   });
 
+  test("the Lens the next run starts with is named before you press play",
+    async ({ page }) => {
+      /* A Lens sitting on the board at round 1 with nothing said about it
+         reads as the game dealing at random. It is Memory, and the menu is
+         where it belongs. */
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem("overtone:runs", "4");
+          localStorage.setItem("overtone:tutorial", "true");
+          localStorage.setItem("overtone:memory", JSON.stringify("chron"));
+        } catch (e) {}
+      });
+      await page.goto(GAME);
+      const name = await page.evaluate(() =>
+        LENSES.find(l => l.id === "chron").n);
+      await expect(page.locator("#title .carry")).toContainText(name);
+
+      await page.click("#titlePlay");
+      /* and the same Lens is on the board, marked as the one that was carried */
+      await expect(page.locator("#rail .lens .mem")).toHaveCount(1);
+      await expect(page.locator("#rail .lens").first()).toContainText(name);
+    });
+
+  test("a profile that has finished nothing carries nothing in", async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+    await page.goto(GAME);
+    await expect(page.locator("#title .carry")).toHaveCount(0);
+    await page.click("#titlePlay");
+    await expect(page.locator("#rail .lens")).toHaveCount(0);
+  });
+
   test("every door on it comes back to it", async ({ page }) => {
     await page.goto(GAME);
     await page.click("#titleFigs");
@@ -456,7 +487,9 @@ test.describe("the main menu", () => {
     await expect(page.locator("#title")).toBeVisible();
 
     await page.click("#titleSound");
-    await expect(page.locator("#panel h2")).toHaveText("Menu");
+    await expect(page.locator("#panel h2")).toHaveText("Sound & feel");
+    /* and one button out of it, not two both saying "Back to the menu" */
+    await expect(page.locator("#panel .rowend .btn")).toHaveCount(1);
     await page.click("#closeSettings");
     await expect(page.locator("#title")).toBeVisible();
   });
@@ -466,8 +499,7 @@ test.describe("the main menu", () => {
     await page.click("#titlePlay");
     await expect(page.locator("#title")).toBeHidden();
     await page.locator("#tutSkip").click().catch(() => {});
-    await page.click("#menuBtn");
-    await page.click("#menuTitle");
+    await page.click("#homeBtn");
     await expect(page.locator("#title")).toBeVisible();
     await expect(page.locator("#veil")).toBeHidden();
   });
