@@ -260,19 +260,46 @@ describe("run shape", () => {
 
 /* ------------------------------------------------------------------ */
 describe("the Interpreter falls back safely", () => {
-  test("the house appraiser always returns usable overtones", () => {
+  /* This used to assert the house ALWAYS produced overtones, which it did — by
+     drawing them from a hash of the letters whenever no rule matched. Measured
+     against the game's own 249 hand-tagged words, that branch fired on 64% of
+     them and got nothing right on 43%: EAGLE came back PLANT/TECH, TIGER
+     TECH/FOOD, BEE DANGER/DARK. A playtester read it exactly right — "the word
+     types seem to be assigned randomly" — because they were. The house offers
+     what it can point at now and says nothing when it cannot; the player does
+     the reading. */
+  test("the house offers only overtones it can point at, and never invents", () => {
     const words = ["MITOCHONDRIA", "BLOOMBERG", "XYZZY", "AA", "SELF-DOUBT",
                    "firetruck", "happiness", "Q", "ZZZZZZZZZZZZZZZZZZZZ"];
     for (const w of words) {
       const r = api.houseAppraise(w);
       assert.ok(Array.isArray(r.tags), w + " produced no tags array");
-      assert.ok(r.tags.length >= 1 && r.tags.length <= 4,
-        w + " produced " + r.tags.length + " overtones");
+      assert.ok(r.tags.length <= 4, w + " produced " + r.tags.length + " overtones");
       for (const t of r.tags) {
         assert.ok(TAG_CODES.includes(t), w + " produced unknown overtone " + t);
       }
       assert.strictEqual(new Set(r.tags).size, r.tags.length, w + " produced duplicate overtones");
+      assert.ok(typeof r.note === "string" && r.note.length, w + " came back with nothing said");
     }
+    assert.strictEqual(api.houseAppraise("XYZZY").tags.length, 0,
+      "the house invented overtones for a word it has nothing on");
+  });
+
+  test("and what it does offer is mostly right", () => {
+    /* The lexicon is hand-tagged, so it is ground truth. A floor, not a target:
+       the point of the rewrite is that a wrong suggestion is now visible and
+       editable rather than silently shuffled into the deck. */
+    let offered = 0, right = 0;
+    api.LEXICON.forEach(e => {
+      const got = api.houseAppraise(e.w).tags;
+      if (!got.length) return;
+      offered++;
+      if (got.some(t => e.t.indexOf(t) >= 0)) right++;
+    });
+    assert.ok(offered > 0, "the house had nothing to say about any word in its own lexicon");
+    const rate = right / offered;
+    assert.ok(rate > 0.75,
+      "only " + Math.round(rate * 100) + "% of the house's suggestions touched a real overtone");
   });
 
   test("appraisal is stable for the same word", () => {

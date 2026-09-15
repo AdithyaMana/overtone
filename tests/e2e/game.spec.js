@@ -425,12 +425,16 @@ test.describe("the Interpreter", () => {
     await page.fill("#interpInput", "mitochondria");
     await page.click("#interpGo");
 
-    /* No window.claude over file://, so the house appraiser answers and says so. */
+    /* No window.claude over file://, so the house answers — and for a word it
+       has nothing on it says exactly that rather than inventing a reading. */
     const appraisal = page.locator("#appraisal");
-    await expect(appraisal.locator(".card")).toBeVisible();
-    await expect(appraisal.locator(".card .wt")).toHaveText("MITOCHONDRIA");
+    await expect(page.locator(".pickgrid")).toBeVisible();
+    await expect(page.locator("#interpInput")).toHaveValue("mitochondria");
     await expect(appraisal.locator(".src")).toContainText("House appraisal");
 
+    /* the player says what it rings of */
+    await page.click('.pickopt[data-tag="TEC"]');
+    await page.click('.pickopt[data-tag="MIN"]');
     await page.click("#interpGo");
     await expect(page.locator("#veil")).toBeHidden();
 

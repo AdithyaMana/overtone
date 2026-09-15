@@ -72,6 +72,27 @@ async function appraise(page, word) {
   await page.click("#interpBtn");
   await page.fill("#interpInput", word);
   await page.click("#interpGo");
+  await expect(page.locator(".pickgrid")).toBeVisible();
+}
+
+/* What the appraisal offered, as the player sees it pre-selected. */
+function offered(page) {
+  return page.locator('.pickopt[aria-pressed="true"] .lbl');
+}
+
+/* Take whatever is offered up to the two the card needs, then add it. */
+async function addIt(page) {
+  /* by data-tag, not by text: the button holds the overtone's icon glyph as
+     well as its name, so an exact-text filter never matches */
+  const spare = ["ABS", "MIN", "TIM", "NAT", "BOD"];
+  let i = 0;
+  while (await page.locator('.pickopt[aria-pressed="true"]').count() < 2) {
+    const code = spare[i++];
+    if (!code) throw new Error("ran out of overtones to pick");
+    const btn = page.locator('.pickopt[data-tag="' + code + '"]');
+    if (await btn.getAttribute("aria-pressed") === "false") await btn.click();
+  }
+  await page.click("#interpGo");
 }
 
 /* ------------------------------------------------------------------ */
@@ -84,12 +105,12 @@ test.describe("the Interpreter with Claude available", () => {
     await appraise(page, "mitochondria");
 
     const appraisal = page.locator("#appraisal");
-    await expect(appraisal.locator(".card .wt")).toHaveText("MITOCHONDRIA");
+    await expect(page.locator("#interpInput")).toHaveValue("mitochondria");
     await expect(appraisal.locator(".src")).toContainText("Appraised live by Claude");
     await expect(appraisal).toContainText("A machine that thinks it remembers");
 
-    /* the overtones Claude chose are the ones the card carries */
-    const tags = await appraisal.locator(".card .tg").allTextContents();
+    /* the overtones Claude chose are the ones offered, ready to accept */
+    const tags = await offered(page).allTextContents();
     expect(tags.sort()).toEqual(["MIND", "TECH"]);
   });
 
@@ -97,7 +118,7 @@ test.describe("the Interpreter with Claude available", () => {
     await withClaude(page, { reply: { tags: ["HEAT", "DANGER"], note: "Hot." } });
     await open(page);
     await appraise(page, "wildfire");
-    await page.click("#interpGo");
+    await addIt(page);
     await expect(page.locator("#veil")).toBeHidden();
 
     const scored = await page.evaluate(() => {
@@ -123,7 +144,7 @@ test.describe("the Interpreter does not trust what comes back", () => {
     await open(page);
     await appraise(page, "chilli");
 
-    const tags = await page.locator("#appraisal .card .tg").allTextContents();
+    const tags = await offered(page).allTextContents();
     expect(tags.sort()).toEqual(["DANGER", "HEAT"]);
     expect(tags).not.toContain("SPICY");
   });
@@ -134,7 +155,7 @@ test.describe("the Interpreter does not trust what comes back", () => {
     await appraise(page, "glacier");
 
     await expect(page.locator("#appraisal .src")).toContainText("House appraisal");
-    const tags = await page.locator("#appraisal .card .tg").allTextContents();
+    const tags = await offered(page).allTextContents();
     expect(tags.length).toBeGreaterThan(0);
     expect(tags).toContain("COLD");
   });
@@ -144,7 +165,7 @@ test.describe("the Interpreter does not trust what comes back", () => {
     await open(page);
     await appraise(page, "wildfire");
 
-    await expect(page.locator("#appraisal .card")).toBeVisible();
+    await expect(page.locator(".pickgrid")).toBeVisible();
     await expect(page.locator("#appraisal .src")).toContainText("House appraisal");
   });
 });
@@ -157,10 +178,10 @@ test.describe("the Interpreter when Claude refuses", () => {
       await open(page);
       await appraise(page, "glacier");
 
-      await expect(page.locator("#appraisal .card .wt")).toHaveText("GLACIER");
+      await expect(page.locator("#interpInput")).toHaveValue("glacier");
       await expect(page.locator("#appraisal .src")).toContainText("House appraisal");
       /* the run continues — the card is still real */
-      await page.click("#interpGo");
+      await addIt(page);
       const inDeck = await page.evaluate(() =>
         G.deck.concat(G.discard, G.hand).some(c => c.w === "GLACIER" && c.interpreted));
       expect(inDeck).toBe(true);

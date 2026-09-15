@@ -884,6 +884,56 @@ is not offered mid-run, because changing what you are carrying while you are car
 question with no honest answer. And the one place the game already stops to ask you something,
 leaving a run you have played, now says what the new one will be holding.
 
+## 6.14 Two things a playtester saw that we could not
+
+> "I dont understand what the game has to do with overtones T_T, also that mechanic where u get to
+> add a word of yr own is nice but idt its working as intended since the word types seem to be
+> assigned randomly"
+
+Both were right, and the second one was a real bug wearing a straight face.
+
+### The word types really were assigned randomly
+
+The Interpreter asks Claude to read a word's overtones, and falls back to a house appraiser when
+there is no Claude to ask. On the public link there never is —  only exists inside
+an artifact — so **every** player on playovertone.web.app was getting the house. And the house's
+last branch, when none of its eighteen regexes matched, drew overtones from a hash of the letters.
+
+Scored against the game's own 249 hand-tagged words, which is ground truth:
+
+| | before |
+|---|---|
+| matched no rule at all | **64%** |
+| got nothing right | **43%** |
+
+EAGLE came back PLANT/TECH. TIGER, TECH/FOOD. BEE, DANGER/DARK. There was also a quieter failure
+on top: three-letter fragments matching the insides of unrelated words, so FUNERAL was a TIME word
+via "era" and MONDAY via "day".
+
+The house does not guess now. It offers what it can point at, says so plainly when it cannot, and
+the short fragments are anchored to a word start. On the same ground truth it now offers a reading
+for 90 of 249 words and **94%** of those touch a real overtone.
+
+And the other 159 words are the actual fix: **the player does the reading.** The panel has been
+called The Interpreter all along; the interpreter is you. An appraisal — Claude's, or the house's
+shape-reading, or nothing at all — arrives as a suggestion with the overtones it proposes already
+selected, and you accept it, edit it, or write your own over the top. Two to four, the same range
+the hand-authored lexicon uses.
+
+That is better than a correct appraiser would have been. A guess you cannot see is a bug; a
+suggestion you can change is a decision, and decisions are what this game is made of.
+
+### And nobody had said what an overtone is
+
+The game is named for a metaphor it never explained. Pluck a string and you do not hear one note:
+you hear the note and the quieter frequencies above it, which is why a violin and a flute playing
+the same note do not sound alike. Words do it too. FURNACE means a furnace and rings of HEAT, of
+TOOL, of DANGER, none of which is the definition.
+
+Naming a thing is not explaining it, and the rules had only ever named it. The help card now opens
+on the metaphor before the seven rules, and the tutorial's first beat does the same. The line that
+matters is the last one: **what the word means never scores a point.**
+
 ---
 
 ## 7. Reference games

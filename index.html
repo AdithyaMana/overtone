@@ -1057,9 +1057,36 @@ button{ font-family: inherit; color: inherit; }
 .appraisal{ display:flex; gap:14px; align-items:center; margin:14px 0; min-height: 150px; }
 .appraisal .say{ font-size: 13px; color: var(--text-dim); line-height:1.55; }
 .appraisal .say .src{ display:block; font-size:11px; color: var(--text-faint); margin-top:8px; letter-spacing:.04em; }
+.appraisal:has(.interp-pick){ display:block; }
+.interp-pick .sub{ margin: 10px 0 7px; }
+.pickgrid{
+  display:grid; gap:5px; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+.pickopt{
+  display:flex; align-items:center; gap:6px; min-height:40px; padding:7px 9px;
+  border:0; border-radius:6px; cursor:pointer; text-align:left;
+  background: var(--inset); color: var(--text-dim);
+  font-family: var(--f); font-size:11.5px; font-weight:600; letter-spacing:.03em;
+  box-shadow: 0 2px 0 var(--edge);
+}
+.pickopt .lbl{ flex:1; }
+.pickopt .ms{ font-size:15px; line-height:1; }
+.pickopt:hover{ color:#FFF; }
+.pickopt[aria-pressed="true"]{
+  background: var(--gold); color:#12181C; box-shadow: 0 3px 0 var(--gold-d);
+}
+.pickopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.pickopt:active{ transform: translateY(2px); box-shadow:none; }
 .helplist{ margin:0 0 14px; padding-left:18px; color: var(--text-dim); font-size:14px; line-height:1.65; }
 .helplist li{ margin-bottom:7px; }
 
+.why{
+  background: var(--inset); border-left: 3px solid var(--gold);
+  border-radius: 0 8px 8px 0; padding: 13px 15px; margin: 12px 0 18px;
+}
+.why p{ margin: 0 0 9px; font-size: 13.5px; line-height: 1.6; color: var(--text-dim); }
+.why p:last-child{ margin-bottom: 0; }
+.why b{ color: #FFF; }
 .teach{ display:flex; flex-direction:column; gap:13px; margin: 4px 0 16px; }
 .teach-row{ display:flex; gap:12px; align-items:flex-start; }
 .teach-row > div:not(.teach-n){ flex:1; display:flex; flex-direction:column; gap:9px; }
@@ -4139,23 +4166,23 @@ function claude_use(name){
    Deliberately simple and readable — morphology plus a small sense-map. */
 const SENSE = [
   [/fire|burn|flame|blaze|scorch|ember|solar|lava|heat|boil|steam|volcan|thermo|forge/, "HEA"],
-  [/ice|frost|snow|chill|cold|arctic|winter|glaci|freeze|cryo|polar/, "COL"],
-  [/water|rain|sea|ocean|river|wave|flood|tide|liquid|wet|aqua|hydro|marine|lake|mist/, "WET"],
-  [/run|fly|rush|jump|spin|flow|drift|race|swift|dash|surge|orbit|travel|migrat|velo|motor/, "MOT"],
-  [/kill|death|die|poison|toxic|war|blade|knife|gun|bomb|danger|threat|venom|crash|wound|risk|fear/, "DAN"],
+  [/\bice|frost|snow|chill|cold|arctic|winter|glaci|freeze|cryo|polar/, "COL"],
+  [/water|rain|\bsea|ocean|river|wave|flood|tide|liquid|wet|aqua|hydro|marine|lake|mist/, "WET"],
+  [/\brun|fly|rush|jump|spin|flow|drift|race|swift|dash|surge|orbit|travel|migrat|velo|motor/, "MOT"],
+  [/kill|death|\bdie|poison|toxic|\bwar|blade|knife|gun|bomb|danger|threat|venom|crash|wound|risk|fear/, "DAN"],
   [/loud|noise|scream|shout|thunder|roar|bang|siren|drum|song|music|echo|sonic|voice|bell/, "LOU"],
   [/light|bright|glow|shine|star|sun|lamp|flash|gleam|neon|dawn|gold|laser|beam/, "BRI"],
   [/dark|night|shadow|black|gloom|void|abyss|crypt|grave|murk|dusk/, "DAR"],
-  [/dog|cat|bird|fish|wolf|bear|horse|beast|animal|creature|insect|snake|whale|lion|shark|worm|bug|hound|fox|owl|rat/, "ANI"],
+  [/dog|cat|bird|fish|wolf|bear|horse|beast|animal|creature|insect|snake|whale|lion|shark|worm|\bbug|hound|fox|owl|rat/, "ANI"],
   [/tree|flower|leaf|plant|grass|root|seed|forest|moss|vine|herb|bloom|fern|weed/, "PLA"],
   [/mountain|earth|stone|rock|storm|sky|wind|cloud|desert|valley|nature|soil|canyon|island|cave/, "NAT"],
   [/hand|eye|heart|bone|blood|skin|brain|body|lung|flesh|nerve|muscle|tooth|limb|finger/, "BOD"],
   [/eat|food|bread|meat|fruit|sweet|taste|cook|meal|soup|spice|drink|sugar|salt|feast/, "FOO"],
-  [/tool|hammer|blade|wheel|lever|machine|device|key|rope|nail|saw|drill|engine/, "TOO"],
+  [/tool|hammer|blade|wheel|lever|machine|device|\bkey|rope|nail|\bsaw|drill|engine/, "TOO"],
   [/comput|digital|data|robot|cyber|electr|circuit|code|network|silicon|pixel|server|algorith|neural|quantum/, "TEC"],
   [/money|gold|coin|cash|price|debt|bank|trade|wealth|cost|market|wage|tax|profit/, "MON"],
   [/think|mind|dream|memory|idea|thought|know|belief|feel|emotion|soul|logic|reason|fear|hope|doubt/, "MIN"],
-  [/time|year|day|hour|old|ancient|future|past|clock|age|era|history|moment|decade|eternal/, "TIM"]
+  [/time|year|\bday|hour|\bold|ancient|future|past|clock|\bage|\bera|history|moment|decade|eternal/, "TIM"]
 ];
 function houseAppraise(word){
   const w = word.toLowerCase();
@@ -4167,16 +4194,12 @@ function houseAppraise(word){
     if(tags.indexOf("ABS")===-1) tags.push("ABS");
     if(tags.indexOf("MIN")===-1 && tags.length<3) tags.push("MIN");
   }
-  if(tags.length === 0){
-    const r = mulberry32(hashStr(w));
-    const pool = TAG_KEYS.filter(function(t){ return t!=="ABS"; });
-    const n = 2 + Math.floor(r()*2);
-    while(tags.length < n){
-      const t = pool[Math.floor(r()*pool.length)];
-      if(tags.indexOf(t)===-1) tags.push(t);
-    }
-  }
-  return { tags: tags.slice(0,4), note: "No entry on file. Appraised from its shape and its company." };
+  return {
+    tags: tags.slice(0,4),
+    note: tags.length
+      ? "Read from the shape of the word. Change anything that is wrong."
+      : "No entry on file, and the house will not guess. The reading is yours."
+  };
 }
 
 function openInterpreter(){
@@ -4188,8 +4211,8 @@ function openInterpreter(){
     + '<h2>The Interpreter</h2>'
     + '<div class="sub">One word, once per run</div>'
     + '<p>Type in <b>any word you like</b>. Your dog\'s name, your job title, the worst thing that happened to you this week.</p>'
-    + '<p>It gets read for its overtones and shuffled into your deck as a real card, '
-    + 'scoring by exactly the same rules as everything else.</p>'
+    + '<p>Then you say what it <b>rings of</b>. Those are its overtones, and the card '
+    + 'goes into your deck scoring by exactly the same rules as everything else.</p>'
     + '<input id="interpInput" maxlength="20" autocomplete="off" spellcheck="false" placeholder="type a word…">'
     + '<div class="appraisal" id="appraisal"></div>'
     + '<div class="rowend">'
@@ -4246,24 +4269,68 @@ async function runAppraisal(){
     src = "House appraisal · no live valuer available";
   }
 
-  const card = makeCard({ w: word, t: tags }, true);
-  G.interpreterUsed = true;
-  G.interpretedWord = { w: word, t: tags };
-  G.deck.push(card);
-  shuffle(G.deck);
-
-  out.innerHTML = '';
-  out.appendChild(cardEl(card, true));
-  const say = document.createElement("div");
-  say.className = "say";
-  say.innerHTML = escapeHtml(note) + '<span class="src">' + escapeHtml(src) + '</span>';
-  out.appendChild(say);
-
   SFX.reveal();
+  chooseOvertones(word, tags, note, src);
+}
 
-  go.textContent = "Into the deck →";
+/* The last word in it is the player's. An appraisal is a suggestion — Claude's
+   when there is one, the house's shape-reading when there is not, nothing at
+   all when neither can point at anything — and the player accepts it, edits
+   it, or writes their own reading over the top. Which is what interpreting a
+   word means, and what the panel has been called all along. */
+function chooseOvertones(word, suggested, note, src){
+  const out = document.getElementById("appraisal");
+  const go = document.getElementById("interpGo");
+  const picked = suggested.slice(0, 4);
+
+  out.innerHTML = ''
+    + '<div class="interp-pick">'
+    +   '<div class="say">' + escapeHtml(note)
+    +     '<span class="src">' + escapeHtml(src) + '</span></div>'
+    +   '<div class="sub" id="pickCount"></div>'
+    +   '<div class="pickgrid">' + TAG_KEYS.map(function(t){
+          return '<button class="pickopt" type="button" data-tag="' + t + '" aria-pressed="false">'
+            + iconSpan(t) + '<span class="lbl">' + TAGS[t][0] + '</span></button>';
+        }).join("") + '</div>'
+    + '</div>';
+
+  const countEl = document.getElementById("pickCount");
+  function paint(){
+    Array.prototype.forEach.call(out.querySelectorAll(".pickopt"), function(b){
+      b.setAttribute("aria-pressed", picked.indexOf(b.dataset.tag) >= 0 ? "true" : "false");
+    });
+    const n = picked.length;
+    countEl.textContent = n < 2
+      ? "Pick at least two"
+      : n + " of a possible four \u00b7 tap to change";
+    go.disabled = n < 2;
+    go.textContent = n < 2 ? "Pick two" : "Into the deck \u2192";
+  }
+
+  Array.prototype.forEach.call(out.querySelectorAll(".pickopt"), function(b){
+    b.onclick = function(){
+      const t = b.dataset.tag, at = picked.indexOf(t);
+      if(at >= 0) picked.splice(at, 1);
+      else if(picked.length < 4) picked.push(t);
+      else { SFX.deny(); return; }
+      SFX.pick(picked.length);
+      paint();
+    };
+  });
+
   go.disabled = false;
-  go.onclick = function(){ hidePanel(); render(); toast(word + " is in the deck."); };
+  go.onclick = function(){
+    if(picked.length < 2){ SFX.deny(); return; }
+    const card = makeCard({ w: word, t: picked.slice() }, true);
+    G.interpreterUsed = true;
+    G.interpretedWord = { w: word, t: picked.slice() };
+    G.deck.push(card);
+    shuffle(G.deck);
+    hidePanel();
+    render();
+    toast(word + " is in the deck.");
+  };
+  paint();
 }
 
 /* ---------- run end ---------- */
@@ -4825,9 +4892,11 @@ function toggleSel(id){
 const TUT = [
   { label: "Overtone",
     text: function(){
-      return "See the little tags along the bottom of each card? Those are its "
-           + "<b>overtones</b>. Every round asks for two of them, and words that "
-           + "carry them are worth points."
+      return "Pluck a string and you hear more than the note \u2014 quieter frequencies "
+           + "above it, which is why a violin and a flute do not sound alike. Those are "
+           + "its <b>overtones</b>.<br><br>Words have them too. The little tags along the "
+           + "bottom of each card are what that word <b>rings of</b>, and those are what "
+           + "score. Not what it means."
            + '<span class="do">Seven words, four plays. Let\u2019s do one round together.</span>'; } },
 
   { sel: ".blind", pos: "right", label: "What this round wants",
@@ -5911,6 +5980,16 @@ function showHelp(back){
   showPanel(''
     + '<h2>How Overtone works</h2>'
     + '<div class="sub">Seven things and you are fine</div>'
+    + '<div class="why">'
+    +   '<p>Pluck a string and you do not hear one note. You hear the note, and quieter '
+    +   'frequencies above it \u2014 its <b>overtones</b>. They are why a violin and a '
+    +   'flute playing the same note do not sound the same.</p>'
+    +   '<p>Words do it too. <b>FURNACE</b> means a furnace. It also rings of '
+    +   '<b class="gold">HEAT</b>, of <b class="gold">TOOL</b>, of '
+    +   '<b class="gold">DANGER</b> \u2014 none of that is the definition, all of it '
+    +   'arrives anyway. Those are the small tags under every card, and they are what '
+    +   'you are playing with. What the word <i>means</i> never scores a point.</p>'
+    + '</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
