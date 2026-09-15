@@ -1269,6 +1269,24 @@ button{ font-family: inherit; color: inherit; }
   color: #FFF; text-shadow: var(--drop-sm);
 }
 .carry .d{ flex: 1 0 100%; font-size: 11.5px; line-height: 1.45; color: var(--text-dim); }
+/* Turned off, it is still the same row saying the same thing, so it keeps its
+   shape and loses its colour rather than disappearing. */
+.carry.off{
+  border-left-color: rgba(112,136,154,.45);
+  background: linear-gradient(90deg, rgba(44,65,80,.5), rgba(44,65,80,.05));
+}
+.lens.static{ cursor: default; margin: 12px 0; }
+.carry.off .k{ color: var(--text-faint); }
+.carry.off .v{ color: var(--text-dim); }
+.carrybtn{
+  flex: 1 0 100%; margin-top: 7px; align-self: flex-start;
+  border: 0; border-radius: 6px; cursor: pointer; padding: 8px 12px; min-height: 36px;
+  font-family: var(--f-display); font-size: 10.5px; letter-spacing: .08em;
+  text-transform: uppercase; text-align: left;
+  background: rgba(0,0,0,.28); color: var(--text-dim); text-shadow: var(--drop-sm);
+}
+.carrybtn:hover{ color: #FFF; background: rgba(0,0,0,.42); }
+.carrybtn:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
 .setnote{ font-size: 12.5px; color: var(--text-faint); margin: 0 0 15px; }
 .title .setnote{ margin: 9px 0 0; font-size: 12px; line-height: 1.55; }
 
@@ -2485,7 +2503,7 @@ const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
    what actually ends an early run is a dead draw, not a wrong choice. */
 const DIFFICULTIES = [
   { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"Lower targets and a fourth discard. Same words, same Lenses, same Ordeals, with more room to be wrong in." },
+    d:"Lower targets and a fourth discard. Same words, same Ordeals, with more room to be wrong in." },
   { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
     d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
 ];
@@ -2499,11 +2517,43 @@ function difficulty(){ return DIFF_BY_ID[prefs.difficulty] || DIFF_BY_ID.scholar
    or lost. One run is enough: what it buys is knowing what the curve feels
    like before choosing to stand in front of it. */
 function scholarOpen(){ return store.get("runs", 0) > 0; }
+
+/* Flawed Lenses are the only thing in the shop that can make a run worse while
+   looking like the best thing on the shelf: THE CURSE reads "multiplier x3.5"
+   and doubles every target you have left. A player who has not yet worked out
+   what a multiplier is worth cannot price that, so APPRENTICE keeps them off
+   the shelf until the player has actually met one.
+
+   They meet one in SCHOLAR, where the game is the game. From that moment the
+   drawer is open everywhere, APPRENTICE included: taking a mechanic back off
+   somebody who has already learned it would be the worse of the two mistakes. */
+function flawsSeen(){ return store.get("sawFlaw", false); }
+function flawsOpen(){ return difficulty().id !== "apprentice" || flawsSeen(); }
+/* Pinned at newRun for the same reason the difficulty is: the shop quotes the
+   next round's target before you spend, and a target that moves between the
+   quote and the round is the shop lying. */
+function runFlaws(){ return (G && typeof G.flaws === "boolean") ? G.flaws : flawsOpen(); }
+
+/* APPRENTICE without the flawed Lenses has no ceiling. Measured over 400 runs
+   through the real engine, taking the six biggest multipliers out of the shop
+   cost it 15.8 points of win rate — the gentler mode came out HARDER than it
+   went in. The targets come down to match, and go back up the day the drawer
+   opens, so both halves of APPRENTICE land in the same place. */
+function curveScale(){
+  const d = runDifficulty();
+  if(d.id !== "apprentice") return d.scale;
+  return runFlaws() ? d.scale : APPRENTICE_SOFT;
+}
 /* What the run in progress was started under. Switching mid-run would let a
    player take the hard curve's shop money into the easy curve's round 7. */
 function runDifficulty(){
   return (G && DIFF_BY_ID[G.diff]) || difficulty();
 }
+/* What APPRENTICE asks for while the flawed Lenses are still off the shelf.
+   Measured, not guessed: 0.6 with the flawed Lenses wins 50.8% of runs, 0.6
+   without them 35.0%, 0.50 without 43.5%, 0.45 without 54.0%. This lands the
+   closed drawer back on the open one. */
+const APPRENTICE_SOFT = 0.47;
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
@@ -2684,10 +2734,18 @@ const store = {
 if(store.get("difficulty", null) === null){
   store.set("difficulty", store.get("runs", 0) === 0 ? "apprentice" : "scholar");
 }
+/* Anyone with a run behind them has been playing a game where the flawed
+   Lenses were always on the shelf, so they have met one whether or not anybody
+   introduced it. Written down on the first boot after this change rather than
+   inferred later, for the same reason the difficulty is. */
+if(store.get("sawFlaw", null) === null){
+  store.set("sawFlaw", store.get("runs", 0) > 0);
+}
 const prefs = {
   sfx:     store.get("sfx", true),
   music:   store.get("music", true),
   haptics: store.get("haptics", true),
+  carryMemory: store.get("carryMemory", true),
   difficulty: store.get("difficulty", "scholar")
 };
 function setPref(k, v){ prefs[k] = v; store.set(k, v); }
@@ -2994,12 +3052,10 @@ function makeCard(entry, interpreted){
   };
 }
 
-/* `fresh` starts a run with nothing carried in. Memory — the Lens a finished
-   run hands to the next one — is the reason run 2 is not run 1, so it belongs
-   on the path where a run actually ended. Reaching for "New run" in the header
-   is the other thing: abandoning what you are doing and starting clean. Coming
-   back to a board holding a Lens you never bought reads as the game failing to
-   reset, not as a reward. */
+/* `fresh` picks a seed of its own instead of the daily. It used to decide the
+   carried Lens as well, which meant three buttons all saying "New run" behaved
+   three different ways. That is `prefs.carryMemory` now, set by the player on
+   the menu, and it is the only thing that decides. */
 function newRun(seedStr, fresh){
   const daily = todayKey();
   const seed = seedStr || daily;
@@ -3058,6 +3114,7 @@ function newRun(seedStr, fresh){
     isDaily: seed === daily,
     /* Pinned for the whole run. The setting is what the NEXT one uses. */
     diff: difficulty().id,
+    flaws: flawsOpen(),
     round: 0,
     deck: shuffle(deck),
     discard: [],
@@ -3087,8 +3144,10 @@ function newRun(seedStr, fresh){
     shopSeen: []
   };
 
-  /* Memory: a Lens carried in from a run you finished. */
-  const memory = fresh ? null : store.get("memory", null);
+  /* Memory: a Lens carried in from a run you finished, unless the player has
+     said on the menu that they would rather start clean. Never destroyed by
+     the choice — finishing a run is what replaces it. */
+  const memory = prefs.carryMemory ? store.get("memory", null) : null;
   if(memory){
     const l = LENSES.find(function(x){ return x.id===memory; });
     if(l){ G.lenses.push(l); G.memoryLens = l.id; }
@@ -3129,7 +3188,7 @@ function roundRules(){
    ask someone to shop wisely against a number that is not true. */
 function shapeFor(round, rules){
   const diff = runDifficulty();
-  const probe = { target: Math.round(TARGETS[round] * diff.scale),
+  const probe = { target: Math.round(TARGETS[round] * curveScale()),
                   plays: 4, discards: 3 + diff.discards, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
   /* The rules take their cut after the Lenses, so a Lens can never hand back
@@ -3311,7 +3370,7 @@ function startRound(){
      prediction and the player plays the deal, so a difference between them is
      the game lying about itself. tests/logic asserts they agree. */
   const diff = runDifficulty();
-  G.target = Math.round(TARGETS[G.round] * diff.scale);
+  G.target = Math.round(TARGETS[G.round] * curveScale());
   G.roundScore = 0;
   G.plays = 4; G.discards = 3 + diff.discards;
   G.mustForfeit = false; G.forfeited = false;
@@ -3698,9 +3757,38 @@ function deckCount(tag){
   }).length;
 }
 
+/* Shown once, ever. It sets the flag as it opens rather than as it closes: a
+   player who reloads mid-card has still seen it, and showing it twice teaches
+   nothing the second time. */
+function introduceFlaws(lens, reward){
+  store.set("sawFlaw", true);
+  showPanel('<h2>Something new on the shelf</h2>'
+    + '<div class="sub">' + escapeHtml(lens.n) + ' is a flawed Lens</div>'
+    + '<p>Flawed Lenses pay more than anything else in the game, and every one of '
+    + 'them takes something back. A play, a discard, cards in your hand, your '
+    + 'income, or the target itself.</p>'
+    + '<div class="lens flaw static"><div class="n">' + escapeHtml(lens.n) + '</div>'
+    + '<div class="d">' + escapeHtml(lens.d) + '</div></div>'
+    + '<p>Whether that is a bargain or the end of your run depends on how many '
+    + 'rounds you have left and what your deck can already do. Early, with rounds '
+    + 'to pay it off in, they are the best thing in the shop. Late, they are how '
+    + 'a good run ends.</p>'
+    + '<p class="gold">You can leave it. There is always another shelf.</p>'
+    + '<p style="font-size:13px;color:var(--text-faint)">They are on the shelf in '
+    + '<b>APPRENTICE</b> from now on as well, and its targets go up to match.</p>'
+    + '<div class="rowend end">'
+    + '<button class="btn primary" id="seenFlaw" type="button">Show me the shop</button></div>');
+  document.getElementById("seenFlaw").onclick = function(){
+    hidePanel();
+    openShop(reward);
+  };
+}
+
 function rollOffers(){
   const owned = G.lenses.map(function(l){ return l.id; });
-  const avail = LENSES.filter(function(l){ return owned.indexOf(l.id)===-1; });
+  const avail = LENSES.filter(function(l){
+    return owned.indexOf(l.id) === -1 && (!l.flaw || runFlaws());
+  });
   shuffle(avail);
   const offers = avail.slice(0,2).map(function(l){ return { kind:"lens", lens:l, cost:l.cost }; });
   offers.push({ kind:"words", cost:3 });
@@ -3709,6 +3797,13 @@ function rollOffers(){
 
 function openShop(reward){
   if(!G.offers) G.offers = rollOffers();
+  /* The first flawed Lens a player is ever offered is the one moment where the
+     shop can talk them into losing a run. It gets a card of its own, once, on
+     the shelf it is standing on. */
+  if(!flawsSeen()){
+    const first = G.offers.find(function(o){ return o.kind === "lens" && o.lens.flaw; });
+    if(first){ introduceFlaws(first.lens, reward); return; }
+  }
   const nextDemand = G.demandOrder[G.round];
   const nextOrdeal = (G.ordealOrder && G.ordealOrder[G.round]) || null;
   const next = roundShape(G.round);
@@ -4164,7 +4259,7 @@ function endRun(won){
         ? '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
           + '<p>Four runs in five end early even played perfectly. If you would rather '
           + 'have room to be wrong in, <b>APPRENTICE</b> lowers every target and hands you '
-          + 'a fourth discard. Same words, same Lenses, same Ordeals.</p>'
+          + 'a fourth discard. Same words, same Ordeals.</p>'
           + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
         : '')
     + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
@@ -4753,9 +4848,11 @@ const TUT = [
       return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>: a rule "
            + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
            + "and the targets climb faster than any deck can keep up with.<br><br>"
-           + "A few want fewer words: <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
-           + "And the loudest ones are <b>flawed</b>: they pay more than anything else and take "
-           + "a play, a discard or your income back for it."
+           + "A few want fewer words: <b>ASCETIC</b> pays \u00d75 if you play exactly one."
+           + (flawsOpen()
+               ? " And the loudest ones are <b>flawed</b>: they pay more than anything else "
+                 + "and take a play, a discard or your income back for it."
+               : "")
            + '<span class="do">'
            + (G.roundScore >= G.target
                 ? "You have already cleared " + G.demand.n + ". The Bookseller is next."
@@ -5435,9 +5532,17 @@ function showTitle(){
     +   row("titlePlay", live ? "New run" : (first ? "Play" : "Play the daily"),
             live ? "" : "go", todayKey())
     +   (!live && memLens
-          ? '<div class="carry"><span class="k">Carrying in</span>'
-            + '<span class="v">' + escapeHtml(memLens.n) + '</span>'
-            + '<span class="d">' + escapeHtml(memLens.d) + '</span></div>'
+          ? '<div class="carry' + (prefs.carryMemory ? '' : ' off') + '">'
+            + '<span class="k">' + (prefs.carryMemory ? 'Carrying in' : 'Starting clean') + '</span>'
+            + '<span class="v">' + escapeHtml(prefs.carryMemory ? memLens.n : 'No Lens') + '</span>'
+            + '<span class="d">' + (prefs.carryMemory
+                ? escapeHtml(memLens.d)
+                : escapeHtml(memLens.n) + ' stays where it is. Finishing a run replaces it.')
+              + '</span>'
+            + '<button class="carrybtn" id="titleCarry" type="button">'
+            + (prefs.carryMemory
+                ? 'Start clean instead'
+                : 'Carry ' + escapeHtml(memLens.n) + ' in') + '</button></div>'
           : '')
     +   '<div class="mseg">'
     +     '<div class="msl" id="titleDiffLabel">How hard</div>'
@@ -5473,6 +5578,12 @@ function showTitle(){
   document.getElementById("titleHelp").onclick = function(){ showHelp("title"); };
   document.getElementById("titleFigs").onclick = function(){ showFigures("title"); };
   document.getElementById("titleSound").onclick = function(){ showMenu("title"); };
+  const carry = document.getElementById("titleCarry");
+  if(carry) carry.onclick = function(){
+    setPref("carryMemory", !prefs.carryMemory);
+    SFX.button();
+    showTitle();
+  };
   document.getElementById("titleTut").onclick = function(){
     titleFromGame = false;
     hideTitle();
@@ -5527,11 +5638,14 @@ function paintDiff(){
     } else if(!locked && tag) tag.remove();
   });
 
+  const softer = now.id === "apprentice" && !flawsOpen();
   note.innerHTML = live && inRun.id !== now.id
     ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
-    : now.d + (shut
-        ? ' <b>SCHOLAR</b> opens once you finish a run, win or lose.'
-        : '');
+    : now.d
+      + (softer
+          ? ' The Lenses that take something back stay off the shelf until you have met one.'
+          : '')
+      + (shut ? ' <b>SCHOLAR</b> opens once you finish a run, win or lose.' : '');
 }
 
 /* The stops on the list, top to bottom. The difficulty switch is one stop, and
@@ -5608,6 +5722,14 @@ function behindTitle(shut){
   else { app.removeAttribute("inert"); app.removeAttribute("aria-hidden"); }
 }
 
+/* What a run is about to start holding, said in one line for the paths that
+   do not go past the menu. */
+function carriedNote(){
+  const m = prefs.carryMemory && store.get("memory", null);
+  const l = m && LENSES.find(function(x){ return x.id === m; });
+  return l ? "Fresh run, carrying " + l.n + "." : "Fresh run. No Lenses.";
+}
+
 /* Has anything happened on this board that a player would miss? */
 function runTouched(){
   if(!G) return false;
@@ -5622,10 +5744,32 @@ function confirmNewRun(after){
     + '<div class="sub">Round ' + (G.round + 1) + ' of ' + ROUNDS
       + ' &middot; ' + G.total.toLocaleString() + ' points so far</div>'
     + '<p>Starting again deals a new board. This one does not come back.</p>'
+    + (function(){
+        const m = store.get("memory", null);
+        const l = m && LENSES.find(function(x){ return x.id === m; });
+        if(!l) return '';
+        return '<div class="setrow"><div><div class="sl">'
+          + (prefs.carryMemory ? 'Carrying in ' + escapeHtml(l.n)
+                               : 'Starting clean')
+          + '</div><div class="sd">'
+          + (prefs.carryMemory
+              ? 'Your Memory Lens comes with you into the new run.'
+              : escapeHtml(l.n) + ' stays where it is.')
+          + '</div></div>'
+          + '<button class="switch" type="button" id="confirmCarry" aria-pressed="'
+          + (prefs.carryMemory ? 'true' : 'false') + '">'
+          + (prefs.carryMemory ? 'ON' : 'OFF') + '</button></div>';
+      })()
     + '<div class="rowend">'
     +   '<button class="btn danger" id="dropRun" type="button">Start a new run</button>'
     +   '<button class="btn primary" id="keepRun" type="button">Keep playing</button>'
     + '</div>');
+  const cc = document.getElementById("confirmCarry");
+  if(cc) cc.onclick = function(){
+    setPref("carryMemory", !prefs.carryMemory);
+    SFX.button();
+    confirmNewRun(after);          /* redraw so the row and the switch agree */
+  };
   document.getElementById("keepRun").onclick = function(){
     hidePanel();
     if(after === "board"){ titleFromGame = false; }
@@ -5636,7 +5780,7 @@ function confirmNewRun(after){
     if(after === "board"){
       titleFromGame = false;
       newRun("free-" + Math.random().toString(36).slice(2,8), true);
-      toast("Fresh run. No Lenses, no Memory.");
+      toast(carriedNote());
     } else startFromTitle();
   };
 }
@@ -5748,9 +5892,12 @@ function showHelp(back){
     +   '<div class="teach-row"><div class="teach-n">5</div>'
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
     +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
-    +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
-    +     'the biggest numbers in the game, and every one takes something back. A play, a '
-    +     'discard, cards in hand, your income, or the target itself.</p></div>'
+    +     'and holding it beats buying a bigger one late.'
+    +     (flawsOpen()
+        ? ' Some are <b class="gold">flawed</b>: the biggest numbers in the game, and every '
+          + 'one takes something back. A play, a discard, cards in hand, your income, or the '
+          + 'target itself.'
+        : '') + '</p></div>'
     +   '<div class="teach-row"><div class="teach-n">6</div>'
     +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
     +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
@@ -5829,7 +5976,7 @@ document.getElementById("newRunBtn").onclick = function(){
   hidePanel();
   if(runTouched()){ confirmNewRun("board"); return; }
   newRun("free-" + Math.random().toString(36).slice(2,8), true);
-  toast("Fresh run. No Lenses, no Memory.");
+  toast(carriedNote());
 };
 document.getElementById("tutNext").onclick = tutAdvance;
 document.getElementById("tutSkip").onclick = function(){ endTutorial(false); };

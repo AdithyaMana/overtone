@@ -40,6 +40,10 @@ if (ARGS.includes("--nofigures")) ctx.figureFor = () => null;
 const DIFF = flag("difficulty", null);
 if (DIFF) api.setPref("difficulty", DIFF);
 
+/* --seenflaw is the player who has already met a flawed Lens in SCHOLAR: the
+   drawer is open in APPRENTICE too, and its targets go back up to match. */
+if (ARGS.includes("--seenflaw")) api.store.set("sawFlaw", true);
+
 const TOV = flag("targets", null);
 if (TOV) {
   const t = TOV.split(",").map(Number);
@@ -47,6 +51,16 @@ if (TOV) {
     throw new Error("--targets needs " + api.TARGETS.length + " numbers");
   t.forEach((v, i) => { api.TARGETS[i] = v; });
 }
+/* --noflaw takes the six flawed Lenses out of the shop, which is what
+   APPRENTICE does for a player who has not met one yet. They are the biggest
+   multipliers in the game, so removing them is as likely to make a curve
+   HARDER as easier — the only way to know is to score the same seeds twice. */
+if (ARGS.includes("--noflaw")) {
+  const keep = api.LENSES.filter(l => !l.flaw);
+  api.LENSES.length = 0;
+  keep.forEach(l => api.LENSES.push(l));
+}
+
 const BUY = flag("buy", "value");
 
 /* ------------------------------------------------------------------ player */

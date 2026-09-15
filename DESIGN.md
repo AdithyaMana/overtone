@@ -750,6 +750,78 @@ perfect stair that answer nothing and you get the shape's points, but none of it
 
 ---
 
+## 6.12 Taking a mechanic away, and measuring what that costs
+
+Flawed Lenses are the only thing in the shop that can make a run worse while looking like the best
+thing on the shelf. THE CURSE reads *multiplier ×3.5* and doubles every target you have left. A
+player who has not yet worked out what a multiplier is worth cannot price that, and pricing it is
+the whole decision. So APPRENTICE keeps them off the shelf until the player has actually met one.
+
+**Removing them made the easy mode harder.** Measured over 400 runs through the real engine, the
+same seeds with the six flawed Lenses gone:
+
+| APPRENTICE | win rate | p90 multiplier |
+|---|---|---|
+| target scale 0.6, flawed Lenses on the shelf | 50.8% | ×65.6 |
+| target scale 0.6, flawed Lenses removed | **35.0%** | ×20.0 |
+| target scale 0.50, removed | 43.5% | |
+| target scale 0.45, removed | 54.0% | |
+| **target scale 0.47, removed (shipped)** | **47.8%** | |
+
+Taking the six biggest multipliers out of a mode does not make it gentler; it takes its ceiling
+away, and the curve is built on the assumption that a ceiling exists. This is the second time the
+same trap has caught this project — the first was APPRENTICE measuring *harder* than SCHOLAR
+because `startRound` read the targets raw while `shapeFor` scaled them. The lesson is the same
+one: a change meant to make something easier has to be measured, not reasoned about.
+
+So APPRENTICE has two states, and both land in the same place:
+
+| | flawed Lenses | target scale | win rate |
+|---|---|---|---|
+| before you have met one | off the shelf | 0.47 | 47.8% |
+| after | on the shelf | 0.6 | 50.0% |
+
+SCHOLAR is untouched by any of it and stays where it was; the engine test pins its round-1 target
+to the raw curve so nothing can move it by accident.
+
+Three rules keep the two states honest:
+
+- **The state is pinned at `newRun`**, exactly like the difficulty, so the shop can never quote a
+  target the round will not ask for. The introduction card can only fire in a run where the drawer
+  is already open, so nothing moves under a run in progress.
+- **Both halves read one line.** `curveScale()` is the only place a target is scaled, and the
+  engine test walks every round of both states asserting `shapeFor` equals `startRound`.
+- **Nobody is taught a rule they cannot meet.** The "Lenses rewrite the rules" row and the
+  tutorial's last beat drop the flawed-Lens sentence while the drawer is shut. Teaching a mechanic
+  somebody cannot encounter is worse than teaching nothing: they go looking for it and it is not
+  there.
+
+And the drawer never shuts again. Taking a mechanic back off somebody who has already learned it is
+the worse of the two mistakes, so the moment they meet one it is open in APPRENTICE too, and the
+card says so while they are reading it.
+
+## 6.13 One rule for the carried Lens
+
+Three buttons said *New run* and did three different things with Memory: the masthead's dropped it,
+the result screen's kept it, the menu's kept it. The rule behind that was sound on its own
+terms — abandoning a run should not pay you — but a player cannot see which button they are
+pressing from the inside, and the word on all three is the same. What it produced was a Lens
+appearing on a round-1 board with no explanation, which reads as the game dealing at random.
+
+One rule now: **your Memory Lens comes with you into every new run, until you say otherwise on the
+menu.** The original objection was that a board holding a Lens you never bought reads as a failure
+to reset; the menu names the Lens and its rule before you press Play, so it cannot read that way
+any more.
+
+The control is the strip that already named it, turned into a decision: *Carrying in — CHRONICLER*
+with a button that says *Start clean instead*. It never destroys the Lens — finishing a run is the
+only thing that replaces it — so the choice is reversible right up to the moment you press Play. It
+is not offered mid-run, because changing what you are carrying while you are carrying it is a
+question with no honest answer. And the one place the game already stops to ask you something,
+leaving a run you have played, now says what the new one will be holding.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or

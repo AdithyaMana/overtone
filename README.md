@@ -42,9 +42,12 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
   the one line saying what the difficulty you are on does. The board's masthead holds the way
   back to it, and one button beside that for sound.
 - Two difficulties. **SCHOLAR** is the game as balanced. **APPRENTICE** lowers every
-  target by 40% and adds a fourth discard — same words, same Lenses, same Ordeals, more room to be
-  wrong in. A new player starts on APPRENTICE and **SCHOLAR is shut until they have finished a
-  run**, won or lost.
+  target and adds a fourth discard — same words, same Ordeals, more room to be wrong in. A new
+  player starts on APPRENTICE and **SCHOLAR is shut until they have finished a run**, won or lost.
+- **The flawed Lenses stay off the shelf until you have met one.** They are the only thing in the
+  shop that can make a run worse while looking like the best thing on it, so APPRENTICE keeps them
+  back. You meet one in SCHOLAR, it gets a card of its own, and from then on the drawer is open
+  everywhere — APPRENTICE included, with its targets back up to match.
 - Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
   multiplying will stall around round 4.
 

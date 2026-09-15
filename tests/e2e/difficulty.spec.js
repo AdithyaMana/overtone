@@ -59,6 +59,8 @@ test.describe("choosing how hard", () => {
       try {
         if (localStorage.getItem("overtone:difficulty") === null)
           localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
+        if (localStorage.getItem("overtone:sawFlaw") === null)
+          localStorage.setItem("overtone:sawFlaw", "true");
       } catch (e) {}
     });
   });

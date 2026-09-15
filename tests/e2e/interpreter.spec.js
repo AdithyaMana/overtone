@@ -33,6 +33,11 @@ test.beforeEach(async ({ page }) => {
     try {
       if (localStorage.getItem("overtone:difficulty") === null)
         localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
+      /* and as somebody who has already met a flawed Lens, so the shop opens on
+         the shop rather than on the card that introduces them. The first
+         meeting is flaws.spec.js's subject, not this one's. */
+      if (localStorage.getItem("overtone:sawFlaw") === null)
+        localStorage.setItem("overtone:sawFlaw", "true");
     } catch (e) {}
   });
 });

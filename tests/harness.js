@@ -130,7 +130,8 @@ function load(){
     LEXICON, LENSES, DEMANDS, TARGETS, TAGS, TAG_KEYS, ICONS, TAG_COLOR,
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES,
     FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue, arrangeForTutorial,
-    DIFFICULTIES, difficulty, runDifficulty, prefs, setPref
+    DIFFICULTIES, difficulty, runDifficulty, prefs, setPref,
+    flawsSeen, flawsOpen, runFlaws, curveScale, scholarOpen, shapeFor, APPRENTICE_SOFT
   };`, ctx);
 
   return { api: ctx.__api, ctx, byId, storage: store };
