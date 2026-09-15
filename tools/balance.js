@@ -4,6 +4,7 @@
  *   node tools/balance.js [runs] [--play optimal|greedy] [--buy value|costly|random]
  *   node tools/balance.js --curve [runs]      what a round can produce
  *   node tools/balance.js --floor [runs]      what a beginner can produce
+ *   node tools/balance.js --difficulty apprentice   the gentler curve
  *   node tools/balance.js --lenses [runs]     per-Lens power ranking
  *   node tools/balance.js --stacks [runs]     the strongest loadouts reachable
  *
@@ -34,6 +35,11 @@ if (ARGS.includes("--nofigures")) ctx.figureFor = () => null;
 /* --targets 1400,3300,... scores a candidate curve without editing the game, so
    a sweep can run several curves at once instead of serially rewriting the one
    file they all read from. */
+/* --difficulty apprentice measures the gentler curve. Same engine, same deck,
+   same Lenses; only the targets and one discard differ. */
+const DIFF = flag("difficulty", null);
+if (DIFF) api.setPref("difficulty", DIFF);
+
 const TOV = flag("targets", null);
 if (TOV) {
   const t = TOV.split(",").map(Number);

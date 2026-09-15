@@ -1100,6 +1100,31 @@ button{ font-family: inherit; color: inherit; }
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
+.diffpick{ display:grid; gap:8px; margin: 0 0 6px; }
+.diffopt{
+  text-align:left; background: var(--inset); border:0; border-radius: 8px;
+  padding: 11px 13px; cursor:pointer; color: var(--text-dim);
+  box-shadow: 0 3px 0 var(--edge); font: inherit;
+}
+.diffopt .dn{
+  font-family: var(--f-display); font-size: 13px; letter-spacing:.06em; color:#FFF;
+  display:flex; align-items:center; gap:8px;
+}
+.diffopt .dd{ font-size: 12.5px; line-height:1.5; margin-top: 3px; }
+.diffopt[aria-pressed="true"]{
+  background: var(--lens); box-shadow: 0 4px 0 var(--lens-d); color:#F3EEFF;
+}
+.diffopt[aria-pressed="true"] .dn::after{ content:"CURRENT"; font-size:9px; opacity:.85; }
+.diffopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.setnote{ font-size:12.5px; color: var(--text-faint); margin: 0 0 15px; }
+/* offered on the result screen to somebody the curve is beating, not to everyone */
+.softer{
+  background: var(--inset); border-radius:8px; padding: 12px 14px; margin: 14px 0;
+  box-shadow: 0 3px 0 var(--edge);
+}
+.softer .k{ font-family: var(--f-display); font-size:11px; letter-spacing:.06em; color: var(--gold); }
+.softer p{ margin: 5px 0 10px; font-size: 13.5px; }
+
 .toast{
   position: fixed; left:50%; bottom:22px; transform:translateX(-50%);
   background: var(--panel); color:#FFF; font-size:14px; font-weight:600;
@@ -2218,6 +2243,33 @@ const DEMANDS = [
    cheating, dying in round 6 reads as your build being wrong, and only one of
    those makes someone start again. */
 const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
+
+/* ---------- difficulty ----------
+   Eight targets that outrun any deck which is not multiplying is the game, and
+   it loses four runs in five on purpose. That is right for a roguelite and
+   wrong for somebody who has lost six in a row and has not yet seen a Lens do
+   anything — they are not being taught a lesson, they are being shown a wall.
+
+   So: lower targets and one more discard. Nothing else moves. Every Lens, every
+   Ordeal, every figure and the whole deck are identical, because the interesting
+   part of this game is the decision and an easier mode that removes the decision
+   is not an easier version of the same game. The extra discard is deliberate —
+   what actually ends an early run is a dead draw, not a wrong choice. */
+const DIFFICULTIES = [
+  { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
+    d:"Lower targets and a fourth discard. Same words, same Lenses, same Ordeals — more room to be wrong in." },
+  { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
+    d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
+];
+const DIFF_BY_ID = {};
+DIFFICULTIES.forEach(function(d){ DIFF_BY_ID[d.id] = d; });
+/* The setting, which is what the NEXT run will use. */
+function difficulty(){ return DIFF_BY_ID[prefs.difficulty] || DIFF_BY_ID.scholar; }
+/* What the run in progress was started under. Switching mid-run would let a
+   player take the hard curve's shop money into the easy curve's round 7. */
+function runDifficulty(){
+  return (G && DIFF_BY_ID[G.diff]) || difficulty();
+}
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
@@ -2393,7 +2445,8 @@ const store = {
 const prefs = {
   sfx:     store.get("sfx", true),
   music:   store.get("music", true),
-  haptics: store.get("haptics", true)
+  haptics: store.get("haptics", true),
+  difficulty: store.get("difficulty", "scholar")
 };
 function setPref(k, v){ prefs[k] = v; store.set(k, v); }
 
@@ -2761,6 +2814,8 @@ function newRun(seedStr, fresh){
   G = {
     seed: seed,
     isDaily: seed === daily,
+    /* Pinned for the whole run. The setting is what the NEXT one uses. */
+    diff: difficulty().id,
     round: 0,
     deck: shuffle(deck),
     discard: [],
@@ -2831,7 +2886,9 @@ function roundRules(){
    you own THE CURSE: it said 11,500 and the round demanded 23,000. You cannot
    ask someone to shop wisely against a number that is not true. */
 function shapeFor(round, rules){
-  const probe = { target: TARGETS[round], plays: 4, discards: 3, round: round };
+  const diff = runDifficulty();
+  const probe = { target: Math.round(TARGETS[round] * diff.scale),
+                  plays: 4, discards: 3 + diff.discards, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
   /* The rules take their cut after the Lenses, so a Lens can never hand back
      what the round has taken. */
@@ -3007,9 +3064,14 @@ function startRound(){
   /* Fixed here and left alone for the round: a Lens that grows mid-round must
      not be able to change the rules under the player who is using it. */
   G.levy = reckoning(G.round);
-  G.target = TARGETS[G.round];
+  /* shapeFor() predicts a round and startRound() deals it, and the two read
+     the same starting numbers from here. They have to: the shop quotes the
+     prediction and the player plays the deal, so a difference between them is
+     the game lying about itself. tests/logic asserts they agree. */
+  const diff = runDifficulty();
+  G.target = Math.round(TARGETS[G.round] * diff.scale);
   G.roundScore = 0;
-  G.plays = 4; G.discards = 3;
+  G.plays = 4; G.discards = 3 + diff.discards;
   G.mustForfeit = false; G.forfeited = false;
   /* Lenses that cost you something take it here, before the round starts, so
      the meters on the board are true from the first frame. And the ones that
@@ -3812,11 +3874,15 @@ async function runAppraisal(){
 /* ---------- run end ---------- */
 function endRun(won){
   G.over = true;
+  const rd = runDifficulty();
+  /* Scholar keeps the plain key so nobody's existing best disappears; anything
+     else gets its own, because a total from a lower curve is not a better run. */
+  const bestKey = rd.id === "scholar" ? "best" : "best:" + rd.id;
   const runs = store.get("runs", 0) + 1;
   store.set("runs", runs);
-  const bestEver = store.get("best", 0);
+  const bestEver = store.get(bestKey, 0);
   const isRecord = G.total > bestEver;
-  if(isRecord) store.set("best", G.total);
+  if(isRecord) store.set(bestKey, G.total);
 
   /* Memory unlock: carry one Lens you actually used into the next run.
 
@@ -3849,6 +3915,16 @@ function endRun(won){
     +   '<div class="stat"><div class="k">Best mult</div><div class="v">×' + (G.best.mult||1) + '</div></div>'
     + '</div>'
     + (isRecord ? '<p style="color:var(--gold)"><b>That is a personal best.</b></p>' : '')
+    /* Three runs in and still falling in the first third: that is the curve
+       winning, not a lesson landing. Offered once it is true, never before,
+       and never to somebody already playing the gentler one. */
+    + (!won && runs >= 3 && G.round < 3 && rd.id === 'scholar'
+        ? '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
+          + '<p>Four runs in five end early even played perfectly. If you would rather '
+          + 'have room to be wrong in, <b>APPRENTICE</b> lowers every target and hands you '
+          + 'a fourth discard. Same words, same Lenses, same Ordeals.</p>'
+          + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
+        : '')
     + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
         + unlocked.n + '</div><div class="d">' + unlocked.d + '</div></div>' : '')
     + '<div class="share" id="shareBox">' + escapeHtml(share) + '</div>'
@@ -3858,6 +3934,14 @@ function endRun(won){
     +   '<button class="btn primary" id="againNew" type="button">New run →</button>'
     + '</div>';
   showPanel(html, true);
+
+  const easy = document.getElementById("goEasy");
+  if(easy) easy.onclick = function(){
+    setPref("difficulty", "apprentice");
+    hidePanel();
+    newRun("free-" + Math.random().toString(36).slice(2,8), true);
+    toast("APPRENTICE. Lower targets, one more discard.");
+  };
 
   document.getElementById("copyShare").onclick = function(){
     try{
@@ -3873,7 +3957,9 @@ function endRun(won){
 
 function shareText(won){
   const lines = [];
-  lines.push("OVERTONE — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
+  const rd = runDifficulty();
+  lines.push("OVERTONE — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed)
+             + (rd.id === "scholar" ? "" : "  ·  " + rd.n));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
@@ -4962,7 +5048,10 @@ function renderControls(){
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
   document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";
   document.getElementById("bankLabel").textContent = "$" + G.bank;
-  document.getElementById("seedLabel").textContent = (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase();
+  const rd = runDifficulty();
+  document.getElementById("seedLabel").textContent =
+    (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase()
+    + (rd.id === "scholar" ? "" : " \u00b7 " + rd.n);
 }
 
 function render(){
@@ -5022,16 +5111,41 @@ function showSettings(){
       + '<button class="switch" type="button" data-pref="' + key + '" aria-pressed="'
       + (prefs[key] ? "true" : "false") + '">' + (prefs[key] ? "ON" : "OFF") + '</button></div>';
   }
-  showPanel('<h2>Sound &amp; feel</h2>'
+  const now = difficulty(), inRun = G ? runDifficulty() : now;
+  const pick = DIFFICULTIES.map(function(d){
+    return '<button class="diffopt" type="button" data-diff="' + d.id + '" aria-pressed="'
+      + (d.id === now.id ? "true" : "false") + '">'
+      + '<div class="dn">' + d.n + '</div><div class="dd">' + d.d + '</div></button>';
+  }).join("");
+
+  showPanel('<h2>Settings</h2>'
     + '<div class="sub">Saved on this device</div>'
+    + '<div class="sub" style="margin:0 0 7px">How hard</div>'
+    + '<div class="diffpick">' + pick + '</div>'
+    + '<p class="setnote">' + (G && inRun.id !== now.id
+        ? 'The run on the table is still <b>' + inRun.n + '</b> \u2014 a new run picks this up.'
+        : 'Changing this takes effect on your next run.') + '</p>'
     + row("music", "Music", "The track that loops under the game.")
     + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
     + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry \u2014 "
         + "browsers on iPhone don\u2019t allow it.")
-    + '<div class="rowend"><span></span>'
+    + '<div class="rowend">'
+    + '<button class="btn" id="settingsNewRun" type="button">Start a new run</button>'
     + '<button class="btn primary" id="closeSettings" type="button">Back to the game</button></div>');
 
   document.getElementById("closeSettings").onclick = hidePanel;
+  document.getElementById("settingsNewRun").onclick = function(){
+    hidePanel();
+    newRun("free-" + Math.random().toString(36).slice(2,8), true);
+    toast(difficulty().n + " run. No Lenses, no Memory.");
+  };
+  Array.prototype.forEach.call(document.querySelectorAll(".diffopt"), function(b){
+    b.onclick = function(){
+      setPref("difficulty", b.dataset.diff);
+      SFX.buy();
+      showSettings();          /* redraw so the note and the marks agree */
+    };
+  });
   Array.prototype.forEach.call(document.querySelectorAll(".switch"), function(b){
     b.onclick = function(){
       const k = b.dataset.pref, v = !prefs[k];

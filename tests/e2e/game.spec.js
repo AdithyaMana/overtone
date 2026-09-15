@@ -1011,7 +1011,8 @@ test.describe("sound, vibration and motion", () => {
     await open(page);
     await page.click("#soundBtn");
     const panel = page.locator("#panel");
-    await expect(panel).toContainText("Sound & feel");
+    /* the panel holds difficulty too now, so it is just Settings */
+    await expect(panel).toContainText("Settings");
     await expect(panel.locator(".switch")).toHaveCount(3);
     /* the iPhone gap is stated rather than quietly shipped */
     await expect(panel).toContainText("Android only");

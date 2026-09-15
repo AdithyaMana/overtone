@@ -385,3 +385,57 @@ describe("the daily seed", () => {
       wholeDeck(b.G).map(c => c.w).sort().join(","));
   });
 });
+
+/* ------------------------------------------------------------------ */
+describe("the round the shop promises is the round you are dealt", () => {
+  /* shapeFor() predicts a round; startRound() deals one. They are separate
+     code paths reading the same constants, and they drifted: a difficulty
+     setting taught shapeFor to scale the target and startRound kept reading
+     TARGETS raw, so the Bookseller quoted one number and the board asked for
+     another. The easier curve came out HARDER than the hard one, because the
+     shop was buying against a prediction the game never honoured. */
+  const shapeOf = round => {
+    api.G.round = round;
+    api.startRound();
+    return { target: api.G.target, plays: api.G.plays,
+             discards: api.G.discards, hand: api.handSize(), cap: api.maxPlay() };
+  };
+
+  api.DIFFICULTIES.forEach(diff => {
+    test("they agree on every round in " + diff.n, () => {
+      api.setPref("difficulty", diff.id);
+      api.newRun("agree-" + diff.id, true);
+      for (let r = 0; r < api.ROUNDS; r++) {
+        const predicted = api.roundShape(r);
+        const dealt = shapeOf(r);
+        assert.strictEqual(dealt.target, predicted.target,
+          diff.n + " round " + (r + 1) + ": quoted " + predicted.target
+          + ", dealt " + dealt.target);
+        assert.strictEqual(dealt.plays, predicted.plays, diff.n + " plays, round " + (r + 1));
+        assert.strictEqual(dealt.discards, predicted.discards,
+          diff.n + " discards, round " + (r + 1));
+        assert.strictEqual(dealt.hand, predicted.hand, diff.n + " hand size, round " + (r + 1));
+        assert.strictEqual(dealt.cap, predicted.maxPlay, diff.n + " play cap, round " + (r + 1));
+      }
+    });
+  });
+
+  test("the gentler curve is gentler on every round, and never changes the deck", () => {
+    api.setPref("difficulty", "scholar");
+    api.newRun("curve", true);
+    const hard = [];
+    for (let r = 0; r < api.ROUNDS; r++) hard.push(api.roundShape(r).target);
+    const hardDeck = wholeDeck(api.G).map(c => c.w).sort().join(",");
+
+    api.setPref("difficulty", "apprentice");
+    api.newRun("curve", true);
+    const easyDeck = wholeDeck(api.G).map(c => c.w).sort().join(",");
+    for (let r = 0; r < api.ROUNDS; r++) {
+      assert.ok(api.roundShape(r).target < hard[r],
+        "round " + (r + 1) + " is not easier: " + api.roundShape(r).target + " vs " + hard[r]);
+    }
+    assert.strictEqual(easyDeck, hardDeck, "APPRENTICE changed the words, not just the curve");
+    assert.strictEqual(api.roundShape(0).discards, 4, "the extra discard went missing");
+    api.setPref("difficulty", "scholar");
+  });
+});

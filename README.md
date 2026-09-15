@@ -37,6 +37,9 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
   is almost never a mistake — and clearing a round with plays and discards left pays more at the
   shop. Play fewer only when a Lens pays you to (ASCETIC gives ×5 for exactly one word).
 - **Four plays, three discards** per round. Miss the target and the run ends.
+- Two difficulties, in Settings. **SCHOLAR** is the game as balanced. **APPRENTICE** lowers every
+  target by 40% and adds a fourth discard — same words, same Lenses, same Ordeals, more room to be
+  wrong in.
 - Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
   multiplying will stall around round 4.
 
@@ -154,6 +157,7 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `tests/lenses.test.js` | Exact arithmetic for all 24 Lenses. |
 | `tests/figures.test.js` | What makes a figure, which one pays, and where it lands in the score. |
 | `tests/e2e/ux.spec.js` | The findings of a UX audit, turned into things that cannot come back. |
+| `tests/e2e/difficulty.spec.js` | APPRENTICE: that it is gentler, that it cannot be switched into mid-run, and that its scores stay out of the real best. |
 | `tests/runend.test.js` | Memory unlock and share block. |
 | `tests/e2e/` | Browser tests (Playwright). |
 | `docs/tests/test-summary.md` | What is covered, and what is not. |
@@ -203,7 +207,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**385 tests, 0 failures.** 141 engine + 244 E2E. The engine tier uses Node’s built-in runner and needs no
+**404 tests, 0 failures.** 144 engine + 260 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -472,6 +476,32 @@ Three findings did most of the work:
    play was always "buy the biggest number". Six **flawed** Lenses have the biggest numbers in
    the game and every one takes something back: a play, a discard, two cards of hand, half your
    income, or the target itself.
+
+### Two curves
+
+The game loses four runs in five on purpose, which is right for a roguelite and wrong for somebody
+who has lost six in a row without seeing a Lens do anything. **APPRENTICE** scales every target to
+60% and hands back a fourth discard. Nothing else moves: the deck, the Lenses, the Ordeals, the
+figures and the Reckoning are identical, because an easier mode that removes the decision is not an
+easier version of the same game. The extra discard is the deliberate part — what ends an early run
+is usually a dead draw rather than a wrong choice.
+
+| | SCHOLAR | APPRENTICE |
+|---|---|---|
+| realistic player (`--play human`) | **17.5%** | **44.0%** |
+| round 1 / round 8 target | 350 / 46,000 | 210 / 27,600 |
+| discards | 3 | 4 |
+
+Measure it with `node tools/balance.js --difficulty apprentice`.
+
+Three things keep it honest. The difficulty is **pinned at `newRun`**, so nobody switches at round
+7 to duck the wall. A total scored on the gentler curve is stored under its own key and **never
+becomes the SCHOLAR best**. And the share block names the mode, so two scores are never compared
+blind — SCHOLAR, being the default, says nothing.
+
+The result screen offers it, once, to a player who has lost three runs and is still falling inside
+the first third. Never on a first run, never to someone reaching round 6, never to someone already
+playing it.
 
 ### Setting a target curve
 

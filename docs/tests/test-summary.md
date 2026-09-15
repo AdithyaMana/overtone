@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**385 tests, 0 failures.** 141 engine tests + 244 E2E tests across two device profiles.
+**404 tests, 0 failures.** 144 engine tests + 260 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -50,7 +50,7 @@ It now runs on the harness too.
 | **figures** (`figures.test.js`) | what makes each of the five figures and what does not; that one word is never a figure; that every figure but THE PAIR has to bind the whole hand; that only the best one pays and the pay ladder never rewards an easier figure more; that the figure lands *before* the Lenses, proved by BRUTALIST giving `(1+3)×1.6³` rather than `1×1.6³+3`; that a hand with no figure scores exactly what it scored before figures existed; that the reorder nudge finds a better order and never offers a worse one; an 800-hand fuzz over the real deck |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (122 × desktop + phone)
+### E2E — `tests/e2e/` (130 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -161,6 +161,7 @@ of the viewport and the welcome card floated over a fully lit board. A zero-size
 | Shop economy | covered — offers, buying, word packs, rerolling, slot limits, rewards |
 | Interpreter | covered — fallback, live path, response validation and every refusal code |
 | Figures | covered — rules, ranking, position in the score, the Demand coupling, reorder nudge, 800-hand fuzz |
+| Difficulty | covered — both curves agree with what the shop quotes, cannot be switched mid-run, and keep separate bests |
 | Onboarding UX | covered — spotlight occlusion, copy that matches the board, hand arrangement and its restoration |
 | Accessibility | covered — target sizes, selection state, live region, contrast measured in `tools/` probes |
 | Landscape / short viewports | covered — PLAY reachable, one row, no mid-word breaks |
