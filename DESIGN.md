@@ -810,6 +810,60 @@ contradiction will be somebody adding a tenth Ordeal, not this one coming back. 
 against the commit that shipped the bug and pass against the fix — which is the only way to know a
 regression test tests anything.
 
+## 6.12b What APPRENTICE takes out, and what it does not
+
+APPRENTICE lowered the targets and handed back a discard, and it was still ending runs in the
+middle. Where they ended says why:
+
+| round | deaths, three Ordeals | deaths, one |
+|---|---|---|
+| 4 | 4.0% | 0.0% |
+| 5 | 2.6% | 2.3% |
+| **6** | **14.4%** | **3.3%** |
+| 7 | 5.8% | 10.8% |
+| reached round 8 | 73.0% | **83.8%** |
+
+(Those are the 400-run readings at a flat 0.6. With the compensating curve below and measured at
+200 runs against the same 200 runs of the version it replaces: round 6 falls from 13.5% to 8.0%,
+round 4 from 2.5% to 0.0%, and 74.5% reach the last round against 71.0%. The simulator is
+deterministic per configuration, so only readings at the same run count are comparable.)
+
+Round 6 killed five times as many runs as round 5, and round 7 was *easier* than round 6 despite
+asking for more points. Targets climb smoothly, so a spike like that is not a number. Rounds 4, 6
+and 8 are the Ordeals.
+
+**An Ordeal does not ask a new player to think harder.** It takes away the tool the tutorial just
+spent a step teaching and asks the same question with one hand tied: no discards, four cards
+instead of seven, words worth nothing on their own. To somebody still learning the first game,
+that is a different game every third round.
+
+So APPRENTICE meets **one**, on round 8, and it is never one of the three that delete a mechanic —
+THE DROUGHT, THE LEAN YEAR, THE FOG are out of its pool. THE RECKONING, which stacks a second rule
+on the first when a build runs away, does not fire there at all: doubling the one rule is the thing
+this mode exists not to do.
+
+**And the targets go up to pay for it.** Dropping two Ordeals took the win rate from 50.8% to
+54.8%, so APPRENTICE stopped being a flat fraction of SCHOLAR and got a curve of its own:
+`[0.60, 0.60, 0.62, 0.68, 0.76, 0.82, 0.84, 0.76]`. The opening is exactly where it was, the middle
+climbs to within a sixth of SCHOLAR, and round 8 eases off because that one is still an Ordeal.
+Measured against the version it replaces at the same run count, it lands at **52.5%** against
+**53.0%**. That is
+the whole point of the change: it is not a smaller game or a slacker one. Every decision survives —
+which words, in which order, for which figure, against which Lens — and the numbers ask more for
+them. What is gone is being disarmed in the middle of a run.
+
+The shape matters more than the number. Three quarters of runs now reach round 8 and the last round
+decides them, instead of the biggest single group ending at a rule change on round 6.
+
+### One thing this nearly broke
+
+The Ordeal pool has to be shuffled **whole and filtered after**, never filtered and then shuffled.
+`shuffle` draws once per element, so shuffling a shorter list consumes fewer numbers from the
+seeded stream and every draw after it — the deck included — comes out different. The first version
+did it the wrong way round and quietly dealt APPRENTICE different words for the same seed, which
+would have broken the daily for anyone not playing on SCHOLAR. The test that caught it was already
+there: *"APPRENTICE changed the words, not just the curve."*
+
 ## 6.13 One rule for the carried Lens
 
 Three buttons said *New run* and did three different things with Memory: the masthead's dropped it,

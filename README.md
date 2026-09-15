@@ -41,9 +41,12 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
   stack of entries you walk with the arrow keys, not a settings page — the only prose on it is
   the one line saying what the difficulty you are on does. The board's masthead holds the way
   back to it, and one button beside that for sound.
-- Two difficulties. **SCHOLAR** is the game as balanced. **APPRENTICE** lowers every
-  target and adds a fourth discard — same words, same Ordeals, more room to be wrong in. A new
-  player starts on APPRENTICE and **SCHOLAR is shut until they have finished a run**, won or lost.
+- Two difficulties. **SCHOLAR** is the game as balanced: three Ordeals, on rounds 4, 6 and 8.
+  **APPRENTICE** hands back a discard and meets **one Ordeal, on the last round** — and never one
+  of the three that take a mechanic away. Its targets are higher than a straight scaling to pay for
+  that, because it is not meant to be a smaller game: every decision survives and the numbers ask
+  more for them. A new player starts on APPRENTICE and **SCHOLAR is shut until they have finished a
+  run**, won or lost.
 - **The first flawed Lens you are offered gets a card of its own**, once — what it pays, what it
   takes, and when that trade is worth making. They are on every shelf on both difficulties: keeping
   them off APPRENTICE's was tried and measured, and it made the gentler mode *harder*, because six

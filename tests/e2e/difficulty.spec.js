@@ -284,6 +284,60 @@ test.describe("the offer to somebody the curve is beating", () => {
 });
 
 /* ------------------------------------------------------------------ */
+test.describe("the rules describe the game you are in", () => {
+  const onDiff = id => async page => {
+    await page.addInitScript(d => {
+      try {
+        localStorage.clear();
+        localStorage.setItem("overtone:tutorial", "true");
+        localStorage.setItem("overtone:coached", "true");
+        localStorage.setItem("overtone:sawFlaw", "true");
+        localStorage.setItem("overtone:runs", "3");
+        localStorage.setItem("overtone:difficulty", JSON.stringify(d));
+      } catch (e) {}
+    }, id);
+    await page.goto(GAME);
+    await enterGame(page);
+    await page.click("#helpBtn");
+    await expect(page.locator("#panel h2")).toContainText("How Overtone works");
+  };
+
+  test("APPRENTICE is told it meets one Ordeal, at the end", async ({ page }) => {
+    await onDiff("apprentice")(page);
+    const panel = page.locator("#panel");
+    await expect(panel).toContainText("The last round is an Ordeal");
+    /* and never named the ones it cannot be dealt */
+    await expect(panel).not.toContainText("no discards");
+    await expect(panel).not.toContainText("four-card hand");
+  });
+
+  test("SCHOLAR is told it meets three", async ({ page }) => {
+    await onDiff("scholar")(page);
+    await expect(page.locator("#panel")).toContainText("Three rounds are Ordeals");
+  });
+
+  test("and APPRENTICE actually is dealt one, at round 8", async ({ page }) => {
+    await onDiff("apprentice")(page);
+    const met = await page.evaluate(() => {
+      const out = [];
+      for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) out.push(r);
+      return out;
+    });
+    expect(met).toEqual([7]);
+  });
+
+  test("and SCHOLAR three", async ({ page }) => {
+    await onDiff("scholar")(page);
+    const met = await page.evaluate(() => {
+      const out = [];
+      for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) out.push(r);
+      return out;
+    });
+    expect(met).toEqual([3, 5, 7]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 test.describe("the menu", () => {
   /* There are two, and they are not the same menu. The title screen holds
      everything you decide BETWEEN runs — how hard, the rules, your record.

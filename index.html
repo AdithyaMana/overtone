@@ -2443,6 +2443,37 @@ const ORDEALS = [
    than on a slightly larger number. */
 const ORDEAL_ROUNDS = [3, 5, 7];
 
+/* APPRENTICE meets one, at the end.
+
+   Round 6 killed 14.4% of APPRENTICE runs against round 5's 2.6%, and rounds
+   4, 6 and 8 are the Ordeals — so what was ending those runs was never the
+   size of the number. An Ordeal does not ask a new player to think harder; it
+   takes away the tool they have just learned to use, and then asks the same
+   question with one hand tied. That is a different game every third round, to
+   somebody still learning the first one.
+
+   The decisions all survive. Which words, in which order, for which figure,
+   against which Lens — every one of those is untouched, and the targets go up
+   to pay for the Ordeals that are gone. It is not a smaller game. It is the
+   same game with nothing taken out of your hands mid-run. */
+const APPRENTICE_ORDEAL_ROUNDS = [7];
+
+/* And the ones it meets are the ones that squeeze rather than disarm.
+   THE DROUGHT takes discards, THE LEAN YEAR takes three cards, THE FOG makes
+   words worth nothing on their own: each deletes something the tutorial spent
+   a step teaching. THE CLOCK, THE VICE, THE TOLL, THE MIRROR, THE FORFEIT and
+   THE HALF-LIGHT all leave the game intact and make it cost more. */
+const APPRENTICE_ORDEAL_BAN = ["drought", "lean", "fog"];
+
+function ordealRoundsFor(diffId){
+  return diffId === "apprentice" ? APPRENTICE_ORDEAL_ROUNDS : ORDEAL_ROUNDS;
+}
+function ordealPoolFor(diffId){
+  return diffId === "apprentice"
+    ? ORDEALS.filter(function(o){ return APPRENTICE_ORDEAL_BAN.indexOf(o.id) < 0; })
+    : ORDEALS.slice();
+}
+
 /* ---------- Demands ---------- */
 const DEMANDS = [
   { n:"THE FURNACE",            tags:["HEA","DAN"] },
@@ -2503,7 +2534,7 @@ const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
    what actually ends an early run is a dead draw, not a wrong choice. */
 const DIFFICULTIES = [
   { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"Lower targets and a fourth discard. Same words, same Lenses, same Ordeals, with more room to be wrong in." },
+    d:"A fourth discard, and one Ordeal instead of three \u2014 nothing is taken out of your hands until the last round. Same words, same Lenses, every decision intact." },
   { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
     d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
 ];
@@ -2534,8 +2565,21 @@ function scholarOpen(){ return store.get("runs", 0) > 0; }
    needs is the explanation, not the absence. */
 function flawsSeen(){ return store.get("sawFlaw", false); }
 
+/* APPRENTICE pays for its missing Ordeals where they were missing from.
+   A flat raise would have made rounds 1 to 3 harder to buy back rounds 4 and
+   6, which is exactly backwards: the opening is the part a new player is
+   actually struggling with, and by round 5 they have a deck. So the opening
+   stays where it was and the curve closes on SCHOLAR through the middle,
+   easing again at round 8 because that one is still an Ordeal. */
+const APPRENTICE_CURVE = [0.60, 0.60, 0.62, 0.68, 0.76, 0.82, 0.84, 0.76];
+
 /* One place a target is scaled, so the shop and the round can never disagree. */
-function curveScale(){ return runDifficulty().scale; }
+function curveScale(round){
+  const d = runDifficulty();
+  if(d.id !== "apprentice") return d.scale;
+  const r = typeof round === "number" ? round : 0;
+  return APPRENTICE_CURVE[r] !== undefined ? APPRENTICE_CURVE[r] : d.scale;
+}
 /* What the run in progress was started under. Switching mid-run would let a
    player take the hard curve's shop money into the easy curve's round 7. */
 function runDifficulty(){
@@ -3050,9 +3094,20 @@ function newRun(seedStr, fresh){
 
   const demandOrder = shuffle(DEMANDS.slice()).slice(0, ROUNDS);
   /* Seeded like everything else, so a daily deals every player the same three. */
-  const ordealPool = shuffle(ORDEALS.slice());
+  /* Read off the difficulty this run is being dealt under, not the one the
+     menu happens to be showing, so a run keeps the shape it started with. */
+  const dealtDiff = difficulty().id;
+  /* Shuffle the WHOLE list and filter after, never the other way round. The
+     shuffle draws once per element, so shuffling a shorter list consumes fewer
+     numbers from the seeded stream and every draw after it — the deck
+     included — comes out different. APPRENTICE is a different curve, not
+     different words, and the daily is the same words for everybody. */
+  const ordealPool = shuffle(ORDEALS.slice())
+    .filter(function(o){ return ordealPoolFor(dealtDiff).indexOf(o) >= 0; });
   const ordealOrder = {};
-  ORDEAL_ROUNDS.forEach(function(r, i){ ordealOrder[r] = ordealPool[i % ordealPool.length]; });
+  ordealRoundsFor(dealtDiff).forEach(function(r, i){
+    ordealOrder[r] = ordealPool[i % ordealPool.length];
+  });
 
   /* Build the deck knowing what this run will ask for. Some overtones are
      genuinely rare in the lexicon (FOOD sits on 21 of 249 words), so a purely
@@ -3174,7 +3229,7 @@ function roundRules(){
    ask someone to shop wisely against a number that is not true. */
 function shapeFor(round, rules){
   const diff = runDifficulty();
-  const probe = { target: Math.round(TARGETS[round] * curveScale()),
+  const probe = { target: Math.round(TARGETS[round] * curveScale(round)),
                   plays: 4, discards: 3 + diff.discards, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
   /* The rules take their cut after the Lenses, so a Lens can never hand back
@@ -3250,6 +3305,10 @@ function clashes(a, b){
 
 function reckonFor(round){
   if(!G || !G.demandOrder || round < RECKON_FROM) return null;
+  /* THE RECKONING answers a player who has broken the round open by stacking a
+     second rule on the first. APPRENTICE meets one rule at all, at the end;
+     doubling it is the thing this mode exists not to do. */
+  if(runDifficulty().id === "apprentice") return null;
   const base = baseShape(round);
   const can = deckCeiling(round, base);
   if(can < base.target * RECKON_AT) return null;
@@ -3371,7 +3430,7 @@ function startRound(){
      prediction and the player plays the deal, so a difference between them is
      the game lying about itself. tests/logic asserts they agree. */
   const diff = runDifficulty();
-  G.target = Math.round(TARGETS[G.round] * curveScale());
+  G.target = Math.round(TARGETS[G.round] * curveScale(G.round));
   G.roundScore = 0;
   G.plays = 4; G.discards = 3 + diff.discards;
   G.mustForfeit = false; G.forfeited = false;
@@ -4258,7 +4317,8 @@ function endRun(won){
         ? '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
           + '<p>Four runs in five end early even played perfectly. If you would rather '
           + 'have room to be wrong in, <b>APPRENTICE</b> lowers every target and hands you '
-          + 'a fourth discard. Same words, same Lenses, same Ordeals.</p>'
+          + 'a fourth discard, and drops the rule changes on rounds 4 and 6. Same words, '
+          + 'same Lenses, every decision intact.</p>'
           + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
         : '')
     + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
@@ -5893,11 +5953,17 @@ function showHelp(back){
     +     'it grew. So before you swap, look at what yours has already grown to: a smaller '
     +     'Lens you have held for four rounds often beats a bigger one you have just met.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">7</div>'
-    +     '<p><b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
-    +     'raising the number: no discards, two words at a time, a four-card hand, words worth '
-    +     'nothing on their own. The Bookseller tells you which one is coming before you spend, '
-    +     'so an Ordeal is something you buy against rather than something that happens to '
-    +     'you.</p></div>'
+    +     '<p>' + (difficulty().id === "apprentice"
+        ? '<b>The last round is an Ordeal.</b> Round 8 changes a rule instead of just raising '
+          + 'the number: two words at a time, a word you have to give up before you play, every '
+          + 'hand starting at half a multiplier. Nothing is taken out of your hands before '
+          + 'then. <b>SCHOLAR</b> sets three of them, on rounds 4, 6 and 8, and they are '
+          + 'harsher.'
+        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
+          + 'raising the number: no discards, two words at a time, a four-card hand, words '
+          + 'worth nothing on their own.')
+    +     ' The Bookseller tells you which one is coming before you spend, so an Ordeal is '
+    +     'something you buy against rather than something that happens to you.</p></div>'
     + '</div>'
 
     + '<div class="worked">'

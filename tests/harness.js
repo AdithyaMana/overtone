@@ -124,14 +124,15 @@ function load(){
     makeCard, houseAppraise, deckCount, resonanceName, shareText, endRun, store,
     handSize, maxPlay, roundShape, baseShape, deckCeiling, sellValue, sellLens,
     reckoning, reckonFor, roundRules, RECKON_AT, RECKON_FROM,
-    ORDEALS, ORDEAL_ROUNDS,
+    ORDEALS, ORDEAL_ROUNDS, APPRENTICE_ORDEAL_ROUNDS, APPRENTICE_ORDEAL_BAN,
+    ordealRoundsFor, ordealPoolFor,
     buy, openShop, coachDone, coachFinish, coachSet,
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,
     LEXICON, LENSES, DEMANDS, TARGETS, TAGS, TAG_KEYS, ICONS, TAG_COLOR,
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES,
     FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue, arrangeForTutorial,
     DIFFICULTIES, difficulty, runDifficulty, prefs, setPref,
-    flawsSeen, curveScale, scholarOpen, shapeFor, clashes, ORDEAL_CLASH
+    flawsSeen, curveScale, APPRENTICE_CURVE, scholarOpen, shapeFor, clashes, ORDEAL_CLASH
   };`, ctx);
 
   return { api: ctx.__api, ctx, byId, storage: store };
