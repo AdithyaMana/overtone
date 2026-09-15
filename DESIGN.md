@@ -895,8 +895,8 @@ Both were right, and the second one was a real bug wearing a straight face.
 ### The word types really were assigned randomly
 
 The Interpreter asks Claude to read a word's overtones, and falls back to a house appraiser when
-there is no Claude to ask. On the public link there never is —  only exists inside
-an artifact — so **every** player on playovertone.web.app was getting the house. And the house's
+there is no Claude to ask. On the public link there never is, because `window.claude` only exists
+inside an artifact — so **every** player on playovertone.web.app was getting the house. And the house's
 last branch, when none of its eighteen regexes matched, drew overtones from a hash of the letters.
 
 Scored against the game's own 249 hand-tagged words, which is ground truth:
