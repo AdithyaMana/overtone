@@ -34,8 +34,14 @@ Lens to buy.
 
 ## 2. Core loop and first session
 
-**The loop, in one line:** read the Demand → find resonance in your hand → order the words →
-watch the engine resolve → spend the winnings on a rule that breaks the next round harder.
+**The loop, in one line:** read the Demand → find resonance in your hand → find a **shape** in
+the words themselves → order them → watch the engine resolve → spend the winnings on a rule that
+breaks the next round harder.
+
+The two halves of that pull against each other on purpose. The Demand cares what a word *means*;
+the figure cares what it *is* — how long it is, what letter it opens on. The best three words for
+the round are rarely the best three for the shape, and choosing between them is the decision the
+hand exists to create. §6.10 is how that got there, and why it was missing at first.
 
 **The first three minutes, beat by beat:**
 
@@ -43,7 +49,7 @@ watch the engine resolve → spend the winnings on a rule that breaks the next r
 |---|---|
 | 0:00–0:15 | One screen, no account, no install. A help card with three numbered points and a worked example showing the arithmetic on a real card. Seven word-cards face up, each with a generated emblem and its overtones printed along the bottom. |
 | 0:15–0:50 | Player clicks a card. The stage shows a live **"would score"** preview before committing — the game teaches its own maths without a tutorial. A one-line coach sits above the hand and advances with them: pick → play → read the result, then retires for good. They play. Cards resolve one at a time, each trigger popping a label and a rising tone. |
-| 0:50–1:20 | Round 1 target (200) falls in about two plays. Unspent plays convert to money, which quietly teaches efficiency. |
+| 0:50–1:20 | Round 1 target (450) falls in two or three plays. It is set from what a player who has understood *nothing* can make — first three cards as dealt, no reordering — so nobody loses round one to a rule they have not been shown. Unspent plays convert to money, which quietly teaches efficiency. |
 | 1:20–1:50 | **The Bookseller.** Three offers. The first Lens purchase is the moment the game stops being a word puzzle and becomes a roguelite. |
 | 1:50–3:30 | Rounds 2–4. Somewhere here the first real combo fires and the screen shakes. Most first runs die around round 4–5. |
 | 3:30 | Death screen: total, best play, the Lens carried into the next run, and a copyable share block. |
@@ -111,13 +117,18 @@ alongside one that *multiplies* it, since `(1+2)×3 = 9` and `(1×3)+2 = 5` are 
 from the same cards. `orderMatters()` computes exactly that, and the line appears only when it
 returns true. A tutorial that teaches a rule the player cannot yet observe teaches distrust.
 
+> This passage describes the game before **figures** (§6.10). Order is load-bearing from the
+> first hand now, because a figure reads the words left to right — and the board says so itself
+> rather than leaving the player to find out. `orderMatters()` survives, narrowed to the second
+> kind of order-dependence: the kind a Lens introduces.
+
 **The Bookseller is the real cliff.** The simulation says a player who ignores the shop dies at
 round 3, so the shop has about fifteen seconds to teach that Lenses are the engine and not a
 bonus. Money was never the problem — a player arrives with ~$13 against a $4-7 Lens.
 Comprehension was. So the shop now:
 
 - **Names the exponential in numbers**, because it is invisible from inside a single round:
-  *Round 8 asks for 5,200 — 15× this one. Lenses multiply. More words only add.*
+  *Round 8 asks for 58,000 — 53× this one. Lenses multiply. More words only add.*
 - **Marks a Lens that has words to fire on** (“Fits your deck — 7 DANGER words”), which teaches
   synergy thinking by example. The badge only appears when it is true, so it stays meaningful —
   on a typical roll about half the offers earn it.
@@ -529,6 +540,122 @@ Even flawless play loses three runs in four. Deaths sit at 14% / 15% / 22% on ro
 the Ordeal rounds are visible spikes in that distribution, which is the point. A loss you can name
 ("THE MIRROR, and my whole deck was one-tag words") is a reason to start again. A loss to a
 slightly bigger number is a reason to stop.
+
+---
+
+## 6.10 Figures, and the half of every card that was decoration
+
+The sharpest piece of feedback the prototype got did not come from the simulator:
+
+> It's been a while since I last played Balatro, but if I'm not wrong, the points and the
+> multiplier there was dependent on the poker card combination. What I found missing in your game
+> is that everything revolves around the tags for the words. So the actual word on the card gets
+> ignored most of the time. Also the order in which you pick the cards doesn't matter as much. A
+> player can just see the tag needed and simply pick those cards.
+>
+> Then I got this lens which had something like if the cards are played from biggest to smallest
+> word then the multiplier increases. So I found that run much more engaging than the previous
+> ones cause I had to check what I was actually even using.
+
+That is the diagnosis and the fix in one paragraph, and it was right. A word-card was a bag of
+tags with a number derived from its length. The letters were art. Four Lenses out of thirty read
+position, and unless you owned one of them the order you tapped in was arithmetically irrelevant
+— the board even had a function, `orderMatters()`, whose entire job was to *stop claiming
+otherwise*.
+
+The tell is the second paragraph. The run they enjoyed most was the one where a Lens forced them
+to read their own hand. That is not an argument for more Lenses like it. It is an argument that
+the thing the Lens was doing belongs in the base game, where Balatro puts it.
+
+### What a figure is
+
+Every hand is now scored for its **figure** — its shape as an object, before anything reads its
+meaning — and the figure is applied **first**, at `mult = 1`, before any card is counted. That
+position is the whole design:
+
+- it is where a poker hand sits in Balatro: the base worth of the hand, which Jokers then modify;
+- every Lens that multiplies multiplies the figure too, so figures and the Lens engine compound
+  instead of competing;
+- and it makes the *order* of the words load-bearing from the first hand of a first run, with
+  nothing bought.
+
+Five figures, best one pays, and every one but the floor has to bind **every word you play** —
+two words that chain stop chaining the moment you lay a third beside them. That is the tension:
+three words for the chips, or two for the figure.
+
+### The ranking is measured, and my instinct was backwards
+
+My first pay table made THE CHAIN — each word opening on the letter the last one closed on — the
+rare jackpot at +6 multiplier, because it *felt* like the hardest thing to find.
+
+A seven-card hand contains 210 ordered triples. Measured against the real deck, a three-word
+chain is reachable from **36%** of hands. Three words sharing an initial is reachable from **8%**.
+I had the ladder upside down, and shipping it would have made the rarest genuine achievement in
+the system pay less than a common one.
+
+| Figure | reachable | three words |
+|---|---|---|
+| THE MONOGRAM — every word opens on the same letter | **8%** | +320 · +5 mult |
+| THE CHAIN — each opens where the last closed | **36%** | +220 · +4 mult |
+| THE COLUMN — three of the same length | **55%** | +150 · +3 mult |
+| THE STAIR — climbing or falling by the same step | **87%** | +80 · +2 mult |
+| THE PAIR — any two of your words share a length | ~95% | +30 · +1 mult |
+
+The lesson generalises past this feature: *combinatorial rarity is not available to intuition*. A
+test now asserts the ladder never inverts, because the next person to retune these numbers will
+have the same instinct I did.
+
+### Added multiplier, not multiplied — which answers the other half of the note
+
+The same round of feedback asked whether an overpowered Lens deck could be handed something extra
+to think about. Figures answer that almost by accident, because the multiplier they give is
+**added** rather than multiplied.
+
+A figure worth +2 takes a bare round-1 hand from ×1 to ×3 — a 3× swing. The same +2 on a deck
+already holding three +mult Lenses takes ×4 to ×6 — 1.5×. It is worth most to the deck that has
+nothing and least to the runaway engine, so it *narrows* the gap between a good build and a
+broken one. A multiplied figure would have done exactly the opposite.
+
+### Paying for it
+
+Adding a scoring layer and leaving the targets alone would have handed everyone a free doubling,
+so the curve was re-derived rather than scaled. Scored on matched seeds with `--nofigures`,
+figures inflate rounds 1–2 by five or six times and rounds 3–8 by about 1.8 — the same "worth
+most to a weak deck" property seen from the other end. A uniform multiplier would have left the
+endgame untouched and made the opening unwinnable.
+
+So rounds 3–8 moved to a percentile of the measured curve, and rounds 1–2 were set from a new
+measurement entirely: `--floor`, which plays the first three cards as dealt, never reorders and
+never discards. Round 1 sits just under that distribution; round 2 just above its median, which
+is where clicking stops working and the board starts being worth reading.
+
+**Where it landed: 18.0% for a realistic player, against 18.2% before figures existed.** The win
+rate is deliberately unchanged. The layer was added to make the hand a decision, not to make the
+game easier, and a difficulty number that had moved would have meant I did one while claiming the
+other.
+
+What did move is the spread. A careless player who never reorders went 12.8% → **10.5%**; a
+player who searches every ordering went 23.4% → **30.0%**. Reading the words is worth about twice
+what it was, which is the entire ask.
+
+The first attempt scaled the targets uniformly, put round 1 at 1,400, and the full-run E2E test —
+which plays the first three cards in dealt order and never discards — died in round one. That
+test exists for precisely that mistake.
+
+### Saying it on the board
+
+A mechanic nobody can see is a tax on guessing. Balatro shows its hand rankings from the first
+second and is better for it: the list is not a spoiler, it is the puzzle. So:
+
+- the board **names your figure** as you pick, with what it pays, and says **NO FIGURE** out loud
+  when there is none — the absence is information, because it is the one thing still fixable by
+  picking differently;
+- when the same words would make a better figure in another order, it **says which one** — and
+  does not reorder them for you. Choosing the words is the decision; losing points because you
+  did not notice is not;
+- the figure name is a button onto the full table of five, as is a line on the idle board;
+- and the tutorial gained a step that points at the readout and asks you to swap a word and watch
+  the name change.
 
 ---
 

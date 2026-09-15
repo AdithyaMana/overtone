@@ -140,17 +140,19 @@ test.describe("playing a hand", () => {
   test("names the shape of the hand", async ({ page }) => {
     await open(page);
     await page.locator("#hand .card.live").first().click();
+    /* One word can never make a figure, so a lone card still gets named for
+       what it matches. */
     await expect(page.locator(".hand-name")).toContainText("MATCH");
-    await expect(page.locator("#stageHint")).toContainText("Worth");
+    await expect(page.locator("#stageHint")).toContainText("worth");
   });
 
-  test("does not claim the order matters before any Lens reads it", async ({ page }) => {
+  test("does not blame the Lenses for an order no Lens is reading", async ({ page }) => {
     await open(page);
-    /* A lens-less player's points are simply summed, so every order gives the
-       same number — saying otherwise is a lie the board used to tell on the
-       first screen of the first run. */
-    await page.evaluate(() => { G.lenses = []; render(); });
-    await expect(page.locator("#stageHint")).not.toContainText("left to right");
+    /* Order matters from the first hand now, because a figure reads the words
+       left to right. What must never appear is the LENS explanation for it
+       when the player owns no Lens that reads position. */
+    await page.evaluate(() => { G.lenses = []; G.selected = []; render(); });
+    await expect(page.locator("#stageHint")).not.toContainText("Your Lenses read left to right");
     await expect(page.locator(".stage-hint .ord")).toHaveCount(0);
   });
 
@@ -241,6 +243,81 @@ test.describe("playing a hand", () => {
 });
 
 /* ------------------------------------------------------------------ */
+test.describe("the figure on the board", () => {
+  /* Deal a known hand: the shape of three words is the whole subject here, so
+     it cannot be left to the shuffle. */
+  async function deal(page, words){
+    await page.evaluate((ws) => {
+      G.hand = ws.map(w => makeCard({ w: w, t: ["TOO"] }, false));
+      G.selected = [];
+      render();
+    }, words);
+  }
+  const pick = async (page, keys) => { for(const k of keys) await page.keyboard.press(k); };
+
+  test("names the figure and says what it pays", async ({ page }) => {
+    await open(page);
+    await deal(page, ["MOSS", "TIDE", "WOLF"]);      // three fours
+    await pick(page, ["1", "2", "3"]);
+    await expect(page.locator(".hand-name")).toHaveText("THE COLUMN");
+    await expect(page.locator(".stage-hint .fig-pay")).toContainText("mult");
+  });
+
+  test("says NO FIGURE out loud rather than going quiet", async ({ page }) => {
+    await open(page);
+    await deal(page, ["OAK", "KILN", "FURNACE"]);    // 3, 4, 7 and no link
+    await pick(page, ["1", "2", "3"]);
+    await expect(page.locator(".hand-name")).toHaveText("NO FIGURE");
+    await expect(page.locator(".stage-hint .fig-pay")).toHaveCount(0);
+  });
+
+  test("the order you tap them in is the figure", async ({ page }) => {
+    await open(page);
+    await deal(page, ["OAK", "MOSS", "EMBER"]);      // 3, 4, 5
+    await pick(page, ["1", "2", "3"]);
+    await expect(page.locator(".hand-name")).toHaveText("THE STAIR");
+
+    /* The same three words, tapped out of order, are nothing at all — and the
+       board has to say so without fixing it. */
+    await page.evaluate(() => { G.selected = []; render(); });
+    await pick(page, ["2", "1", "3"]);
+    await expect(page.locator(".hand-name")).toHaveText("NO FIGURE");
+    await expect(page.locator(".stage-hint .ord")).toContainText("THE STAIR");
+  });
+
+  test("the figure actually moves the score", async ({ page }) => {
+    await open(page);
+    await deal(page, ["MOSS", "TIDE", "WOLF"]);
+    await pick(page, ["1", "2", "3"]);
+    const want = await page.evaluate(() => String(1 + FIG_PAY.column[3].mult));
+    await expect(page.locator("#multV")).toHaveText(want);
+
+    await page.evaluate(() => { G.selected = []; render(); });
+    await deal(page, ["OAK", "KILN", "FURNACE"]);
+    await pick(page, ["1", "2", "3"]);
+    await expect(page.locator(".hand-name")).toHaveText("NO FIGURE");
+    await expect(page.locator("#multV")).toHaveText("1");
+  });
+
+  test("the figure name opens the table of all five", async ({ page }) => {
+    await open(page);
+    await deal(page, ["MOSS", "TIDE", "WOLF"]);
+    await pick(page, ["1", "2", "3"]);
+    await page.click(".hand-name");
+    await expect(page.locator("#veil")).toBeVisible();
+    await expect(page.locator(".figtab tbody tr")).toHaveCount(5);
+    for(const n of ["THE MONOGRAM", "THE CHAIN", "THE COLUMN", "THE STAIR", "THE PAIR"])
+      await expect(page.locator(".figtab")).toContainText(n);
+  });
+
+  test("the idle board points at the figures before anything is picked", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => { G.selected = []; render(); });
+    await page.click(".dc-text .figlink");
+    await expect(page.locator(".figtab")).toBeVisible();
+  });
+});
+
 test.describe("the Bookseller", () => {
   test("opens on clearing a round and teaches the economy", async ({ page }) => {
     await open(page);
@@ -400,7 +477,7 @@ test.describe("layout", () => {
       await expect(preview).toHaveCount(2);
       await expect(preview.first()).toBeVisible();
       await expect(page.locator("#hand .card .pos")).toHaveCount(2);
-      await expect(page.locator("#stageHint")).toContainText("Worth");
+      await expect(page.locator("#stageHint")).toContainText("worth");
 
       const size = await page.evaluate(() => {
         const up = document.querySelector("#stageCards .card");
@@ -748,13 +825,24 @@ test.describe("the end of a run", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("the opening tutorial", () => {
+  /* Every assertion below counts steps. Stating the length once means adding a
+     step breaks one test with a clear message instead of ten with cryptic ones.
+     The step ORDER still has to be checked by hand when that happens. */
+  const STEPS = 8;
+  const at = n => n + " of " + STEPS;
+
+  test("is as long as it says it is", async ({ page }) => {
+    await page.goto(GAME);
+    expect(await page.evaluate(() => TUT.length)).toBe(STEPS);
+  });
+
   test("greets a first-time player instead of a rules modal", async ({ page }) => {
     await page.goto(GAME);
     await expect(page.locator("#tut")).toBeVisible();
     await expect(page.locator("#tutStep")).toContainText("Overtone");
     await expect(page.locator("#tutText")).toContainText("overtones");
-    await expect(page.locator("#tutStep")).toContainText("1 of 7");
-    await expect(page.locator("#tutDots i")).toHaveCount(7);
+    await expect(page.locator("#tutStep")).toContainText(at(1));
+    await expect(page.locator("#tutDots i")).toHaveCount(STEPS);
     /* the modal no longer opens itself */
     await expect(page.locator("#veil")).toBeHidden();
   });
@@ -762,7 +850,7 @@ test.describe("the opening tutorial", () => {
   test("spotlights the real board, and lets the player touch it", async ({ page }) => {
     await page.goto(GAME);
     await page.click("#tutNext");                       // -> what the round wants
-    await expect(page.locator("#tutStep")).toContainText("2 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(2));
     await expect(page.locator("#tutText")).toContainText("wants");
 
     /* The cutout slides between targets on a CSS transition, so poll until it
@@ -776,11 +864,11 @@ test.describe("the opening tutorial", () => {
 
     /* the overlay must not swallow clicks — the next step needs a card tapped */
     await page.click("#tutNext");
-    await expect(page.locator("#tutStep")).toContainText("3 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(3));
     await expect(page.locator("#tutNext")).toBeHidden();  // doing it IS the button
     await page.locator("#hand .card").first().click();
     await expect(page.locator("#hand .card.sel")).toHaveCount(1);
-    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(4));
   });
 
   test("answers how many words to take, and makes you take a second", async ({ page }) => {
@@ -789,7 +877,7 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(0).click();
 
     const text = page.locator("#tutText");
-    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(4));
     await expect(text).toContainText("Take three when you can");
     /* the two reasons, both of which are true of the actual scoring */
     await expect(text).toContainText("three times as much as one");
@@ -799,10 +887,10 @@ test.describe("the opening tutorial", () => {
     /* the step teaches "take three", so two is not enough to clear it */
     await page.locator("#hand .card").nth(1).click();
     await expect(page.locator("#hand .card.sel")).toHaveCount(2);
-    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(4));
 
     await page.locator("#hand .card").nth(2).click();
-    await expect(page.locator("#tutStep")).toContainText("5 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(5));
   });
 
   test("names the case for playing fewer, so the rule has an exception", async ({ page }) => {
@@ -811,9 +899,10 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
-    await page.click("#tutNext");                      // -> play
+    await page.click("#tutNext");                      // -> the shape of your hand
+    await page.click("#tutNext");                      // -> the score, where PLAY is next
     await page.click("#playBtn");
-    await expect(page.locator("#tutStep")).toContainText("7 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(STEPS));
     await expect(page.locator("#tutText")).toContainText("ASCETIC");
   });
 
@@ -822,16 +911,19 @@ test.describe("the opening tutorial", () => {
     /* straight to the play step */
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
-    await expect(page.locator("#tutStep")).toContainText("4 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(4));
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
-    await expect(page.locator("#tutStep")).toContainText("5 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(5));
+    await expect(page.locator("#tutText")).toContainText("figure");
     await page.click("#tutNext");
-    await expect(page.locator("#tutStep")).toContainText("6 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(6));
+    await page.click("#tutNext");
+    await expect(page.locator("#tutStep")).toContainText(at(7));
     await expect(page.locator("#tutNext")).toBeHidden();
 
     await page.click("#playBtn");
-    await expect(page.locator("#tutStep")).toContainText("7 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(STEPS));
     await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();
 
@@ -864,9 +956,9 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
-    await page.click("#tutNext");
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.click("#playBtn");
-    await expect(page.locator("#tutStep")).toContainText("7 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(STEPS));
     await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();
     await expect(page.locator("#coach")).toBeHidden();
@@ -886,7 +978,7 @@ test.describe("the opening tutorial", () => {
     await page.click("#replayTut");
     await expect(page.locator("#veil")).toBeHidden();
     await expect(page.locator("#tut")).toBeVisible();
-    await expect(page.locator("#tutStep")).toContainText("1 of 7");
+    await expect(page.locator("#tutStep")).toContainText(at(1));
   });
 
   test("docks the card clear of the spotlight on a phone", async ({ page }, info) => {
@@ -896,7 +988,7 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
-    await page.click("#tutNext");                                  // -> Play it
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");      // -> Play it
 
     /* The spotlight sits on the pinned control row at the bottom, so the card
        has to move to the top of the screen or it covers the button it is
@@ -1073,8 +1165,8 @@ test.describe("the Bookseller tells the truth", () => {
        its own — so the red version has to mean what it says: not "you are
        behind", but "nothing here closes it". */
     await page.evaluate(() => {
-      G.round = 6;                       // a 23,500 target
-      G.lenses = [LENSES.find(l => l.id === "curse")];   // doubled to 47,000
+      G.round = 6;                       // a 43,000 target
+      G.lenses = [LENSES.find(l => l.id === "curse")];   // doubled to 86,000
       G.lensState = {}; G.bank = 0; G.offers = null;     // and nothing affordable
       openShop(9);
     });
@@ -1088,9 +1180,15 @@ test.describe("the Bookseller tells the truth", () => {
   test("when the shelf does close it, it names the Lens instead of crying wolf", async ({ page }) => {
     await open(page);
     const named = await page.evaluate(() => {
-      /* A bare deck tops out near 530 against round 2's 700. GLUTTON pays x2.5
-         for a three-word hand, which covers it. */
-      G.round = 1; G.lenses = []; G.lensState = {}; G.bank = 20;
+      /* Pinned, because whether a gap is closeable depends on which Demand and
+         which Ordeal the seed dealt that round — and the default seed is the
+         date, which would make this test start failing on a Tuesday for no
+         reason anyone could find.
+
+         On this seed a bare deck tops out at 5,540 against round 4's 11,500.
+         GLUTTON pays x2.5 for a three-word hand, which covers it. */
+      newRun("reality-near", true);
+      G.round = 3; G.lenses = []; G.lensState = {}; G.bank = 20;
       G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "glut"), cost: 6 }];
       openShop(9);
       const el = document.querySelector(".reality");
@@ -1106,10 +1204,13 @@ test.describe("the Bookseller tells the truth", () => {
     await open(page);
     const shown = await page.evaluate(() => {
       /* THE CURSE is x3.5 on every hand, the loudest multiplier in the game,
-         and it doubles the target. Against round 3's 2,600 the multiplier is
-         not worth the doubling, so it must NOT be offered as the thing that
-         covers the gap. */
-      G.round = 2; G.lenses = []; G.lensState = {}; G.bank = 20;
+         and it doubles the target. Against round 5's 24,000 — 48,000 once the
+         Lens is on — x3.5 does not cover it, so the shop must not say it does.
+         The shop has to re-read the SHAPE of the round with the candidate Lens
+         equipped to know that; measuring the cursed ceiling against the target
+         the curse has not applied yet is the version that lies. */
+      newRun("reality-near", true);
+      G.round = 4; G.lenses = []; G.lensState = {}; G.bank = 20;
       G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "curse"), cost: 7 }];
       openShop(9);
       const el = document.querySelector(".reality");
@@ -1122,9 +1223,9 @@ test.describe("the Bookseller tells the truth", () => {
   test("and says so when the deck is fine", async ({ page }) => {
     await open(page);
     await page.evaluate(() => {
-      /* Round 1's 250, which a bare deck clears at about x1.4. Round 2 is
-         deliberately NOT a safe example: a Lens-less deck tops out around 334
-         against a 700 target, which is the shop teaching itself and not a bug. */
+      /* Round 1's 450, which a bare deck clears many times over. The opening
+         rounds are set from what a player who has understood nothing can make,
+         so a deck being comfortably ahead of them is the design and not a bug. */
       G.round = 0; G.lenses = []; G.lensState = {}; G.bank = 12; G.offers = null;
       openShop(9);
     });

@@ -7,6 +7,11 @@ two of them (`THE FURNACE — wants HEAT or DANGER`) and sets a target. You play
 word-cards, they resolve left to right, and every overtone that matches pays out. Between rounds
 you buy **Lenses** that rewrite how meaning scores, until the numbers get silly.
 
+The tags are what a word *means*. The other half of the game is what a word *is*: three words of
+the same length, or three that each open on the letter the last one closed on, make a **figure**,
+and the figure is scored before anything reads a single tag. So the round pulls you one way and
+the shape of your hand pulls you another, and the order you tap them in is part of it.
+
 Each card shows the icons for its own overtones on a plate tinted by the most distinctive one,
 so the picture and the scoring rule are views of the same data. Nineteen icons cover all 249
 words — and every word a player invents, which is the case a fixed art library could not serve.
@@ -23,7 +28,11 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
 ## Play
 
 - Pick up to **three** words carrying what the round wants. Each matching tag is **+25 points**.
-- A hand scores **points × multiplier**. Words add points; only Lenses move the multiplier.
+- The **shape** of your hand is scored first. Three words of the same length is THE COLUMN; three
+  climbing or falling by the same step is THE STAIR; each one opening on the letter the last one
+  closed on is THE CHAIN. Figures add points *and* lift the multiplier off 1.
+- A hand scores **points × multiplier**. Words and tags add points; the figure and then the
+  Lenses move the multiplier.
 - **Take three whenever you can.** A non-matching word still adds its own value, so a third word
   is almost never a mistake — and clearing a round with plays and discards left pays more at the
   shop. Play fewer only when a Lens pays you to (ASCETIC gives ×5 for exactly one word).
@@ -33,12 +42,53 @@ title, anything — appraise its overtones, and shuffle it into your deck as a r
 
 `1`–`7` pick · `Enter` play · `D` discard · `Space` hurry the scoring · `Esc` close
 
+## Figures
+
+A tester put the problem better than the design notes had:
+
+> Everything revolves around the tags for the words, so the actual word on the card gets ignored
+> most of the time. A player can just see the tag needed and pick those cards.
+
+They were right. A word was a tag bundle with a number attached; its letters were decoration, and
+the order you played in changed nothing unless you happened to own one of four Lenses. The same
+tester found one run far more engaging than the rest — the run where they drew a Lens that paid
+for playing words biggest to smallest, because it made them read what they were actually holding.
+
+So that became the base game. Every hand is scored for its **figure** — its shape as an object,
+before anything reads its meaning — and the figure lands *first*, so every Lens that multiplies
+multiplies it too. It is where a poker hand sits in the game Overtone owes its shape to.
+
+| Figure | Two words | Three words | Reachable from a 7-card hand |
+|---|---|---|---|
+| **THE MONOGRAM** — every word opens on the same letter | +110 · +2 mult | +320 · +5 mult | 74% / **8%** |
+| **THE CHAIN** — each word opens on the letter the last one closed on | +90 · +2 mult | +220 · +4 mult | 87% / **36%** |
+| **THE COLUMN** — three words of exactly the same length | — | +150 · +3 mult | **55%** |
+| **THE STAIR** — three climbing or falling by the same step | — | +80 · +2 mult | **87%** |
+| **THE PAIR** — two of your words share a length | +30 · +1 mult | +30 · +1 mult | ~95% |
+
+Only the best figure pays, and every figure but THE PAIR has to bind **every word you play** —
+two words that chain stop chaining the moment you lay a third beside them. That is the decision
+the mechanic exists to create: three words for the chips, or two for the figure.
+
+**The ranking is measured, not guessed.** The first cut of this table had THE CHAIN as the rare
+jackpot at +6 mult. A seven-card hand holds 210 ordered triples, so a three-word chain turns up in
+36% of them; three words sharing an initial turns up in 8%. The pay table follows the measurement,
+and `tests/figures.test.js` asserts the ladder never inverts.
+
+**The multiplier is added, not multiplied**, which was the other half of the feedback. An added
+multiplier is worth most to a deck that has none of its own and least to a runaway engine: it is
+a 3× swing on a bare round-1 hand and about 1.5× on a deck already holding three +mult Lenses.
+It narrows the gap between a good deck and a broken one instead of widening it.
+
 ### Does the order matter?
 
-Not until it does, and the board only claims it when it is true.
+Yes, from the first hand of your first run — a figure reads left to right, so the same three
+words can be THE STAIR in one order and nothing at all in another. The board names the figure you
+have made and tells you when the same words would make a better one in some other order. It never
+reorders them for you: *which* words to take is the decision, and losing points because you did
+not notice is not.
 
-With no Lenses the points are summed and the multiplier never moves, so every order of the same
-three words scores the same number. It becomes real two ways:
+Order matters a second way, which no figure readout would think to mention:
 
 1. **A Lens reads position.** CARNIVORE eats the word to its left, LEXICOGRAPHER pays for your
    leftmost word, ANTONYM ENGINE wants a HEAT word directly after a COLD one, ENTROPY wants each
@@ -47,9 +97,9 @@ three words scores the same number. It becomes real two ways:
    multiplier is a single running number, so `(1+2)×3 = 9` and `(1×3)+2 = 5` are different
    scores from the same three cards. Put the adders first.
 
-`orderMatters()` in `index.html` computes exactly that, and the stage line appears only when it
-returns true. Telling a lens-less player on their first screen that order matters was a lie the
-board used to tell.
+`orderMatters()` in `index.html` computes that second kind, and the Lens line appears only when
+it returns true. Blaming the Lenses for something no Lens is reading is a lie the board used to
+tell.
 
 ## Run it locally
 
@@ -74,6 +124,7 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `tests/harness.js` | Loads the real game into a Node VM for engine tests. |
 | `tests/logic.test.js` | Engine tests (node:test). |
 | `tests/lenses.test.js` | Exact arithmetic for all 24 Lenses. |
+| `tests/figures.test.js` | What makes a figure, which one pays, and where it lands in the score. |
 | `tests/runend.test.js` | Memory unlock and share block. |
 | `tests/e2e/` | Browser tests (Playwright). |
 | `docs/tests/test-summary.md` | What is covered, and what is not. |
@@ -123,7 +174,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**306 tests, 0 failures.** 116 engine + 190 E2E. The engine tier uses Node’s built-in runner and needs no
+**345 tests, 0 failures.** 135 engine + 210 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.
@@ -357,14 +408,24 @@ them. The first three rounds were a formality.
 
 ### What the numbers said
 
-| | at first | after pass one | now |
-|---|---|---|---|
-| optimal player | 70% | 43% | **25%** |
-| realistic player (`--play human`) | — | 33% | **18%** |
-| careless player (random buys) | — | 12% | **11%** |
-| round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) |
-| best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% |
-| worst single Lens | CHRONICLER, 3% | 21% |
+| | at first | after pass one | before figures | now |
+|---|---|---|---|---|
+| optimal player (searches every ordering) | 70% | 43% | 23.4% | **30.0%** |
+| realistic player (`--play human`) | — | 33% | 18.2% | **18.0%** |
+| careless player (`--play greedy`, never reorders) | — | 12% | 12.8% | **10.5%** |
+| round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) | 28,000 | **58,000** |
+| best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% | | |
+| worst single Lens | CHRONICLER, 3% | 21% | | |
+
+The last column is the figure pass, and the row that matters is the middle one: **18.0% against
+18.2%**. Adding a whole scoring layer and leaving the realistic difficulty exactly where it was
+is the point — the layer exists to make the hand a decision, not to make the game easier, and a
+difficulty number that had moved would mean I did one while claiming the other. Targets roughly
+doubled to pay for it (`--nofigures` scores the same seeds with the layer switched off, which is
+how the before and after columns were separated).
+
+What did move is the **spread**. Careless to optimal used to be 10.6 points; it is 19.5 now.
+Reading the words is worth about twice what it was, and ignoring them costs more than it did.
 
 Three findings did most of the work:
 
@@ -386,13 +447,28 @@ Three findings did most of the work:
 ### Setting a target curve
 
 `--curve` reports what a round can *produce* at each point in a run, so targets are a percentile
-of measured output rather than a number that felt right. The curve now sits at roughly
-p3 / p5 / p10 / p14 / p18 / p22 / p26 / p45 — deliberately generous early, because **dying in
-round 2 reads as the game cheating and dying in round 6 reads as your build being wrong**, and
-only one of those makes someone start again.
+of measured output rather than a number that felt right. Rounds 3–8 are a percentile of that
+curve, deliberately generous early, because **dying in round 2 reads as the game cheating and
+dying in round 6 reads as your build being wrong**, and only one of those makes someone start
+again.
 
-A Lens-less player clears round 1 at ×2.2 and misses round 2 at ×0.97. Missing by three percent
-is the shop teaching itself.
+Rounds 1 and 2 are not set from that curve at all, and the figure pass is what made the
+difference obvious. `--curve` measures what the *best* hand in the deck is worth; the opening
+rounds are not aimed at that player. `--floor` measures the other end — first three cards as
+dealt, no reordering, no discards, four plays, which is what the first minute of a first run
+actually looks like. It puts round 1 at a median of 855 and a 5th percentile of 455.
+
+That gap is the mechanic working. Scored on the same seeds, figures inflate what an optimal
+player can produce in rounds 1–2 by five or six times and rounds 3–8 by about 1.8, because an
+*added* multiplier is worth most to a deck that has none of its own. Scaling every target
+uniformly would have left the endgame untouched and made the opening unwinnable for anyone who
+had not yet been told the rule. So round 1 sits at **450**, just under the floor, and round 2 at
+**1,100**, just above its median — which is where clicking stops working and the board starts
+being worth reading.
+
+The first attempt did scale uniformly, put round 1 at 1,400, and the full-run E2E test — which
+plays the first three cards in dealt order and never discards — died in round one. That test
+exists for exactly this.
 
 ### Two bugs the old simulator could not see
 

@@ -398,6 +398,43 @@ button{ font-family: inherit; color: inherit; }
 }
 .stage-hint b{ color: var(--gold); }
 .stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens); }
+.stage-hint .fig-pay{
+  display:inline-block; margin-left:9px; font-size:13.5px; font-weight:700;
+  color: var(--gold); letter-spacing:.02em; vertical-align: middle;
+}
+/* A hand with no figure still gets named, because the absence is information:
+   it is the one thing on the board you can still fix by picking differently. */
+.stage-hint .hand-name.none{ color:#93A6B3; box-shadow: 0 3px 0 var(--edge); }
+.stage-hint .hand-name{ cursor:pointer; }
+.dc-fig{ display:block; margin-top: 4px; }
+/* The portrait board is laid out to the pixel on a 667px screen — the hand's
+   bottom row clears the controls by one. A second line on the idle board is
+   worth more than it costs everywhere there is room for it, and costs more
+   than it is worth here, where the figures are still one tap away on the hand
+   name and in the help card. */
+@media (max-height: 700px){ .dc-fig{ display:none; } }
+.dc-text .figlink{
+  background:none; border:0; padding:0; font:inherit; color: var(--gold);
+  font-weight:700; text-decoration: underline; text-underline-offset:2px; cursor:pointer;
+}
+.figtab{ width:100%; border-collapse:collapse; margin: 0 0 14px; font-size:13px; }
+.figtab th, .figtab td{ text-align:left; padding: 7px 8px; border-bottom:1px solid var(--edge); }
+.figtab thead th{
+  font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color: var(--text-faint); font-weight:700;
+}
+.figtab tbody th{ font-weight:700; color:#FFF; width: 44%; }
+.figtab tbody th span{
+  display:block; font-weight:400; font-size:12px; color: var(--text-dim);
+  letter-spacing:0; margin-top:2px; line-height:1.45;
+}
+.figtab td{ color: var(--gold); font-weight:700; white-space:nowrap;
+  font-variant-numeric: tabular-nums; vertical-align: top; }
+.figtab td.no{ color: var(--text-faint); font-weight:400; }
+@media (max-width: 560px){
+  .figtab th, .figtab td{ padding: 6px 5px; font-size:12px; }
+  .figtab tbody th{ width: 40%; }
+}
 .stage-hint .hand-name{
   display:inline-block; font-size: 17px; font-weight:700;
   background: var(--inset); color:#FFF;
@@ -1199,6 +1236,7 @@ button{ font-family: inherit; color: inherit; }
   .pos{ width:19px; height:19px; font-size:11px; top:-7px; left:-5px; }
   .stage-hint{ font-size: 12.5px; }
   .stage-hint .ord{ font-size: 11.5px; margin-top: 3px; }
+  .stage-hint .fig-pay{ font-size: 11.5px; margin-left: 6px; }
   .stage-hint .hand-name{ font-size: 13px; padding: 4px 11px; margin-bottom: 6px; }
   .stage-total{ font-size: 42px; text-shadow: 3px 3px 0 var(--edge); }
   .coach{ font-size: 11.5px; padding: 7px 11px; line-height: 1.3; max-width: none; }
@@ -2021,24 +2059,36 @@ const DEMANDS = [
    round 3 is the first real decision; the late curve outruns any deck
    that isn't multiplying, which is what makes the Lens engine the game. */
 /* Set from tools/balance.js --curve, which reports what a round can actually
-   PRODUCE at each point in a run. The old curve topped out at 5,200, which the
-   measurement put at the 9th percentile of what round 8 could make: the last
-   round of the game was clearable by nine runs in ten, and the reviews were
-   right that nothing was at stake.
+   PRODUCE at each point in a run, and then checked against the win rate the
+   curve produces end to end.
 
-   These sit at roughly p3 / p5 / p10 / p14 / p18 / p22 / p26 / p45. Early
-   rounds stay generous on purpose — dying in round 2 reads as the game
+   Rounds 3-8 are roughly double what shipped before FIGURES existed, and the
+   doubling is not flat: measured on matched seeds, the figure layer inflated
+   rounds 1-2 by five or six times and rounds 3-8 by about 1.8, because an
+   ADDED multiplier is worth most to a deck that has none of its own. Scaling
+   uniformly would have left the opening trivial and the endgame untouched.
+
+   Rounds 1 and 2 are not set from that curve at all. They are set from what a
+   player who has understood nothing yet can make - first three cards as dealt,
+   no reordering, no discards, four plays - which tools/balance.js --floor puts
+   at a median of 855 and a 5th percentile of 455. Round 1 sits under the floor
+   so that nobody loses their first round to a rule they have not been shown;
+   round 2 sits just above its median, which is where clicking stops working and
+   the board starts being worth reading. Dying in round 2 reads as the game
    cheating, dying in round 6 reads as your build being wrong, and only one of
    those makes someone start again. */
-const TARGETS = [250, 700, 2600, 5200, 11500, 15000, 23500, 28000];
+const TARGETS = [450, 1100, 6500, 11500, 24000, 29000, 43000, 58000];
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
-/* ---------- when order actually matters ----------
-   The board told every player from the first second that words "resolve left
-   to right, so the order matters". For a player with no Lenses that is simply
-   false: chips are summed and the multiplier never moves, so any order gives
-   the same number. It only becomes true two ways.
+/* ---------- when order matters BEYOND the figure ----------
+   Order is always live now: a figure reads the words left to right, so THE
+   CHAIN and THE STAIR are made or lost by the order you tap in, on the first
+   hand of a run with nothing bought. The board says so itself, by naming the
+   better figure the same words would make in some other order.
+
+   What follows is the older, quieter order-dependence — the kind a Lens
+   introduces, which no figure readout would ever think to mention.
 
      1. A Lens reads position — CARNIVORE eats the word to its left,
         LEXICOGRAPHER pays for the leftmost word, ANTONYM ENGINE wants HOT
@@ -2062,6 +2112,123 @@ function orderMatters(){
     if(X_MULT[id]) mul = true;
   }
   return add && mul;
+}
+
+/* ---------- Figures: the shape of the hand itself ----------
+   The tags answer the round. A figure answers nothing — it is what your words
+   make when you stand them next to each other and read them as objects rather
+   than as meanings: how long they are, what letter they open on, what letter
+   they close on.
+
+   It is here because of a fair complaint. A player who read only the tag strip
+   could clear this game without once reading a word, and the order they tapped
+   in changed nothing unless they happened to own one of four Lenses. The
+   letters — most of every card — were decoration.
+
+   So a figure is scored FIRST, before a single card is counted, and it moves
+   the multiplier. That is where a poker hand sits in the game this one owes its
+   shape to: the worth of the hand itself, which the engine then multiplies. The
+   round wants HEAT and DANGER; the figure wants three words the same length.
+   You will not always get both, and choosing is the point.
+
+   Only the best figure pays, and every figure but the floor has to bind EVERY
+   word you play — two words that chain stop chaining the moment a third is laid
+   beside them. That is the decision the whole thing exists for: three words for
+   the chips, or two for the figure. */
+const FIGURES = [
+  { id:"mono",   n:"THE MONOGRAM", d:"Every word opens on the same letter" },
+  { id:"chain",  n:"THE CHAIN",    d:"Each word opens on the letter the word before it closed on" },
+  { id:"column", n:"THE COLUMN",   d:"Three words of exactly the same length" },
+  { id:"stair",  n:"THE STAIR",    d:"Three words climbing or falling by the same number of letters" },
+  { id:"pair",   n:"THE PAIR",     d:"Two words of exactly the same length" }
+];
+/* Chips and multiplier by figure and by how many words it binds.
+
+   Priced off measured reachability, not instinct. Instinct said a chain of three
+   was the rare one; a seven-card hand holds 210 ordered triples, so it turns up
+   in a third of them, while three words sharing an initial turns up in one hand
+   in twelve. The ladder follows what the deck actually does: pair ~95% of plays,
+   stair 87%, column 55%, chain-of-three 36%, monogram 8%.
+
+   The multiplier is ADDED, not multiplied, which is the other half of the same
+   note. +2 takes a bare hand from x1 to x3 and a deck already holding three
+   +mult Lenses from x4 to x6 — worth most to the deck that has nothing, least
+   to the runaway engine. Multiplying would have done the opposite. */
+const FIG_PAY = {
+  mono:   { 2:{chips:110, mult:2}, 3:{chips:320, mult:5} },
+  chain:  { 2:{chips: 90, mult:2}, 3:{chips:220, mult:4} },
+  column: {                        3:{chips:150, mult:3} },
+  stair:  {                        3:{chips: 80, mult:2} },
+  pair:   { 2:{chips: 30, mult:1}, 3:{chips: 30, mult:1} }
+};
+const FIG_BY_ID = {};
+FIGURES.forEach(function(f){ FIG_BY_ID[f.id] = f; });
+/* One number to rank figures by, so "best" means the same thing everywhere:
+   in resolve(), in the reorder nudge, and in the reference panel. */
+function figValue(f){ return f ? f.chips + 150 * f.mult : 0; }
+
+/* Every figure these words make IN THIS ORDER, best first. Pure — the board
+   calls it on every click. */
+function figuresIn(cards){
+  const out = [];
+  if(!cards || cards.length < 2) return out;
+  const w = cards.map(function(c){ return String(c.w).toUpperCase(); });
+  const len = w.map(function(s){ return s.length; });
+
+  let chain = true;
+  for(let i=1;i<w.length;i++){
+    const prev = w[i-1];
+    if(w[i].charAt(0) !== prev.charAt(prev.length-1)){ chain = false; break; }
+  }
+  if(chain) out.push("chain");
+
+  let mono = true;
+  for(let i=1;i<w.length;i++) if(w[i].charAt(0) !== w[0].charAt(0)){ mono = false; break; }
+  if(mono) out.push("mono");
+
+  if(w.length >= 3){
+    let level = true;
+    for(let i=1;i<len.length;i++) if(len[i] !== len[0]){ level = false; break; }
+    if(level) out.push("column");
+    else {
+      const step = len[1] - len[0];
+      let even = step !== 0;
+      for(let i=2;i<len.length && even;i++) if(len[i] - len[i-1] !== step) even = false;
+      if(even) out.push("stair");
+    }
+  }
+
+  let pair = false;
+  for(let i=0;i<len.length && !pair;i++)
+    for(let j=i+1;j<len.length;j++) if(len[i] === len[j]){ pair = true; break; }
+  if(pair) out.push("pair");
+
+  const bind = Math.min(w.length, 3);
+  return out.map(function(id){
+    const pay = FIG_PAY[id][bind] || FIG_PAY[id][2];
+    return { id:id, n:FIG_BY_ID[id].n, d:FIG_BY_ID[id].d, chips:pay.chips, mult:pay.mult };
+  }).sort(function(a,b){ return figValue(b) - figValue(a); });
+}
+function figureFor(cards){ const f = figuresIn(cards); return f.length ? f[0] : null; }
+
+/* Would these same words make a better figure in some other order? The board
+   says which one; it never reorders them for you. Choosing the words is the
+   decision — losing points because you did not notice is not. */
+function figureByReorder(cards){
+  if(!cards || cards.length < 2) return null;
+  const have = figValue(figureFor(cards));
+  let best = null;
+  const perm = function(rest, acc){
+    if(!rest.length){
+      const f = figureFor(acc);
+      if(f && figValue(f) > have && figValue(f) > figValue(best)) best = f;
+      return;
+    }
+    for(let i=0;i<rest.length;i++)
+      perm(rest.slice(0,i).concat(rest.slice(i+1)), acc.concat([rest[i]]));
+  };
+  perm(cards, []);
+  return best;
 }
 
 /* ---------- deterministic RNG (mulberry32) ---------- */
@@ -2754,6 +2921,17 @@ function resolve(cards){
     lv: function(id){ return lensState[id] || 0; }
   };
 
+  /* The figure lands before any card is counted, so every Lens that multiplies
+     multiplies it too. It is the worth of the hand, not a bonus on top. */
+  const fig = figureFor(cards);
+  if(fig){
+    chips += fig.chips;
+    mult += fig.mult;
+    events.push({ k:"card", i:-1, cls:"m", fig:fig.id,
+                  txt: fig.n + "  +" + fig.chips + " and +" + fig.mult + " mult",
+                  chips:chips, mult:mult });
+  }
+
   for(let i=0;i<cards.length;i++){
     const c = cards[i];
     chips += c.base;
@@ -3124,17 +3302,30 @@ function openShop(reward){
 
         /* Singles first, then pairs: by the middle of a run one Lens rarely
            closes a gap on its own and two often do, and "nothing here closes
-           this" has to mean it. Six measurements at ~25ms, on a panel that
-           opens once a round. */
+           this" has to mean it. Up to seven measurements, each one a full
+           pass over the deck: ~60ms at round 6 and ~330ms at round 4, on a
+           panel that opens once a round. */
         const buyable = (G.offers || []).filter(function(o){
           return !o.bought && o.kind === "lens" && o.cost <= G.bank
             && !G.lenses.some(function(l){ return l.id === o.lens.id; });
         });
         const reaches = function(lenses){
           lenses.forEach(function(l){ G.lenses.push(l); });
-          const c = deckCeiling(G.round);
+          /* Re-read the SHAPE, not just the ceiling. A Lens can move the round
+             as well as the score — THE CURSE doubles the target, THE WAGER
+             takes a play — and measuring a cursed deck against the target the
+             curse has not applied yet is how the shop ends up promising that a
+             Lens covers a gap it is about to widen.
+
+             shapeFor and not roundShape: re-deriving THE RECKONING here would
+             run a second full deckCeiling per candidate, and the shop is
+             already the most expensive screen in the game. The round's rules
+             were settled above; what this needs from the candidate is what it
+             does to the TARGET. */
+          const shape = shapeFor(G.round, next.rules);
+          const c = deckCeiling(G.round, shape);
           lenses.forEach(function(){ G.lenses.pop(); });
-          return c >= next.target;
+          return c >= shape.target;
         };
         let fix = null;
         const room = LENS_SLOTS - G.lenses.length;
@@ -3972,10 +4163,23 @@ const TUT = [
            + '<span class="do">Tap two more, so you are holding three.</span>'; },
     done: function(){ return G.selected.length >= 3; } },
 
+  { sel: "#stageHint", pos: "bottom", label: "The shape of your hand",
+    text: function(){
+      return "Now read the words themselves rather than their tags. Those three make a "
+           + "<b>figure</b> &mdash; the shape they form by length and by letter &mdash; "
+           + "and the board has just named it for you.<br><br>"
+           + "Three words the same length is <b>THE COLUMN</b>. Three climbing or falling "
+           + "by the same step is <b>THE STAIR</b>. Each one opening on the letter the "
+           + "last one closed on is <b>THE CHAIN</b>. A figure is scored <b>before</b> "
+           + "anything else and it lifts the multiplier, so it is usually the largest "
+           + "thing on the board."
+           + '<span class="do">Swap a word, or tap them in another order, and watch the '
+           + 'name change.</span>'; } },
+
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
       return "Your hand is worth <b>points \u00d7 multiplier</b>. Matching tags add points. "
-           + "The multiplier sits at 1 until you own a Lens.<br><br>"
+           + "Your figure lifts the multiplier off 1, and a Lens lifts it further.<br><br>"
            + "The board works this out before you commit, so swap a word and watch the "
            + "number move."; } },
 
@@ -4181,7 +4385,7 @@ function idleHint(){
 const COACH = {
   pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
   play:  "Hit PLAY. The board has already worked out what you'd get.",
-  score: "That's points × multiplier. Tags add the points, Lenses multiply them."
+  score: "That's points × multiplier. Your figure and your tags add the points; Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -4223,10 +4427,14 @@ function renderPreview(){
     txt.className = "dc-text";
     txt.innerHTML = 'Wants '
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-      + '. Every matching tag you play is <b>+25 points</b>.';
+      + '. Every matching tag you play is <b>+25 points</b>.'
+      + '<span class="dc-fig">The shape of your hand pays too &mdash; '
+      + '<button class="figlink" type="button">see the figures</button>.</span>';
     call.appendChild(icons);
     call.appendChild(txt);
     sc.appendChild(call);
+    const fl = txt.querySelector(".figlink");
+    if(fl) fl.onclick = showFigures;
     setTally(0, 1);
     hint.textContent = idleHint();
     return;
@@ -4255,10 +4463,63 @@ function renderPreview(){
     return G.selected.indexOf(c.id) < 0
       && c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
   });
-  hint.innerHTML = '<span class="hand-name">' + resonanceName(hits) + '</span><br>'
-    + 'Worth <b>' + res.total.toLocaleString() + '</b> points'
+  /* The figure is the headline. It is the one thing on the board that is still
+     yours to change, and the thing a player reading only the tag strip would
+     never find on their own. The match count drops a line — it is already
+     spelled out in gold on every card. */
+  const fig = figureFor(cards);
+  const better = figureByReorder(cards);
+  const solo = cards.length < 2;
+  hint.innerHTML =
+      '<span class="hand-name' + (solo || fig ? '' : ' none') + '">'
+    +   (solo ? resonanceName(hits) : (fig ? fig.n : "NO FIGURE")) + '</span>'
+    + (fig ? '<span class="fig-pay">+' + fig.chips + ' and +' + fig.mult + ' mult</span>' : '')
+    + '<br>'
+    + (solo ? '' : resonanceName(hits) + ' &middot; ')
+    + 'worth <b>' + res.total.toLocaleString() + '</b> points'
     + (spare ? ' &middot; room for ' + room + ' more' : '')
-    + (orderMatters() ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>' : '');
+    + (better
+        ? '<br><span class="ord">The same words make <b>' + better.n + '</b> in another order.</span>'
+        : (orderMatters()
+            ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>'
+            : ''));
+  const nm = hint.querySelector(".hand-name");
+  if(nm && !solo) nm.onclick = showFigures;
+}
+
+/* ---------- the figures, written down ----------
+   Balatro shows you its hand rankings from the first second, and the game is
+   better for it: the list is not a spoiler, it is the puzzle. Same here. */
+function showFigures(){
+  const rows = FIGURES.map(function(f){
+    const pay = FIG_PAY[f.id];
+    const cell = function(n){
+      const q = pay[n];
+      return q ? '<td>+' + q.chips + ' &middot; +' + q.mult + ' mult</td>'
+               : '<td class="no">&mdash;</td>';
+    };
+    return '<tr><th>' + f.n + '<span>' + f.d + '</span></th>' + cell(2) + cell(3) + '</tr>';
+  }).join("");
+  showPanel(''
+    + '<h2>The figures</h2>'
+    + '<div class="sub">What your words make before anything reads their meaning</div>'
+    + '<p>Every hand is scored for its <b>shape</b> first &mdash; how long the words are, '
+    + 'what letter they open on, what letter they close on. A figure adds its points and '
+    + 'its multiplier <b>before a single card is counted</b>, so every Lens that multiplies '
+    + 'multiplies the figure too. That is why a round-one hand can be worth three times what '
+    + 'it looks like.</p>'
+    + '<table class="figtab">'
+    +   '<thead><tr><th>Figure</th><th>Two words</th><th>Three words</th></tr></thead>'
+    +   '<tbody>' + rows + '</tbody></table>'
+    + '<p>Only your <b>best</b> figure pays, and every figure but one has to bind '
+    + '<b>every word you play</b>: two words that chain stop chaining the moment you lay a '
+    + 'third beside them. THE PAIR is the exception and the floor &mdash; any two of your '
+    + 'words sharing a length is enough.</p>'
+    + '<p>The board names your figure while you pick, and tells you when the same words '
+    + 'would make a better one in a different order. It will not reorder them for you.</p>'
+    + '<div class="rowend">'
+    + '<button class="btn primary" id="closeFigs" type="button">Play</button></div>');
+  document.getElementById("closeFigs").onclick = hidePanel;
 }
 
 function renderDemand(){
@@ -4474,7 +4735,7 @@ function showHelp(){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Six things and you are fine</div>'
+    + '<div class="sub">Seven things and you are fine</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
@@ -4483,28 +4744,39 @@ function showHelp(){
     +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>. '
     +     'A word carrying both pays twice.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div>'
+    +     '<p><b>The shape of your hand pays first.</b> Before a single card is counted, your '
+    +     'words are scored for what they <b>are</b> rather than what they mean. Three of the '
+    +     'same length is <b>THE COLUMN</b>. Three climbing or falling by the same step is '
+    +     '<b>THE STAIR</b>. Each one opening on the letter the last one closed on is '
+    +     '<b>THE CHAIN</b>. A figure adds points <i>and</i> lifts the multiplier, which makes '
+    +     'it the biggest thing on most boards &mdash; and because it reads left to right, the '
+    +     'order you tap in is part of it. '
+    +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div>'
+    +   '<div class="teach-row"><div class="teach-n">3</div>'
     +     '<p><b>Take three words, nearly always.</b> Each one adds its own points, and even a '
     +     'word that matches nothing still adds its value, so a third card is rarely a mistake. '
     +     'Clear a round with plays and discards to spare and you get paid <b>more money</b> for '
     +     'it, which is how you afford better Lenses. Play fewer only when a Lens pays you to: '
     +     '<b>ASCETIC</b> gives &times;5 for exactly one word, <b>ANTONYM ENGINE</b> wants a '
     +     'specific pair side by side.</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>Your score is points &times; multiplier.</b> Words add points. The multiplier sits '
-    +     'at 1 and stays there until a Lens moves it. That is the whole reason round 1 asks for '
-    +     TARGETS[0] + ' and round 8 asks for ' + TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
+    +     '<p><b>Your score is points &times; multiplier.</b> Words and matching tags add points. '
+    +     'Your <b>figure</b> lifts the multiplier off 1 before anything else touches it, and '
+    +     'Lenses lift it further from there. That is the whole reason round 1 asks for '
+    +     TARGETS[0].toLocaleString() + ' and round 8 asks for '
+    +     TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">5</div>'
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
     +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
     +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
     +     'the biggest numbers in the game, and every one of them takes something back &mdash; '
     +     'a play, a discard, cards in hand, your income, or the target itself.</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">5</div>'
+    +   '<div class="teach-row"><div class="teach-n">6</div>'
     +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
     +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
     +     'it grew &mdash; so the question is never just "is this one better", it is "is it '
     +     'better than what mine has already become".</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">6</div>'
+    +   '<div class="teach-row"><div class="teach-n">7</div>'
     +     '<p><b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
     +     'raising the number: no discards, two words at a time, a four-card hand, words worth '
     +     'nothing on their own. The Bookseller tells you which one is coming before you spend, '
@@ -4530,9 +4802,10 @@ function showHelp(){
     + '</div>'
 
     + '<div class="sub" style="margin:0 0 7px">Does the order I tap them in matter?</div>'
-    + '<p>Not at first. With no Lenses the points just get added up, so any order gives you the '
-    + 'same number.</p>'
-    + '<p>It starts to matter once you own a Lens that <b>reads position</b>. CARNIVORE eats the '
+    + '<p>Yes, from the first hand of your first run. A <b>figure</b> reads your words left to '
+    + 'right, so the same three words can be THE STAIR in one order and nothing at all in '
+    + 'another. The board will tell you when that is the case; it will not fix it for you.</p>'
+    + '<p>It matters a second way once you own a Lens that <b>reads position</b>. CARNIVORE eats the '
     + 'word to its left. LEXICOGRAPHER pays for whichever word you put first. It also matters if '
     + 'you hold one Lens that <b>adds</b> to the multiplier and another that <b>multiplies</b> it, '
     + 'because (1+2)&times;3 is 9 and (1&times;3)+2 is 5 from the very same three cards. Put the '
@@ -4547,6 +4820,7 @@ function showHelp(){
     + '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
     + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
   document.getElementById("closeHelp").onclick = hidePanel;
+  document.getElementById("helpFigs").onclick = showFigures;
   document.getElementById("replayTut").onclick = function(){
     hidePanel();
     startTutorial(true);

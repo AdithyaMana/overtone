@@ -34,7 +34,13 @@ function compare(id, cards, demandTags, opts) {
   api.G.lenses = [sigil(id)];
   api.G.lensState = opts && opts.level ? { [id]: opts.level } : {};
   const with_ = api.resolve(cards);
-  return { without, with_, chips: with_.chips - without.chips, mult: with_.mult / without.mult };
+  /* `add` and `mult` are the Lens's own contribution, isolated from whatever the
+     hand was already worth. That matters more than it used to: a hand is scored
+     for its FIGURE before any Lens is consulted, so the multiplier on two words
+     of the same length does not start at 1. A Lens test should fail when the
+     Lens changes, not when its fixture happens to rhyme. */
+  return { without, with_, chips: with_.chips - without.chips,
+           mult: with_.mult / without.mult, add: with_.mult - without.mult };
 }
 
 /* ================================================================== */
@@ -153,19 +159,19 @@ describe("Lenses that add to the multiplier", () => {
   adders.forEach(a => {
     test(sigil(a.id).n + " adds exactly 1 per matching word", () => {
       const one = compare(a.id, [card(a.w, [a.tag])]);
-      assert.strictEqual(one.with_.mult, 2, "1 + 1");
+      assert.strictEqual(one.add, 1, "+1 on one matching word");
       const two = compare(a.id, [card(a.w, [a.tag]), card(a.w + "S", [a.tag])]);
-      assert.strictEqual(two.with_.mult, 3, "should add per word");
+      assert.strictEqual(two.add, 2, "should add per word");
       const none = compare(a.id, [card("ANVIL", ["TOO"])]);
-      assert.strictEqual(none.with_.mult, 1);
+      assert.strictEqual(none.add, 0);
     });
   });
 
   test("RESONATOR adds 2, once, on the first word that matches the round", () => {
     const r = compare("reso", [card("EMBER", ["HEA"]), card("FORGE", ["HEA"])], ["HEA"]);
-    assert.strictEqual(r.with_.mult, 3, "1 + 2, and only once");
+    assert.strictEqual(r.add, 2, "+2, and only once");
     const none = compare("reso", [card("MOSS", ["PLA"])], ["HEA"]);
-    assert.strictEqual(none.with_.mult, 1);
+    assert.strictEqual(none.add, 0);
   });
 
   test("LITERALIST rewards the concrete and punishes the abstract twice over", () => {
@@ -228,7 +234,7 @@ describe("Lenses that multiply the multiplier", () => {
   test("GLUTTON multiplies by 2.5 for exactly three words, and costs a discard", () => {
     const three = compare("glut",
       [card("OAK", ["PLA"]), card("TIDE", ["WET"]), card("EMBER", ["HEA"])]);
-    assert.strictEqual(three.with_.mult, 2.5);
+    assert.strictEqual(three.mult, 2.5);
     assert.strictEqual(compare("glut", [card("OAK", ["PLA"])]).with_.mult, 1);
 
     api.newRun("glut-round");

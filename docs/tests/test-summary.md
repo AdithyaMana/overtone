@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**306 tests, 0 failures.** 116 engine tests + 190 E2E tests across two device profiles.
+**345 tests, 0 failures.** 135 engine tests + 210 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -33,7 +33,7 @@ It now runs on the harness too.
 
 ## Generated tests
 
-### Engine — `tests/*.test.js` (102)
+### Engine — `tests/*.test.js` (135)
 
 | Suite | Covers |
 |---|---|
@@ -47,15 +47,17 @@ It now runs on the harness too.
 | presentation | every overtone has an icon and a valid colour; bright plates are detected so icons stay legible; hand names cover every resonance count |
 | **Lens arithmetic** (`lenses.test.js`) | all 30 Lenses pinned to their exact numbers — each scored with and without the Lens, asserting the precise point and multiplier delta. Plus: a growing Lens reads its level back but **never advances it during `resolve`** (renderPreview calls resolve on every click, so a Lens that grew while previewing would make the board show one number and pay another); growth is banked once per round by `startRound`; every flawed Lens actually implements the drawback its description claims; and no *unflawed* Lens quietly takes something away. A guard test fails if a Lens is added without an arithmetic test |
 | **the Bookseller** (`shop.test.js`) | always two Lenses and a word pack; never re-offers an owned Lens or duplicates one in a roll; buying charges correctly, equips, and cannot be repeated; a word pack adds exactly two *new* words; an empty purse buys nothing; slots cannot be overfilled; rerolling costs a dollar and never resurrects a sold offer; the round reward pays for efficiency |
+| **figures** (`figures.test.js`) | what makes each of the five figures and what does not; that one word is never a figure; that every figure but THE PAIR has to bind the whole hand; that only the best one pays and the pay ladder never rewards an easier figure more; that the figure lands *before* the Lenses, proved by BRUTALIST giving `(1+3)×1.6³` rather than `1×1.6³+3`; that a hand with no figure scores exactly what it scored before figures existed; that the reorder nudge finds a better order and never offers a worse one; an 800-hand fuzz over the real deck |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (98 × desktop + phone)
+### E2E — `tests/e2e/` (105 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
 | first visit | title; help card with worked example and 19-icon legend; a 7-card hand; the rule stated mid-screen; scoring cards marked live |
 | playing a hand | selection lifts, numbers and scores live; **order badges 1‑2‑3**; hand-name shape; the 4th card is refused with a reason; deselection clears; playing spends a play and refills; discarding replaces cards |
 | the Bookseller | opens on clearing a round; states the exponential; offers three items; **"Leave with no Lens"** when empty-handed; a bought Lens equips and survives into the next round |
+| the figure on the board | the board names the figure and what it pays; it says **NO FIGURE** out loud rather than going quiet; the same three words tapped in another order are nothing, and the board says which figure they would make; the figure moves the live multiplier; the figure name opens the table of all five; the idle board links to it |
 | the Interpreter | a typed word becomes a real card via the house appraiser, which names itself; a 1-letter word is rejected |
 | layout | never scrolls sideways; **the controls stay in the viewport**; help reopens and closes on Escape |
 | **the opening tutorial** | greets a first-timer instead of a rules modal; the spotlight lands on the real element; the overlay does not swallow clicks, so the player can tap the cards it points at; **three** steps wait for a real action; the "how many words" step states both reasons and is only cleared by taking a second word; the last step names the exception (ASCETIC); skipping leaves the lighter coach running while finishing retires it; it never ambushes a returning player; replayable from the help card; on a phone the card docks clear of the control it is pointing at |
@@ -82,7 +84,17 @@ It now runs on the harness too.
 | **the sound engine** | the bus is built, every named sound fires back to back without throwing (they are called from inside `play()`, so one that throws takes the hand with it), and turning effects off means no node is built rather than a silent one |
 | **the live Claude path** (`interpreter.spec.js`) | a fake sampler is injected before page load, proving the live branch works and names itself; **invented overtones are discarded rather than rendered**; a reply with no usable tags, a malformed reply, `not_granted` and `rate_limited` all degrade to the house appraiser with the run intact |
 
-## Seven real bugs the tests found
+## Eight real bugs the tests found
+
+**0. The Bookseller promising that a Lens closes a gap it widens.** The shop prices every Lens on
+the shelf by re-measuring the deck's ceiling with that Lens equipped — but it compared the result
+against a target computed *without* it. THE CURSE pays ×3.5 and doubles every target, so a cursed
+deck was measured against the number the curse had not doubled yet, and the shop offered it as
+the thing that covers the gap it was about to widen. The test that caught it had been passing for
+months on a coincidence: before figures the deck's ceiling was low enough that ×3.5 never cleared
+the un-doubled target either, so the right answer came out of the wrong arithmetic. Raising the
+deck's ceiling exposed it.
+
 
 **1. An unwinnable round (engine).** Seed 151 dealt `THE GREENHOUSE` only 3 playable
 cards. The cause: the deck's coverage floor was per *overtone*, but a Demand is
@@ -147,6 +159,7 @@ of the viewport and the welcome card floated over a fully lit board. A zero-size
 | Lens effects | covered — structural, 600-play fuzz, and exact arithmetic for all 24 |
 | Shop economy | covered — offers, buying, word packs, rerolling, slot limits, rewards |
 | Interpreter | covered — fallback, live path, response validation and every refusal code |
+| Figures | covered — rules, ranking, position in the score, reorder nudge, 800-hand fuzz |
 | Run end | covered — bookkeeping, Memory unlock, share block |
 | Coach / onboarding | covered |
 | API | not applicable — no backend |

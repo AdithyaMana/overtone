@@ -2,6 +2,8 @@
 /* Full-run balance simulator.
  *
  *   node tools/balance.js [runs] [--play optimal|greedy] [--buy value|costly|random]
+ *   node tools/balance.js --curve [runs]      what a round can produce
+ *   node tools/balance.js --floor [runs]      what a beginner can produce
  *   node tools/balance.js --lenses [runs]     per-Lens power ranking
  *   node tools/balance.js --stacks [runs]     the strongest loadouts reachable
  *
@@ -15,7 +17,7 @@
  * game actually does.
  */
 const { load } = require("../tests/harness.js");
-const { api } = load();
+const { api, ctx } = load();
 
 const ARGS = process.argv.slice(2);
 function flag(name, dflt) {
@@ -24,6 +26,21 @@ function flag(name, dflt) {
 }
 const RUNS = parseInt(ARGS.find(a => /^\d+$/.test(a)), 10) || 300;
 const PLAY = flag("play", "optimal");
+/* --nofigures scores the same seeds with the figure layer switched off, so the
+   cost of a scoring change can be read on its own rather than inferred from two
+   numbers taken a week apart. resolve() reads figureFor off the script's global
+   scope, which is what makes the swap possible at all. */
+if (ARGS.includes("--nofigures")) ctx.figureFor = () => null;
+/* --targets 1400,3300,... scores a candidate curve without editing the game, so
+   a sweep can run several curves at once instead of serially rewriting the one
+   file they all read from. */
+const TOV = flag("targets", null);
+if (TOV) {
+  const t = TOV.split(",").map(Number);
+  if (t.length !== api.TARGETS.length || t.some(isNaN))
+    throw new Error("--targets needs " + api.TARGETS.length + " numbers");
+  t.forEach((v, i) => { api.TARGETS[i] = v; });
+}
 const BUY = flag("buy", "value");
 
 /* ------------------------------------------------------------------ player */
@@ -392,6 +409,55 @@ function stacks() {
 /* What a round can actually PRODUCE, with every play spent and nothing to
    stop it. Targets should be set from this, not guessed: a target is a
    percentile of what the engine at that point in a run is capable of. */
+/* The floor player.
+ *
+ * curve() asks what a round can PRODUCE, which is a question about the best
+ * hand in the deck. The opening rounds are not aimed at that player. They are
+ * aimed at someone thirty seconds into their first run who takes the first
+ * three cards as dealt, does not reorder them, does not discard, and has not
+ * yet noticed that the shape of a hand is worth anything.
+ *
+ * Round 1 has to sit UNDER this distribution or a beginner loses their first
+ * round to a rule nobody has shown them yet. Round 2 is allowed to sit just
+ * above its median: that is the round where clicking stops working.
+ */
+function floor() {
+  const n = Math.max(200, RUNS);
+  console.log("=".repeat(64));
+  console.log("WHAT A PLAYER WHO HAS UNDERSTOOD NOTHING CAN MAKE  ·  " + n + " runs");
+  console.log("=".repeat(64));
+  console.log("");
+  console.log("round      p5      p20      p50      p80    current target");
+  for (let round = 0; round < api.ROUNDS; round++) {
+    const out = [];
+    for (let s = 0; s < n; s++) {
+      api.newRun("floor-" + s, true);
+      api.G.round = round;
+      api.startRound();
+      api.G.target = Infinity;
+      let score = 0;
+      while (api.G.plays > 0) {
+        const cards = api.G.hand.slice(0, Math.min(3, api.maxPlay()));
+        if (!cards.length) break;
+        score += api.resolve(cards).total;
+        api.G.hand = api.G.hand.filter(c => cards.indexOf(c) < 0);
+        api.G.discard = api.G.discard.concat(cards);
+        api.G.plays--;
+        api.draw(api.handSize() - api.G.hand.length);
+      }
+      out.push(score);
+    }
+    out.sort((a, b) => a - b);
+    const q = f => Math.round(out[Math.floor(out.length * f)]);
+    console.log("  " + (round + 1) + "   " + [q(.05), q(.2), q(.5), q(.8)]
+      .map(v => String(v).padStart(8)).join("")
+      + "    " + String(api.TARGETS[round]).padStart(8));
+  }
+  console.log("");
+  console.log("Only rounds 1 and 2 are set from this. Everything after them assumes");
+  console.log("  a player who has read the board at least once.");
+}
+
 function curve() {
   const n = Math.max(120, RUNS);
   const per = Array.from({ length: api.ROUNDS }, () => []);
@@ -413,16 +479,19 @@ function curve() {
   console.log("WHAT A ROUND CAN PRODUCE  ·  " + n + " runs, all four plays spent");
   console.log("=".repeat(64));
   console.log("");
-  console.log("round   p20      p50       p80       current target");
+  const CUTS = [0.03, 0.05, 0.1, 0.14, 0.18, 0.22, 0.26, 0.45];
+  console.log("round" + CUTS.map(c => ("p" + Math.round(c * 100)).padStart(9)).join("")
+    + "   current target");
   per.forEach((r, i) => {
     r.sort((x, y) => x - y);
     const q = f => Math.round(r[Math.floor(r.length * f)]);
-    console.log("  " + (i + 1) + "     " + String(q(0.2)).padStart(7)
-      + "  " + String(q(0.5)).padStart(8)
-      + "  " + String(q(0.8)).padStart(8)
-      + "      " + String(api.TARGETS[i]).padStart(7)
-      + "   (target is p" + Math.round(100 * r.filter(x => x < api.TARGETS[i]).length / r.length) + ")");
+    console.log("  " + (i + 1) + "  " + CUTS.map(c => String(q(c)).padStart(9)).join("")
+      + "    " + String(api.TARGETS[i]).padStart(7)
+      + "  (p" + Math.round(100 * r.filter(x => x < api.TARGETS[i]).length / r.length) + ")");
   });
+  console.log("");
+  console.log("The shipped curve sits at p3/p5/p10/p14/p18/p22/p26/p45 - read the");
+  console.log("  diagonal of this table to re-derive it after a scoring change.");
   console.log("");
   console.log("A target at p20 kills four runs in five at that round.");
   console.log("  A target at p80 kills one in five. Stacked over 8 rounds, a");
@@ -516,6 +585,7 @@ function fairness() {
 
 if (ARGS.includes("--fair")) fairness();
 else if (ARGS.includes("--curve")) curve();
+else if (ARGS.includes("--floor")) floor();
 else if (ARGS.includes("--lenses")) lensPower();
 else if (ARGS.includes("--stacks")) stacks();
 else {
