@@ -1009,10 +1009,10 @@ test.describe("the opening tutorial", () => {
 test.describe("sound, vibration and motion", () => {
   test("three separate switches, and they stick", async ({ page }) => {
     await open(page);
-    await page.click("#soundBtn");
+    await page.click("#menuBtn");
     const panel = page.locator("#panel");
-    /* the panel holds difficulty too now, so it is just Settings */
-    await expect(panel).toContainText("Settings");
+    /* sound shares one menu with difficulty and the rules now */
+    await expect(panel).toContainText("Menu");
     await expect(panel.locator(".switch")).toHaveCount(3);
     /* the iPhone gap is stated rather than quietly shipped */
     await expect(panel).toContainText("Android only");
@@ -1021,15 +1021,16 @@ test.describe("sound, vibration and motion", () => {
     await expect(music).toHaveText("ON");
     await music.click();
     await expect(music).toHaveText("OFF");
-    await expect(page.locator("#soundBtn")).toHaveAttribute("aria-pressed", "true"); // sfx still on
+    /* sound lives in the menu now; the board shows it through the menu button */
+    await expect(page.locator("#muteDot")).toBeHidden(); // sfx still on
 
     await panel.locator('.switch[data-pref="sfx"]').click();
-    await expect(page.locator("#soundBtn")).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("#muteDot")).toBeVisible(); // everything off, and the board says so
 
     await page.click("#closeSettings");
     await page.reload();
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
-    await page.click("#soundBtn");
+    await page.click("#menuBtn");
     await expect(page.locator('.switch[data-pref="music"]')).toHaveText("OFF");
   });
 
@@ -1052,7 +1053,7 @@ test.describe("sound, vibration and motion", () => {
   test("muting the music actually stops it", async ({ page }) => {
     await open(page);
     await page.locator("#hand .card").first().click();
-    await page.click("#soundBtn");
+    await page.click("#menuBtn");
     await page.locator('.switch[data-pref="music"]').click();
     await page.click("#closeSettings");
     await expect.poll(() => page.evaluate(() =>
@@ -1703,7 +1704,7 @@ test.describe("the sound engine", () => {
 
   test("silence means silence", async ({ page }) => {
     await open(page);
-    await page.click("#soundBtn");
+    await page.click("#menuBtn");
     await page.locator('.switch[data-pref="sfx"]').click();
     await page.click("#closeSettings");
     /* With effects off, a voice must not even build a node — not merely be

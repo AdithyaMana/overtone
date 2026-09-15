@@ -1100,6 +1100,41 @@ button{ font-family: inherit; color: inherit; }
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
+#menuBtn{ display:inline-flex; align-items:center; gap:7px; }
+#menuBtn .ham{ font-size: 15px; line-height:1; }
+/* Sound lived on its own button and took its mute state with it when it moved
+   into the menu. The state still has to be visible from the board. */
+#menuBtn .mute{
+  font-size: 10px; line-height:1; color: var(--text-faint);
+  text-decoration: line-through; margin-left: -2px;
+}
+#menuBtn .mute[hidden]{ display:none; }
+
+/* ---------- the menu ---------- */
+.menugrid{ display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0 0 16px; }
+.menuitem{
+  text-align:left; background: var(--inset); border:0; border-radius:8px;
+  padding: 12px 13px; cursor:pointer; color: var(--text-dim); font: inherit;
+  box-shadow: 0 3px 0 var(--edge);
+}
+.menuitem .mk{
+  font-family: var(--f-display); font-size: 12px; letter-spacing:.06em; color:#FFF;
+}
+.menuitem .md{ font-size: 12px; line-height:1.45; margin-top: 3px; }
+.menuitem:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.menuitem:active{ transform: translateY(3px); box-shadow:none; }
+.runstat{
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:8px;
+  margin: 0 0 16px;
+}
+.runstat div{ background: var(--inset); border-radius:8px; padding: 9px 11px; }
+.runstat .k{ font-size:11px; color: var(--text-faint); }
+.runstat .v{
+  font-size:19px; font-weight:700; color:#FFF;
+  font-variant-numeric: tabular-nums; line-height:1.2;
+}
+.runstat .v.none{ color: var(--text-faint); font-size: 14px; }
+
 .diffpick{ display:grid; gap:8px; margin: 0 0 6px; }
 .diffopt{
   text-align:left; background: var(--inset); border:0; border-radius: 8px;
@@ -1631,8 +1666,10 @@ button{ font-family: inherit; color: inherit; }
   <header class="masthead">
     <h1 class="wordmark">OVER<span>TONE</span></h1>
     <div class="mast-actions">
-      <button class="chip-btn icon" id="soundBtn" type="button" aria-pressed="true"
-              aria-label="Sound and music" title="Sound and music">&#9834;</button>
+      <button class="chip-btn" id="menuBtn" type="button" aria-label="Menu"
+              aria-haspopup="dialog" title="Difficulty, sound, and the rules"
+        ><span class="ham" aria-hidden="true">&#9776;</span><span class="long">Menu</span
+        ><span class="mute" id="muteDot" aria-hidden="true" hidden>&#9834;</span></button>
       <button class="chip-btn" id="helpBtn" type="button" aria-label="How to play"
         ><span class="long">How to play</span><span class="short">?</span></button>
       <button class="chip-btn" id="newRunBtn" type="button" aria-label="New run"
@@ -4915,14 +4952,15 @@ function showFigures(back){
     + '<p>The board names your figure while you pick, and tells you when the same words '
     + 'would make a better one in a different order. It will not reorder them for you.</p>'
     + '<div class="rowend">'
-    + (back ? '<button class="btn" id="figsBack" type="button">Back to how it works</button>'
+    + (back ? '<button class="btn" id="figsBack" type="button">Back to '
+              + (back === "menu" ? 'the menu' : 'how it works') + '</button>'
             : '<span></span>')
     + '<button class="btn primary" id="closeFigs" type="button">Play</button></div>');
   document.getElementById("closeFigs").onclick = hidePanel;
-  /* Opened from the help card, this used to be a door that only went one way:
-     the sole button said Play, so reading the table cost you your place. */
+  /* Opened from somewhere, this used to be a door that only went one way: the
+     sole button said Play, so reading the table cost you your place. */
   const b = document.getElementById("figsBack");
-  if(b) b.onclick = showHelp;
+  if(b) b.onclick = back === "menu" ? showMenu : showHelp;
 }
 
 function renderDemand(){
@@ -5097,14 +5135,18 @@ function toast(msg){
 }
 
 function syncSoundBtn(){
-  const b = document.getElementById("soundBtn");
-  if(!b) return;
-  const on = prefs.music || prefs.sfx;
-  b.classList.toggle("off", !on);
-  b.setAttribute("aria-pressed", on ? "true" : "false");
+  /* Sound moved into the menu; its state still has to read from the board, so
+     the menu button carries a struck-through note when everything is off. */
+  const dot = document.getElementById("muteDot");
+  if(!dot) return;
+  dot.hidden = !!(prefs.music || prefs.sfx);
 }
 
-function showSettings(){
+/* ---------- the menu ----------
+   Difficulty, sound and the rules used to live behind a music note, which is
+   where nobody looks for how hard the game is. One door, and everything that
+   is not a move in the game is behind it. */
+function showMenu(){
   function row(key, label, desc){
     return '<div class="setrow"><div><div class="sl">' + label + '</div>'
       + '<div class="sd">' + desc + '</div></div>'
@@ -5118,23 +5160,58 @@ function showSettings(){
       + '<div class="dn">' + d.n + '</div><div class="dd">' + d.d + '</div></button>';
   }).join("");
 
-  showPanel('<h2>Settings</h2>'
-    + '<div class="sub">Saved on this device</div>'
+  /* What the player has actually done. It was all in storage and none of it on
+     screen, which is a strange thing for a roguelite to keep to itself. */
+  const runs = store.get("runs", 0);
+  const stat = function(k, v){
+    return '<div><div class="k">' + k + '</div><div class="v'
+      + (v ? '' : ' none') + '">' + (v ? v.toLocaleString() : '—') + '</div></div>';
+  };
+
+  showPanel('<h2>Menu</h2>'
+    + '<div class="sub">Difficulty, sound, and the rules &middot; saved on this device</div>'
+
     + '<div class="sub" style="margin:0 0 7px">How hard</div>'
     + '<div class="diffpick">' + pick + '</div>'
     + '<p class="setnote">' + (G && inRun.id !== now.id
-        ? 'The run on the table is still <b>' + inRun.n + '</b> \u2014 a new run picks this up.'
+        ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
         : 'Changing this takes effect on your next run.') + '</p>'
+
+    + '<div class="sub" style="margin:0 0 7px">Read up</div>'
+    + '<div class="menugrid">'
+    +   '<button class="menuitem" id="menuHelp" type="button">'
+    +     '<div class="mk">HOW TO PLAY</div>'
+    +     '<div class="md">Seven things, with the arithmetic on a real card.</div></button>'
+    +   '<button class="menuitem" id="menuFigs" type="button">'
+    +     '<div class="mk">THE FIGURES</div>'
+    +     '<div class="md">All five shapes and what each one pays.</div></button>'
+    +   '<button class="menuitem" id="menuTut" type="button">'
+    +     '<div class="mk">RUN THE TUTORIAL</div>'
+    +     '<div class="md">The guided first round, again.</div></button>'
+    + '</div>'
+
+    + '<div class="sub" style="margin:0 0 7px">Your runs</div>'
+    + '<div class="runstat">'
+    +   stat("Runs played", runs)
+    +   stat("Best · SCHOLAR", store.get("best", 0))
+    +   stat("Best · APPRENTICE", store.get("best:apprentice", 0))
+    + '</div>'
+
+    + '<div class="sub" style="margin:0 0 7px">Sound &amp; feel</div>'
     + row("music", "Music", "The track that loops under the game.")
     + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
-    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry \u2014 "
-        + "browsers on iPhone don\u2019t allow it.")
+    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry — "
+        + "browsers on iPhone don’t allow it.")
+
     + '<div class="rowend">'
-    + '<button class="btn" id="settingsNewRun" type="button">Start a new run</button>'
+    + '<button class="btn" id="menuNewRun" type="button">Start a new run</button>'
     + '<button class="btn primary" id="closeSettings" type="button">Back to the game</button></div>');
 
   document.getElementById("closeSettings").onclick = hidePanel;
-  document.getElementById("settingsNewRun").onclick = function(){
+  document.getElementById("menuHelp").onclick = function(){ showHelp("menu"); };
+  document.getElementById("menuFigs").onclick = function(){ showFigures("menu"); };
+  document.getElementById("menuTut").onclick = function(){ hidePanel(); startTutorial(true); };
+  document.getElementById("menuNewRun").onclick = function(){
     hidePanel();
     newRun("free-" + Math.random().toString(36).slice(2,8), true);
     toast(difficulty().n + " run. No Lenses, no Memory.");
@@ -5143,7 +5220,7 @@ function showSettings(){
     b.onclick = function(){
       setPref("difficulty", b.dataset.diff);
       SFX.buy();
-      showSettings();          /* redraw so the note and the marks agree */
+      showMenu();              /* redraw so the note and the marks agree */
     };
   });
   Array.prototype.forEach.call(document.querySelectorAll(".switch"), function(b){
@@ -5159,8 +5236,10 @@ function showSettings(){
     };
   });
 }
+/* The old name, because the sound button used to be the only way in. */
+function showSettings(){ showMenu(); }
 
-function showHelp(){
+function showHelp(back){
   /* A worked example beats a rule list: the same card the player is about to
      see, with the arithmetic spelled out on it. */
   const ex = { w:"FURNACE", t:["HEA","TOO","DAN"], base: 5 + 3*7, interpreted:false };
@@ -5262,14 +5341,16 @@ function showHelp(){
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
     + '<div class="rowend">'
-    + '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
+    + (back === "menu"
+        ? '<button class="btn" id="helpBack" type="button">Back to the menu</button>'
+        : '<button class="btn" id="replayTut" type="button">Run the tutorial</button>')
     + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
   document.getElementById("closeHelp").onclick = hidePanel;
-  document.getElementById("helpFigs").onclick = function(){ showFigures(true); };
-  document.getElementById("replayTut").onclick = function(){
-    hidePanel();
-    startTutorial(true);
-  };
+  document.getElementById("helpFigs").onclick = function(){ showFigures("help"); };
+  const rt = document.getElementById("replayTut");
+  if(rt) rt.onclick = function(){ hidePanel(); startTutorial(true); };
+  const hb = document.getElementById("helpBack");
+  if(hb) hb.onclick = showMenu;
 }
 
 /* ---------- input ---------- */
@@ -5277,7 +5358,7 @@ document.getElementById("playBtn").onclick = play;
 document.getElementById("discardBtn").onclick = discardSel;
 document.getElementById("interpBtn").onclick = openInterpreter;
 document.getElementById("helpBtn").onclick = showHelp;
-document.getElementById("soundBtn").onclick = showSettings;
+document.getElementById("menuBtn").onclick = showMenu;
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel();
   newRun("free-" + Math.random().toString(36).slice(2,8), true);

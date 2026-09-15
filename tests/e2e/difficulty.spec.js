@@ -20,8 +20,8 @@ async function open(page) {
 test.describe("choosing how hard", () => {
   test("the setting is there, and SCHOLAR is what you get by default", async ({ page }) => {
     await open(page);
-    await page.click("#soundBtn");
-    await expect(page.locator("#panel h2")).toHaveText("Settings");
+    await page.click("#menuBtn");
+    await expect(page.locator("#panel h2")).toHaveText("Menu");
     const opts = page.locator(".diffopt");
     await expect(opts).toHaveCount(2);
     await expect(page.locator('.diffopt[data-diff="scholar"]')).toHaveAttribute("aria-pressed", "true");
@@ -32,7 +32,7 @@ test.describe("choosing how hard", () => {
 
   test("picking it sticks, and says it lands on the next run", async ({ page }) => {
     await open(page);
-    await page.click("#soundBtn");
+    await page.click("#menuBtn");
     await page.click('.diffopt[data-diff="apprentice"]');
     await expect(page.locator('.diffopt[data-diff="apprentice"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator(".setnote")).toContainText("still");
@@ -170,4 +170,87 @@ test.describe("the offer to somebody the curve is beating", () => {
       await page.waitForTimeout(300);
       await expect(page.locator(".softer")).toHaveCount(0);
     });
+});
+
+/* ------------------------------------------------------------------ */
+test.describe("the menu", () => {
+  /* Difficulty, sound and the rules used to be behind a music note, which is
+     not where anyone looks for how hard a game is. One door now. */
+  test("one door holds difficulty, sound, the rules and your runs", async ({ page }) => {
+    await open(page);
+    await page.click("#menuBtn");
+    const panel = page.locator("#panel");
+    await expect(panel.locator("h2")).toHaveText("Menu");
+    await expect(panel.locator(".diffopt")).toHaveCount(2);        // how hard
+    await expect(panel.locator(".switch")).toHaveCount(3);          // sound & feel
+    await expect(panel.locator(".menuitem")).toHaveCount(3);        // read up
+    await expect(panel.locator(".runstat > div")).toHaveCount(3);   // your runs
+    await expect(panel).toContainText("Runs played");
+  });
+
+  test("it shows what the game has been quietly keeping", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      localStorage.setItem("overtone:runs", "14");
+      localStorage.setItem("overtone:best", "41280");
+      localStorage.setItem("overtone:best:apprentice", "88120");
+    });
+    await page.click("#menuBtn");
+    const stats = page.locator(".runstat");
+    await expect(stats).toContainText("14");
+    await expect(stats).toContainText("41,280");
+    await expect(stats).toContainText("88,120");
+  });
+
+  test("every door out of it comes back to it", async ({ page }) => {
+    await open(page);
+    await page.click("#menuBtn");
+    await page.click("#menuFigs");
+    await expect(page.locator(".figtab")).toBeVisible();
+    await page.click("#figsBack");
+    await expect(page.locator("#panel h2")).toHaveText("Menu");
+
+    await page.click("#menuHelp");
+    await expect(page.locator("#panel h2")).toContainText("How Overtone works");
+    await page.click("#helpBack");
+    await expect(page.locator("#panel h2")).toHaveText("Menu");
+  });
+
+  test("the tutorial can be run again from it", async ({ page }) => {
+    await open(page);
+    await page.click("#menuBtn");
+    await page.click("#menuTut");
+    await expect(page.locator("#veil")).toBeHidden();
+    await expect(page.locator("#tut")).toBeVisible();
+    await expect(page.locator("#tutStep")).toContainText("1 of");
+  });
+
+  test("the board still says when the sound is off", async ({ page }) => {
+    await open(page);
+    /* it moved into the menu, so the state has to be legible without opening it */
+    await expect(page.locator("#muteDot")).toBeHidden();
+    await page.click("#menuBtn");
+    await page.locator('.switch[data-pref="music"]').click();
+    await page.locator('.switch[data-pref="sfx"]').click();
+    await page.click("#closeSettings");
+    await expect(page.locator("#muteDot")).toBeVisible();
+  });
+
+  test("it fits a phone", async ({ page }, info) => {
+    test.skip(info.project.name !== "phone", "portrait budget");
+    await open(page);
+    await page.click("#menuBtn");
+    await page.waitForTimeout(300);
+    const fit = await page.evaluate(() => {
+      const panel = document.getElementById("panel");
+      const r = panel.getBoundingClientRect();
+      return { sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+               inView: r.left >= -1 && r.right <= innerWidth + 1,
+               reachable: panel.scrollHeight > panel.clientHeight
+                 ? getComputedStyle(panel).overflowY !== "visible" : true };
+    });
+    expect(fit.sideways, "the menu pushes the page sideways").toBeLessThanOrEqual(1);
+    expect(fit.inView, "the menu runs off the side").toBe(true);
+    expect(fit.reachable, "the menu is taller than the screen and cannot be scrolled").toBe(true);
+  });
 });
