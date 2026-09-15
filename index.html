@@ -1147,21 +1147,23 @@ button{ font-family: inherit; color: inherit; }
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
 /* ---------- the title screen ----------
-   Not a settings page with a PLAY button on it. A short stack of entries you
-   walk with the arrow keys, anchored left the way a game menu is, over a
-   vignette and a scanline. Everything that needed a paragraph to explain
-   itself was the wrong entry. */
+   A plate, not a settings page with a PLAY button on it. The name and what the
+   game is made of on one side, the index on the other, and a cursor you walk
+   with the arrow keys. Every entry is a line of type. Nothing is a card, and
+   nothing on it is a colour the board does not already use. */
 .title{
   /* Under the veil on purpose: a panel opened FROM the menu has to sit on top
      of it, or reading the rules shows you a dimmed rectangle behind the menu
      you were just looking at. Above the tutorial, which must never run here. */
   position: fixed; inset: 0; z-index: 72;
   display: flex; align-items: flex-start;
-  padding: 26px clamp(20px, 9vw, 120px);
+  padding: 26px clamp(20px, 7vw, 96px);
   overflow-y: auto;
+  /* One warm glow off the bottom edge, like something lit under the plate.
+     Two big soft blobs in two different hues is a screensaver. */
   background:
-    radial-gradient(ellipse 70% 60% at 22% 26%, rgba(0,147,255,.14), transparent 62%),
-    radial-gradient(ellipse 62% 55% at 88% 88%, rgba(254,95,85,.12), transparent 60%),
+    radial-gradient(ellipse 130% 56% at 50% 116%, rgba(239,163,29,.12), transparent 62%),
+    radial-gradient(ellipse 80% 48% at 16% 2%, rgba(254,95,85,.07), transparent 66%),
     var(--bg);
 }
 /* Centred only where centring cannot clip: a flex item with auto margins in a
@@ -1173,158 +1175,86 @@ button{ font-family: inherit; color: inherit; }
   content:""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
   background:
     repeating-linear-gradient(rgba(0,0,0,0) 0 2px, rgba(0,0,0,.17) 2px 4px),
-    radial-gradient(ellipse 72% 66% at 42% 46%, transparent 42%, rgba(0,0,0,.55));
+    radial-gradient(ellipse 72% 66% at 42% 46%, transparent 40%, rgba(0,0,0,.6));
 }
+/* Registration marks, the way a plate is squared up before it prints. Four
+   corners of the screen, not a border: a border would make the menu a card. */
+.tframe{ position: fixed; inset: 16px; pointer-events: none; z-index: 2; }
+.tframe i{
+  position: absolute; width: 15px; height: 15px;
+  border: 0 solid rgba(239,163,29,.45);
+}
+.tframe i:nth-child(1){ left:0;  top:0;    border-left-width:2px;  border-top-width:2px; }
+.tframe i:nth-child(2){ right:0; top:0;    border-right-width:2px; border-top-width:2px; }
+.tframe i:nth-child(3){ left:0;  bottom:0; border-left-width:2px;  border-bottom-width:2px; }
+.tframe i:nth-child(4){ right:0; bottom:0; border-right-width:2px; border-bottom-width:2px; }
+@media (max-width: 560px){ .tframe{ display:none; } }
+
 .title-card{
-  position: relative; z-index: 2;
-  width: 100%; max-width: 430px; margin: auto 0;
+  position: relative; z-index: 3;
+  width: 100%; max-width: 430px; margin: auto;
   animation: titleIn .45s cubic-bezier(.2,1,.3,1) both;
 }
 @keyframes titleIn{ 0%{ opacity:0; transform: translateY(14px) } 100%{ opacity:1; transform:none } }
+/* Room for two columns: the name does not have to sit on top of the list, and
+   the list does not have to be 430px of menu beside 800px of nothing. */
+@media (min-width: 900px) and (min-height: 620px){
+  .title-card{
+    max-width: 980px;
+    display: grid; align-items: stretch; gap: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 410px);
+  }
+  .tp-id{ margin: 0; padding-right: 50px; border-right: 1px solid rgba(112,136,154,.22); }
+  .title-main{ padding-left: 50px; }
+}
 
-.title-head{ margin: 0 0 20px; }
+/* ---------- the name, and what the game is made of ---------- */
+.tp-id{ margin: 0 0 24px; }
 .title .title-mark{
-  font-size: clamp(34px, 8.5vw, 56px); margin: 0 0 9px; letter-spacing: .04em;
-  text-shadow: 4px 4px 0 var(--mult), 0 0 36px rgba(254,95,85,.3);
+  font-size: clamp(38px, 9vw, 68px); margin: 0 0 11px;
+  letter-spacing: .04em; line-height: .95;
+  text-shadow: 4px 4px 0 var(--mult), 0 0 40px rgba(254,95,85,.26);
 }
 .tagline{
   margin: 0; color: var(--text-dim);
-  font-size: 12px; letter-spacing: .13em; text-transform: uppercase;
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
 }
-.title-rule{
-  height: 2px; margin: 15px 0 12px;
-  background: linear-gradient(90deg, var(--gold), rgba(239,163,29,0) 78%);
+/* The imprint. Every number in it is counted off the real data at load, so it
+   cannot drift, and between them they say what the game is without a sentence. */
+.imprint{
+  margin: 15px 0 0; padding-top: 13px;
+  border-top: 1px solid rgba(112,136,154,.22);
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-faint); font-variant-numeric: tabular-nums;
 }
-
-/* ---------- the entries ---------- */
-.mlist{ display: flex; flex-direction: column; gap: 5px; }
-.mrow{
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  text-align: left; cursor: pointer; border: 0; border-radius: 0 6px 6px 0;
-  padding: 12px 14px;
-  font-family: var(--f-display); font-size: 14px; letter-spacing: .09em;
-  text-transform: uppercase; text-shadow: var(--drop-sm);
-  color: var(--text-dim);
-  background: linear-gradient(90deg, rgba(44,65,80,.92), rgba(44,65,80,.12));
-  border-left: 3px solid rgba(112,136,154,.4);
-  transition: color .12s ease, background .12s ease, border-color .12s ease,
-              transform .1s ease;
+/* Attract mode: one real word off the deck and what it rings of, changing
+   every few seconds. It is the whole game in one line, before PLAY. */
+.attract{
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px 7px;
+  margin: 14px 0 0; min-height: 23px;
 }
-/* the caret, which is the whole point of a menu you walk rather than read */
-.mrow .mk{
-  flex: none; width: 8px; height: 11px; opacity: 0;
-  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%);
-  transition: opacity .12s ease;
+.attract.in{ animation: attractIn .45s ease both; }
+@keyframes attractIn{ 0%{ opacity:0; transform: translateY(3px) } 100%{ opacity:1; transform:none } }
+.attract .aw{
+  font-family: var(--f-display); font-size: 13px; letter-spacing: .06em;
+  color: var(--text-dim); margin-right: 3px;
 }
-.mrow .ml{ flex: 1; }
-.mrow .mx{
-  font-family: var(--f); font-size: 11px; letter-spacing: .08em;
-  text-transform: none; text-shadow: none; color: var(--text-faint);
+.attract .at{
+  font-size: 9px; letter-spacing: .12em; padding: 2px 5px;
+  color: var(--gold); border: 1px solid rgba(239,163,29,.32);
 }
-.mrow.sel, .mrow:hover{
-  color: #FFF; border-left-color: var(--gold); transform: translateX(5px);
-  background: linear-gradient(90deg, rgba(239,163,29,.3), rgba(44,65,80,.12));
-}
-.mrow.sel .mk, .mrow:hover .mk{ opacity: 1; }
-.mrow.sel .mx, .mrow:hover .mx{ color: var(--text-dim); }
-.mrow:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
-.mrow:active{ transform: translateX(5px) scale(.992); }
-/* the entry the screen exists for */
-.mrow.go{
-  font-size: 18px; padding: 15px 14px; color: #FFF;
-  background: linear-gradient(90deg, rgba(0,147,255,.6), rgba(0,147,255,.06));
-  border-left-color: var(--chips);
-}
-.mrow.go.sel, .mrow.go:hover{
-  background: linear-gradient(90deg, rgba(0,147,255,.92), rgba(0,147,255,.14));
-  border-left-color: var(--gold);
-}
-
-/* ---------- how hard, as a switch rather than two essays ---------- */
-.mseg{
-  margin: 13px 0 0; padding: 12px 14px; border-radius: 0 6px 6px 0;
-  border-left: 3px solid rgba(112,136,154,.4);
-  background: linear-gradient(90deg, rgba(44,65,80,.55), rgba(44,65,80,.06));
-  transition: border-color .12s ease;
-}
-.mseg.sel{ border-left-color: var(--gold); }
-.msl{
-  font-family: var(--f-display); font-size: 11px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px;
-}
-.segs{
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
-  background: var(--inset); border-radius: 7px; padding: 4px;
-  box-shadow: inset 0 2px 0 rgba(0,0,0,.4);
-}
-.diffopt{
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  flex-wrap: wrap; min-height: 44px; padding: 9px 6px;
-  border: 0; border-radius: 5px; cursor: pointer; background: transparent;
-  font-family: var(--f-display); font-size: 12px; letter-spacing: .07em;
-  color: var(--text-faint); text-shadow: var(--drop-sm);
-  transition: background .12s ease, color .12s ease;
-}
-.diffopt:hover{ color: #FFF; }
-.diffopt[aria-pressed="true"]{
-  background: var(--lens); color: #FFF; box-shadow: 0 3px 0 var(--lens-d);
-}
-.diffopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
-/* what is not yours yet, marked on the thing it is not */
-.diffopt .tip{
-  font-size: 8.5px; letter-spacing: .1em; text-shadow: none;
-  background: var(--gold); color: #12181C; border-radius: 3px; padding: 2px 5px;
-}
-.diffopt .tip.lock{ background: rgba(112,136,154,.45); color: var(--text-dim); }
-.diffopt:disabled{ cursor: not-allowed; opacity: .75; }
-.diffopt:disabled:hover{ color: var(--text-faint); }
-
-/* the Lens the last finished run handed forward, named before PLAY rather
-   than discovered on the board */
-.carry{
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 9px;
-  margin: 5px 0 0; padding: 9px 14px; border-radius: 0 6px 6px 0;
-  border-left: 3px solid var(--lens);
-  background: linear-gradient(90deg, rgba(155,123,224,.24), rgba(155,123,224,.03));
-}
-.carry .k{
-  font-family: var(--f-display); font-size: 9.5px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--lens-lit);
-}
-.carry .v{
-  font-family: var(--f-display); font-size: 12.5px; letter-spacing: .05em;
-  color: #FFF; text-shadow: var(--drop-sm);
-}
-.carry .d{ flex: 1 0 100%; font-size: 11.5px; line-height: 1.45; color: var(--text-dim); }
-/* Turned off, it is still the same row saying the same thing, so it keeps its
-   shape and loses its colour rather than disappearing. */
-.carry.off{
-  border-left-color: rgba(112,136,154,.45);
-  background: linear-gradient(90deg, rgba(44,65,80,.5), rgba(44,65,80,.05));
-}
-.lens.static{ cursor: default; margin: 12px 0; }
-.carry.off .k{ color: var(--text-faint); }
-.carry.off .v{ color: var(--text-dim); }
-.carrybtn{
-  flex: 1 0 100%; margin-top: 7px; align-self: flex-start;
-  border: 0; border-radius: 6px; cursor: pointer; padding: 8px 12px; min-height: 36px;
-  font-family: var(--f-display); font-size: 10.5px; letter-spacing: .08em;
-  text-transform: uppercase; text-align: left;
-  background: rgba(0,0,0,.28); color: var(--text-dim); text-shadow: var(--drop-sm);
-}
-.carrybtn:hover{ color: #FFF; background: rgba(0,0,0,.42); }
-.carrybtn:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
-.setnote{ font-size: 12.5px; color: var(--text-faint); margin: 0 0 15px; }
-.title .setnote{ margin: 9px 0 0; font-size: 12px; line-height: 1.55; }
 
 /* ---------- what the game has been keeping ---------- */
 .title .runstat{
-  display: flex; flex-wrap: wrap; gap: 3px 22px; margin: 0;
-  background: none; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 4px 26px;
+  margin: 17px 0 0; padding-top: 13px;
+  border-top: 1px solid rgba(112,136,154,.22); background: none;
 }
+/* nothing kept yet, so no rule and no empty row */
+.title .runstat:empty{ display: none; }
 .runstat > div{ background: none; padding: 0; }
 .runstat .k{
-  font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--text-faint);
 }
 .runstat .v{
@@ -1333,6 +1263,144 @@ button{ font-family: inherit; color: inherit; }
 }
 .runstat .v.none{ color: var(--text-faint); }
 
+/* ---------- the index ---------- */
+.mlist{ display: flex; flex-direction: column; }
+.mrow{
+  position: relative; display: flex; align-items: baseline; width: 100%;
+  text-align: left; cursor: pointer; border: 0; border-radius: 0;
+  background: transparent; padding: 11px 0 11px 23px;
+  font-family: var(--f-display); font-size: 15px; letter-spacing: .09em;
+  text-transform: uppercase; text-shadow: var(--drop-sm);
+  color: var(--text-dim);
+  transition: color .12s ease, transform .1s ease;
+}
+/* the cursor, which is the whole point of a menu you walk rather than read */
+.mrow .mk{
+  position: absolute; left: 0; top: 50%; margin-top: -6px;
+  width: 9px; height: 12px; opacity: 0; background: var(--gold);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transition: opacity .12s ease;
+}
+.mrow .ml{ flex: 0 1 auto; }
+/* A leader, the way a printed contents page runs the eye to the number. It is
+   also what stops four short labels from floating in a wide column. */
+.mrow .dots{
+  flex: 1 1 auto; min-width: 14px; margin: 0 10px 4px;
+  border-bottom: 1px dotted rgba(112,136,154,.4);
+  transition: border-color .12s ease;
+}
+.mrow .mx{
+  flex: none; font-family: var(--f); font-size: 11px; letter-spacing: .08em;
+  text-transform: none; text-shadow: none; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.mrow.sel, .mrow:hover{ color: #FFF; transform: translateX(6px); }
+.mrow.sel .mk, .mrow:hover .mk{ opacity: 1; }
+.mrow.sel .mx, .mrow:hover .mx{ color: var(--text-dim); }
+.mrow.sel .dots, .mrow:hover .dots{ border-bottom-color: rgba(239,163,29,.55); }
+.mrow:focus-visible{ outline: 2px solid var(--gold); outline-offset: 3px; }
+.mrow:active{ transform: translateX(6px) scale(.995); }
+/* The entry the screen exists for. Bigger, white, and underlined in the one
+   colour this screen is allowed to spend. */
+.mrow.go{
+  font-size: 21px; padding: 15px 0 14px 27px; color: #FFF;
+  border-bottom: 2px solid rgba(239,163,29,.5);
+}
+.mrow.go .mk{ width: 12px; height: 15px; margin-top: -7px; }
+.mrow.go .mx{ font-size: 12px; color: var(--text-dim); }
+.mrow.go.sel, .mrow.go:hover{
+  border-bottom-color: var(--gold);
+  text-shadow: 0 0 20px rgba(239,163,29,.45), var(--drop-sm);
+}
+
+/* ---------- how hard, as a console options line ---------- */
+.mseg{ margin: 17px 0 5px; padding: 0 0 0 23px; }
+.msl{
+  font-family: var(--f-display); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: 7px;
+}
+.mseg.sel .msl{ color: var(--gold); }
+.segs{
+  display: flex; flex-wrap: wrap; gap: 2px 20px;
+  background: none; padding: 0; box-shadow: none;
+}
+.diffopt{
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 38px; padding: 4px 0;
+  border: 0; background: transparent; cursor: pointer;
+  font-family: var(--f-display); font-size: 13px; letter-spacing: .07em;
+  color: var(--text-faint); text-shadow: var(--drop-sm);
+  transition: color .12s ease;
+}
+/* Brackets that are always in the layout and only ever change opacity, so
+   lighting one option does not shove the other one sideways. */
+.diffopt::before, .diffopt::after{
+  content: "["; color: var(--gold); opacity: 0; transition: opacity .12s ease;
+}
+.diffopt::after{ content: "]"; }
+.diffopt[aria-pressed="true"]{ color: #FFF; }
+.diffopt[aria-pressed="true"]::before,
+.diffopt[aria-pressed="true"]::after{ opacity: 1; }
+.diffopt:hover{ color: #FFF; }
+.diffopt:focus-visible{ outline: 2px solid var(--gold); outline-offset: 3px; }
+/* what is not yours yet, marked on the thing it is not */
+.diffopt .tip{
+  font-size: 8.5px; letter-spacing: .12em; text-shadow: none;
+  color: var(--text-faint); border: 1px solid rgba(112,136,154,.4); padding: 2px 5px;
+}
+.diffopt:disabled{ cursor: not-allowed; }
+.diffopt:disabled:hover{ color: var(--text-faint); }
+
+/* the Lens the last finished run handed forward, named before PLAY rather
+   than discovered on the board */
+.carry{
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 10px;
+  margin: 11px 0 3px 23px; padding: 0 0 0 13px;
+  border-left: 2px solid rgba(239,163,29,.6);
+}
+/* Turned off, it is still the same row saying the same thing, so it keeps its
+   shape and loses its colour rather than disappearing. */
+.carry.off{ border-left-color: rgba(112,136,154,.4); }
+.carry .k{
+  font-family: var(--f-display); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--gold);
+}
+.carry.off .k{ color: var(--text-faint); }
+.carry .v{
+  font-family: var(--f-display); font-size: 12.5px; letter-spacing: .05em;
+  color: #FFF; text-shadow: var(--drop-sm);
+}
+.carry.off .v{ color: var(--text-dim); }
+.carry .d{
+  flex: 1 0 100%; font-size: 11.5px; line-height: 1.45;
+  color: var(--text-dim); max-width: 46ch;
+}
+.lens.static{ cursor: default; margin: 12px 0; }
+.carrybtn{
+  flex: 1 0 100%; margin-top: 5px; align-self: flex-start; text-align: left;
+  border: 0; background: none; cursor: pointer; padding: 6px 0; min-height: 34px;
+  font-family: var(--f-display); font-size: 10.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--text-faint); text-shadow: var(--drop-sm);
+  text-decoration: underline; text-underline-offset: 4px;
+  text-decoration-color: rgba(112,136,154,.5);
+}
+.carrybtn:hover{ color: #FFF; text-decoration-color: var(--gold); }
+.carrybtn:focus-visible{ outline: 2px solid var(--gold); outline-offset: 3px; }
+.setnote{ font-size: 12.5px; color: var(--text-faint); margin: 0 0 15px; }
+.title .setnote{ margin: 9px 0 0; font-size: 12px; line-height: 1.55; max-width: 44ch; }
+
+/* What the keys do, and which build this is. Both belong on a title screen and
+   neither belongs anywhere else. */
+.tfoot{
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px 18px; flex-wrap: wrap;
+  margin: 22px 0 0; padding-top: 13px;
+  border-top: 1px solid rgba(112,136,154,.22);
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.tfoot b{ color: var(--text-dim); font-weight: 400; }
+@media (pointer: coarse){ .tfoot .keys{ display: none; } }
 
 /* A title screen with PLAY below the fold is the one layout failure a menu
    cannot have. A short screen is a wide screen turned on its side, so it gets
@@ -1340,25 +1408,30 @@ button{ font-family: inherit; color: inherit; }
 @media (max-height: 560px){
   .title{ padding: 14px clamp(14px, 5vw, 60px); }
   .title-card{
-    max-width: 780px; display: grid; align-items: center; gap: 0 28px;
-    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    max-width: 840px; display: grid; align-items: center; gap: 0;
+    grid-template-columns: minmax(0, 250px) minmax(0, 1fr);
   }
-  .title-head{ margin: 0; }
-  .title .title-mark{ font-size: clamp(26px, 5vw, 40px); text-shadow: 3px 3px 0 var(--mult); }
-  .tagline{ font-size: 10.5px; }
-  .title-rule{ margin: 11px 0 9px; }
-  .mrow{ padding: 9px 12px; font-size: 13px; }
-  .mrow.go{ padding: 11px 12px; font-size: 15.5px; }
-  .mseg{ margin-top: 8px; padding: 9px 12px; }
-  .msl{ margin-bottom: 6px; }
-  .diffopt{ min-height: 38px; padding: 7px 5px; }
-  .carry{ padding: 7px 12px; }
+  .tp-id{ margin: 0; padding-right: 34px; border-right: 1px solid rgba(112,136,154,.22); }
+  .title-main{ padding-left: 34px; }
+  .title .title-mark{ font-size: clamp(26px, 5vw, 42px); text-shadow: 3px 3px 0 var(--mult); }
+  .tagline{ font-size: 10px; }
+  .imprint{ margin-top: 10px; padding-top: 9px; font-size: 9.5px; letter-spacing: .1em; }
+  .attract{ display: none; }
+  .title .runstat{ margin-top: 11px; padding-top: 9px; gap: 3px 18px; }
+  .runstat .v{ font-size: 15px; }
+  .mrow{ padding: 8px 0 8px 20px; font-size: 13px; }
+  .mrow.go{ padding: 11px 0 10px 22px; font-size: 17px; }
+  .mseg{ margin: 12px 0 4px; }
+  .diffopt{ min-height: 34px; }
+  .carry{ margin-top: 8px; }
   .carry .d{ display: none; }
   .title .setnote{ margin-top: 6px; font-size: 11px; }
-  .runstat .v{ font-size: 15px; }
+  .tfoot{ margin-top: 13px; padding-top: 9px; }
 }
 @media (max-height: 560px) and (max-width: 660px){
   .title-card{ grid-template-columns: 1fr; }
+  .tp-id{ padding-right: 0; border-right: 0; }
+  .title-main{ padding-left: 0; }
 }
 
 #menuBtn, #homeBtn{ display:inline-flex; align-items:center; gap:7px; }
@@ -1999,11 +2072,13 @@ button{ font-family: inherit; color: inherit; }
 <div class="stamp" id="stamp" hidden><span id="stampText"></span></div>
 
 <div class="title" id="title">
+  <div class="tframe" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <div class="title-card">
-    <div class="title-head">
+    <div class="tp-id">
       <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
       <p class="tagline">Meaning is the physics</p>
-      <div class="title-rule" aria-hidden="true"></div>
+      <p class="imprint" id="titleImprint"></p>
+      <div class="attract" id="titleAttract" aria-hidden="true"></div>
       <div class="runstat" id="titleStats"></div>
     </div>
     <div class="title-main" id="titleBody"></div>
@@ -2561,9 +2636,9 @@ const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
    what actually ends an early run is a dead draw, not a wrong choice. */
 const DIFFICULTIES = [
   { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"A fourth discard, and one Ordeal instead of three. Nothing is taken out of your hands until the last round. Same words, same Lenses, every decision intact." },
+    d:"Four discards instead of three, and only round 8 bends a rule. Same words, same Lenses, same decisions." },
   { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
-    d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
+    d:"The balanced game. Four plays, three discards, and a curve only a multiplying deck keeps up with." }
 ];
 const DIFF_BY_ID = {};
 DIFFICULTIES.forEach(function(d){ DIFF_BY_ID[d.id] = d; });
@@ -5625,11 +5700,15 @@ function showTitle(){
   const mem = store.get("memory", null);
   const memLens = mem && LENSES.find(function(l){ return l.id === mem; });
 
+  /* One line of the index: a cursor, a label, a leader running across, and the
+     one number that line is about. Every accessory is counted off real data,
+     so none of them can quietly go stale. */
   function row(id, label, cls, acc){
     return '<button class="mrow' + (cls ? " " + cls : "") + '" type="button" id="' + id + '">'
       + '<span class="mk" aria-hidden="true"></span>'
       + '<span class="ml">' + label + '</span>'
-      + (acc ? '<span class="mx">' + acc + '</span>' : '')
+      + '<span class="dots" aria-hidden="true"></span>'
+      + '<span class="mx">' + (acc || '') + '</span>'
       + '</button>';
   }
 
@@ -5643,11 +5722,6 @@ function showTitle(){
       + (locked ? '<span class="tip lock">Locked</span>' : '')
       + '</button>';
   }).join("");
-
-  /* What it means to press the thing you just chose, in one line. A player who
-     has a run on the table is told the run keeps the difficulty it was dealt,
-     because changing it under them would be the game cheating. */
-
 
   document.getElementById("titleBody").innerHTML = ''
     + '<div class="mlist">'
@@ -5672,11 +5746,24 @@ function showTitle(){
     +     '<div class="segs" role="group" aria-labelledby="titleDiffLabel">' + pills + '</div>'
     +     '<p class="setnote" id="titleNote"></p>'
     +   '</div>'
-    +   row("titleHelp", "How to play")
-    +   row("titleFigs", "The figures")
-    +   row("titleTut", "Run the tutorial")
-    +   row("titleSound", "Sound &amp; feel")
+    +   row("titleHelp", "How to play", "", "7 rules")
+    +   row("titleFigs", "The figures", "", FIGURES.length + " shapes")
+    +   row("titleTut", "Run the tutorial", "", TUT.length + " steps")
+    +   row("titleSound", "Sound &amp; feel", "",
+            (prefs.music || prefs.sfx) ? "On" : "Muted")
+    + '</div>'
+    /* What the keys do, and which build this is. Both belong on a title
+       screen and neither belongs anywhere else in the game. */
+    + '<div class="tfoot">'
+    +   '<span class="keys"><b>\u2191\u2193</b> move &middot; <b>Enter</b> select</span>'
+    +   '<span class="ver">Overtone v1.0</span>'
     + '</div>';
+
+  /* The imprint: the size of the game, counted rather than claimed. */
+  document.getElementById("titleImprint").textContent =
+    LEXICON.length + " words \u00b7 " + TAG_KEYS.length + " overtones \u00b7 "
+    + LENSES.length + " lenses";
+  attractStart();
 
   const stat = function(k, v){
     return '<div><div class="k">' + k + '</div><div class="v' + (v ? '' : ' none') + '">'
@@ -5824,10 +5911,42 @@ function titleKey(e){
   if(next && next !== cur){ next.click(); titleMove(titleSel, true); }
 }
 
+/* ---------- attract mode ----------
+   One real word off the deck and what it rings of, changed every few seconds.
+   A title screen that shows nothing of the game is a door with no window, and
+   this is the whole idea of the game in one line, before anybody presses PLAY. */
+let attractTimer = null;
+function attractPaint(){
+  const el = document.getElementById("titleAttract");
+  if(!el) return;
+  const e = LEXICON[Math.floor(Math.random() * LEXICON.length)];
+  if(!e) return;
+  el.innerHTML = '<span class="aw">' + escapeHtml(e.w) + '</span>'
+    + e.t.slice(0, 4).map(function(t){
+        return '<span class="at">' + TAGS[t][0] + '</span>';
+      }).join("");
+  /* restart the fade by taking the class off and forcing a reflow */
+  el.classList.remove("in"); void el.offsetWidth; el.classList.add("in");
+}
+function attractStart(){
+  attractStop();
+  attractPaint();
+  /* A word that changes on its own is motion. Somebody who has asked for less
+     of it gets one word and no cycle. */
+  /* window.matchMedia, not the bare global: the test harness runs this script
+     in a context where window is a stub object rather than the global itself. */
+  if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  attractTimer = setInterval(attractPaint, 3400);
+}
+function attractStop(){
+  if(attractTimer){ clearInterval(attractTimer); attractTimer = null; }
+}
+
 function hideTitle(){
   titleOpen = false;
   document.getElementById("title").hidden = true;
   behindTitle(false);
+  attractStop();
 }
 
 /* Everything the menu is standing in front of. One attribute takes it out of
@@ -5976,63 +6095,59 @@ function showHelp(back){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Seven short things and you are set</div>'
+    + '<div class="sub">Seven rules, and one worked example</div>'
     + '<div class="why">'
     +   '<p>Pluck a guitar string and you hear more than one note. Fainter notes ring under '
     +   'it. Those are its <b>overtones</b>. They are why a violin and a flute do not sound '
     +   'alike.</p>'
     +   '<p>Words do it too. <b>FURNACE</b> means a furnace. It also rings of '
     +   '<b class="gold">HEAT</b>, of <b class="gold">TOOL</b>, of '
-    +   '<b class="gold">DANGER</b>. None of that is the definition, and it turns up '
-    +   'anyway. '
-    +   'Those rings are the small tags on every card, and they are what you play with. '
-    +   'What a word <i>means</i> never scores a point.</p>'
+    +   '<b class="gold">DANGER</b>. Those rings are the small tags on every card, and they '
+    +   'are what you play with. What a word <i>means</i> never scores a point.</p>'
     + '</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p><b>Match what the round wants.</b> Every round asks for two overtones. Tags '
-    +     'that match light up <b class="gold">gold</b> and pay <b>+25</b> each. A word '
-    +     'carrying both pays twice.</p></div>'
+    +     '<p><b>Match what the round wants.</b> Every round asks for two overtones. Matching '
+    +     'tags turn <b class="gold">gold</b> and pay <b>+25</b> each. A word with both pays '
+    +     'twice.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div><div>'
-    +     '<p><b>The shape of your hand pays first.</b> Before any card is counted, your '
-    +     'words are scored for what they <b>are</b>, not what they mean. Three words the same '
-    +     'length, or climbing by the same step, or each one starting where the last one '
-    +     'ended. That shape is a '
-    +     '<b>figure</b>, and it reads left to right, so tap order counts.</p>'
-    +     '<p>A figure only pays its multiplier for the words the round asked for. A perfect '
+    +     '<p><b>Shape pays first.</b> Before any card is counted, your words are scored for '
+    +     'their shape: three the same length, three climbing by the same step, or each one '
+    +     'starting where the last one ended. That is a <b>figure</b>. It reads left to '
+    +     'right, so tap order counts.</p>'
+    +     '<p>A figure pays its multiplier only for the words the round wanted. A perfect '
     +     'shape that answers nothing keeps the points and loses the multiplier. '
     +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>Take three words, nearly always.</b> Every word adds its own points, even '
-    +     'one that matches nothing. Finish a round with plays and discards to spare and you '
-    +     'earn <b>more money</b> for better Lenses. Play fewer only when a Lens pays you '
-    +     'to: <b>ASCETIC</b> gives &times;5 for a single word.</p></div>'
+    +     '<p><b>Take three words, nearly always.</b> Every word adds its own points, even one '
+    +     'that matches nothing. Finish with plays and discards to spare and you earn '
+    +     '<b>more money</b> for better Lenses. Play fewer only when a Lens pays you to: '
+    +     '<b>ASCETIC</b> gives &times;5 for a single word.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
     +     '<p><b>Your score is points &times; multiplier.</b> Words and gold tags add points. '
-    +     'Your <b>figure</b> lifts the multiplier off 1, and Lenses lift it higher. That is '
-    +     'why round 1 wants ' + TARGETS[0].toLocaleString() + ' and round 8 wants '
+    +     'Your <b>figure</b> lifts the multiplier off 1, and Lenses lift it higher. Round 1 '
+    +     'wants ' + TARGETS[0].toLocaleString() + '. Round ' + ROUNDS + ' wants '
     +     TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">5</div>'
-    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you '
-    +     'one. You can hold five. Some <b>grow</b> every round you keep them, so buy small '
-    +     'and early. Some are <b class="gold">flawed</b>: the biggest numbers in the game, '
-    +     'and each one takes something back.</p></div>'
+    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
+    +     'You can hold five. Some <b>grow</b> every round you keep them, so buy small and '
+    +     'early. Some are <b class="gold">flawed</b>: the biggest numbers in the game, and '
+    +     'each one takes something back.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">6</div>'
-    +     '<p><b>You can sell.</b> Every Lens sells back for half. That frees the slot, but a '
-    +     'Lens that has been growing loses everything it grew. A small one you have held '
-    +     'four rounds often beats a big one you just met.</p></div>'
+    +     '<p><b>You can sell.</b> Every Lens sells back for half. A growing Lens loses '
+    +     'everything it grew, so a small one you have held four rounds often beats a big one '
+    +     'you just met.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">7</div>'
     +     '<p>' + (difficulty().id === "apprentice"
-        ? '<b>The last round is an Ordeal.</b> Round 8 changes a rule instead of raising the '
-          + 'number: two words at a time, or a word you give up first, or half a multiplier. '
-          + 'Rounds 1 to 7 leave your hands alone. <b>SCHOLAR</b> sets three Ordeals, and they '
-          + 'bite harder.'
-        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of '
-          + 'raising the number: no discards, two words at a time, a four-card hand, words '
-          + 'worth nothing on their own.')
-    +     ' The Bookseller names the next one before you spend, so you can buy against '
-    +     'it.</p></div>'
+        ? '<b>The last round is an Ordeal.</b> Round 8 bends a rule instead of raising the '
+          + 'number: two words at a time, a word you give up first, half a multiplier. Rounds '
+          + '1 to 7 leave your hands alone. <b>SCHOLAR</b> sets three Ordeals and they bite '
+          + 'harder.'
+        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 bend a rule instead of raising '
+          + 'the number: no discards, two words at a time, a four-card hand, words worth '
+          + 'nothing on their own.')
+    +     ' The Bookseller names the next one before you spend.</p></div>'
     + '</div>'
 
     + '<div class="worked">'
@@ -6050,14 +6165,11 @@ function showHelp(back){
     +   '</div>'
     + '</div>'
 
-    + '<div class="sub" style="margin:0 0 7px">Does the order I tap them in matter?</div>'
-    + '<p>Yes, from your first hand. A <b>figure</b> reads left to right, so three words can '
-    + 'be THE STAIR in one order and nothing in another. The board tells you. It will not '
-    + 'fix it for you.</p>'
-    + '<p>It counts again once a Lens <b>reads position</b>. CARNIVORE eats the word to its '
-    + 'left. LEXICOGRAPHER pays for whichever word you put first. And if one Lens '
-    + '<b>adds</b> to the multiplier while another <b>multiplies</b> it, put the adder '
-    + 'first: (1+2)&times;3 is 9, but (1&times;3)+2 is 5. Same three cards.</p>'
+    + '<div class="sub" style="margin:0 0 7px">Does the order matter?</div>'
+    + '<p>Yes. A figure reads left to right, and some Lenses read position: CARNIVORE eats '
+    + 'the word to its left, LEXICOGRAPHER pays for whichever word you put first. If one Lens '
+    + '<b>adds</b> to the multiplier and another <b>multiplies</b> it, put the adder first: '
+    + '(1+2)&times;3 is 9, but (1&times;3)+2 is 5. The board says when this is live.</p>'
 
     + '<div class="sub" style="margin:0 0 7px">The nineteen overtones</div>'
     + '<div class="legend">' + legend + '</div>'
