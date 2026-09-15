@@ -1957,7 +1957,7 @@ button{ font-family: inherit; color: inherit; }
 
       <section class="stage" id="stage">
         <div class="stage-cards" id="stageCards"></div>
-        <div class="stage-hint" id="stageHint">Tap up to 3 words — they score left to right.</div>
+        <div class="stage-hint" id="stageHint">Tap up to 3 words. They score left to right.</div>
       </section>
 
       <div class="handwrap">
@@ -2561,7 +2561,7 @@ const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
    what actually ends an early run is a dead draw, not a wrong choice. */
 const DIFFICULTIES = [
   { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"A fourth discard, and one Ordeal instead of three \u2014 nothing is taken out of your hands until the last round. Same words, same Lenses, every decision intact." },
+    d:"A fourth discard, and one Ordeal instead of three. Nothing is taken out of your hands until the last round. Same words, same Lenses, every decision intact." },
   { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
     d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
 ];
@@ -2670,10 +2670,10 @@ function orderMatters(){
    beside them. That is the decision the whole thing exists for: three words for
    the chips, or two for the figure. */
 const FIGURES = [
-  { id:"mono",   n:"THE MONOGRAM", d:"Every word opens on the same letter" },
-  { id:"chain",  n:"THE CHAIN",    d:"Each word opens on the letter the word before it closed on" },
+  { id:"mono",   n:"THE MONOGRAM", d:"Every word starts with the same letter" },
+  { id:"chain",  n:"THE CHAIN",    d:"Each word starts with the letter the last one ended on" },
   { id:"column", n:"THE COLUMN",   d:"Three words of exactly the same length" },
-  { id:"stair",  n:"THE STAIR",    d:"Three words climbing or falling by the same number of letters" },
+  { id:"stair",  n:"THE STAIR",    d:"Three words going up or down by the same number of letters" },
   { id:"pair",   n:"THE PAIR",     d:"Two words of exactly the same length" }
 ];
 /* Chips and multiplier by figure and by how many words it binds.
@@ -3538,7 +3538,7 @@ function resolve(cards){
     mult += paid;
     events.push({ k:"card", i:-1, cls:"m", fig:fig.id, answering:answering, paid:paid,
                   txt: fig.n + " +" + fig.chips
-                     + (paid ? " and +" + paid + " mult" : " \u2014 no answer, no multiplier"),
+                     + (paid ? " and +" + paid + " mult" : ", no answer so no multiplier"),
                   chips:chips, mult:mult });
   }
 
@@ -3900,7 +3900,7 @@ function openShop(reward){
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
     + ', and you\'ll need <b>' + next.target.toLocaleString() + '</b> points'
     + (next.target !== TARGETS[G.round]
-        ? ' &mdash; <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
+        ? ', which is <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
           + '\u00d7 the usual</b>, because of what you are holding' : '')
     + '.</p>'
     /* And the shape of it, whenever your Lenses or the Ordeal have bent it.
@@ -3916,7 +3916,7 @@ function openShop(reward){
     /* Naming the Ordeal here is the whole point of it being on a fixed round:
        you get to spend money answering it, rather than discovering it. */
     + (nextOrdeal
-        ? '<div class="ordeal-warn"><div class="on">NEXT ROUND IS AN ORDEAL &mdash; '
+        ? '<div class="ordeal-warn"><div class="on">NEXT ROUND IS AN ORDEAL: '
           + escapeHtml(nextOrdeal.n) + '</div><div class="od">'
           + escapeHtml(nextOrdeal.d) + '</div></div>'
         : '')
@@ -3928,14 +3928,14 @@ function openShop(reward){
     + (function(){
         const r = reckoning(G.round);
         if(!r) return '';
-        return '<div class="ordeal-warn reckon"><div class="on">THE RECKONING &mdash; '
+        return '<div class="ordeal-warn reckon"><div class="on">THE RECKONING: '
           + escapeHtml(r.n) + '</div><div class="od">Your deck has outgrown this round, so it answers with a second rule. '
           + escapeHtml(r.d) + '</div></div>';
       })()
     /* The exponential is the whole reason to shop, and it is invisible from
        inside a single round. Say it out loud, in numbers. */
     + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
-    + roundShape(ROUNDS-1).target.toLocaleString() + '</b> &mdash; <b>'
+    + roundShape(ROUNDS-1).target.toLocaleString() + '</b>. That is <b>'
     + (function(){ /* rounded, this printed "1x this one" late in a run, where the real
          ratio is 1.19 — a line whose whole job is to make the climb feel steep,
          reporting no climb at all. */
@@ -4008,17 +4008,17 @@ function openShop(reward){
           + '</div><div class="rv">'
           + 'Played perfectly, your deck makes about <b>' + can.toLocaleString()
           + '</b> next round. It asks for <b>' + next.target.toLocaleString()
-          + '</b> &mdash; you are <b>' + gap.toLocaleString() + '</b> short.'
+          + '</b>. You are <b>' + gap.toLocaleString() + '</b> short.'
           + (fix
               ? ' <b>' + escapeHtml(fix.n) + '</b> ($' + fix.cost + ') covers it.'
               : (G.lenses.length >= LENS_SLOTS
-                  ? ' Your slots are full &mdash; sell one and buy a louder one, or reroll.'
+                  ? ' Your slots are full, so sell one and buy a louder one, or reroll.'
                   : ' Reroll the shelf, or sell a Lens that is costing you more than it pays.'))
           + '</div></div>';
       })()
     + '<div class="offers" id="offers"></div>'
     + (G.lenses.length
-        ? '<div class="sub" style="margin:16px 0 7px">Your Lenses &mdash; '
+        ? '<div class="sub" style="margin:16px 0 7px">Your Lenses: '
           + G.lenses.length + ' of ' + LENS_SLOTS
           + (G.lenses.length >= LENS_SLOTS
               ? ' slots full. Sell one to make room.' : ' slots used')
@@ -4038,14 +4038,14 @@ function openShop(reward){
     const b = document.createElement("button");
     b.className = "offer"; b.type = "button";
     b.disabled = o.bought || G.bank < o.cost || (o.kind==="lens" && G.lenses.length>=LENS_SLOTS);
-    if(!o.bought && o.kind === "lens" && G.lenses.length >= LENS_SLOTS) b.title = "No slots left — sell one below";
+    if(!o.bought && o.kind === "lens" && G.lenses.length >= LENS_SLOTS) b.title = "No slots left. Sell one below.";
     else if(!o.bought && G.bank < o.cost) b.title = "You cannot afford this yet";
     if(o.kind === "lens"){
       /* An honest nudge: say when a Lens actually has words to fire on. */
       const lt = LENS_TAG[o.lens.id];
       const n = lt ? deckCount(lt) : 0;
       const fit = (lt && n >= 5)
-        ? '<div class="fit">Good fit &mdash; you hold ' + n + ' ' + TAGS[lt][0] + ' words</div>'
+        ? '<div class="fit">Good fit: you hold ' + n + ' ' + TAGS[lt][0] + ' words</div>'
         : '';
       if(o.lens.flaw) b.classList.add("flawed");
       b.innerHTML = '<div class="on">' + o.lens.n + '</div><div class="od">' + o.lens.d + '</div>'
@@ -4068,7 +4068,7 @@ function openShop(reward){
       row.innerHTML = '<div class="ow"><div class="on">' + escapeHtml(l.n) + '</div>'
         + '<div class="od">' + escapeHtml(l.d) + '</div>'
         + (lv ? '<div class="grown">grown to +' + Math.round(lv).toLocaleString()
-                + ' &mdash; selling loses it</div>' : '')
+                + ', and selling loses it</div>' : '')
         + '</div>';
       /* Selling asks twice. It is the only irreversible thing in the shop —
          it takes the Lens, every round of growth on it, and gives back half
@@ -4388,7 +4388,7 @@ function endRun(won){
           + 'same Lenses, every decision intact.</p>'
           + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
         : '')
-    + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
+    + (unlocked ? '<div class="unlock"><div class="k">Memory: this one is yours next run</div><div class="v">'
         + unlocked.n + '</div><div class="d">' + unlocked.d + '</div></div>' : '')
     /* Their first finished run, whichever way it went, opens the real curve.
        Said here because it is the screen they are already reading, and not as
@@ -4438,13 +4438,13 @@ function endRun(won){
 function shareText(won){
   const lines = [];
   const rd = runDifficulty();
-  lines.push("OVERTONE — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed)
+  lines.push("OVERTONE  ·  " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed)
              + (rd.id === "scholar" ? "" : "  ·  " + rd.n));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
   if(G.interpretedWord){
-    lines.push("My word: " + G.interpretedWord.w + " — "
+    lines.push("My word: " + G.interpretedWord.w + "  ·  "
       + G.interpretedWord.t.map(function(t){ return TAGS[t][0]; }).join("·"));
   }
   return lines.join("\n");
@@ -4892,36 +4892,35 @@ function toggleSel(id){
 const TUT = [
   { label: "Overtone",
     text: function(){
-      return "Pluck a string and you hear more than the note \u2014 quieter frequencies "
-           + "above it, which is why a violin and a flute do not sound alike. Those are "
-           + "its <b>overtones</b>.<br><br>Words have them too. The little tags along the "
-           + "bottom of each card are what that word <b>rings of</b>, and those are what "
-           + "score. Not what it means."
-           + '<span class="do">Seven words, four plays. Let\u2019s do one round together.</span>'; } },
+      return "Pluck a guitar string and you hear more than one note. Fainter notes ring "
+           + "under it. Those are its <b>overtones</b>. They are why a violin and a flute "
+           + "do not sound alike.<br><br>Words have them too. The little tags along the "
+           + "bottom of each card are what a word <b>rings of</b>. Those tags score. What "
+           + "the word means does not."
+           + '<span class="do">Seven words, four plays. One round together.</span>'; } },
 
-  { sel: ".blind", pos: "right", label: "What this round wants",
+  { sel: ".blind", pos: "right", label: "What the round wants",
     text: function(){
-      return "This one is <b>" + G.demand.n + "</b>, and it wants "
+      return "This one is <b>" + G.demand.n + "</b>. It wants "
            + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-           + ". Every matching tag you play is <b>+25 points</b>, and a word carrying "
-           + "both of them pays twice."
-           + '<span class="do">Get to ' + G.target.toLocaleString()
-           + " and you\u2019ve cleared it.</span>"; } },
+           + ". Every matching tag you play is <b>+25 points</b>. A word carrying both "
+           + "pays twice."
+           + '<span class="do">Reach ' + G.target.toLocaleString()
+           + " and the round is yours.</span>"; } },
 
   { sel: "#hand", pos: "top", label: "Pick a word",
     text: function(){
-      return "The words that can score here have a <b>gold stripe</b> across the top, "
-           + "and their matching tags are lit up gold."
-           + '<span class="do">Tap one of the gold-striped ones.</span>'; },
+      return "Words that can score here have a <b>gold stripe</b> across the top, and "
+           + "their matching tags glow gold."
+           + '<span class="do">Tap one with a gold stripe.</span>'; },
     done: function(){ return G.selected.length >= 1; } },
 
   { sel: "#hand", pos: "top", label: "How many to take",
     text: function(){
-      return "<b>Take three when you can.</b> Each word adds its own points, so three "
+      return "<b>Take three when you can.</b> Every word adds its own points, so three "
            + "score about three times as much as one. Even a word that matches nothing "
-           + "still adds its value, so a third card is rarely a bad idea.<br><br>"
-           + "And if you clear a round with plays and discards to spare, you get "
-           + "<b>more money</b> for it. Finishing fast buys better Lenses."
+           + "still adds its value.<br><br>Clear a round with plays and discards left "
+           + "over and you earn <b>more money</b>. Money buys better Lenses."
            + '<span class="do">Tap two more, so you are holding three.</span>'; },
     done: function(){ return G.selected.length >= 3; } },
 
@@ -4949,25 +4948,25 @@ const TUT = [
         : (better
             ? "Yours make <b>nothing</b> in this order. The board says they would make <b>"
               + better.n + "</b> in another one."
-            : "Yours make <b>nothing</b>: no two share a length, and no two link letters. "
+            : "Yours make <b>nothing</b>. No two share a length, and no two link letters. "
               + "Worth knowing, because it is the one thing here you can still fix by "
               + "picking differently.");
-      return "Now read the words themselves, not their tags. Their shape is a <b>figure</b>, "
-           + "and it scores <b>before</b> everything else. The catch: its multiplier only "
-           + "pays for the words the round asked for.<br><br>" + found
+      return "Now look at the words themselves, not their tags. Their shape is a "
+           + "<b>figure</b>, and it scores <b>before</b> everything else. The catch: its "
+           + "multiplier only pays for the words the round asked for.<br><br>" + found
            + '<span class="do">Swap a word and watch the name above it change.</span>'; } },
 
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
-      return "Your hand is worth <b>points \u00d7 multiplier</b>. Matching tags add points. "
-           + "Your figure lifts the multiplier off 1, and a Lens lifts it further.<br><br>"
+      return "Your hand is worth <b>points \u00d7 multiplier</b>. Gold tags add points. "
+           + "Your figure lifts the multiplier off 1, and a Lens lifts it higher.<br><br>"
            + "The board works this out before you commit, so swap a word and watch the "
            + "number move."; } },
 
   { sel: "#playBtn", pos: "top", label: "Play it",
     text: function(){
-      return "Playing uses one of your four plays. <b>Discard</b> throws words back and "
-           + "deals you new ones instead, three times a round."
+      return "Playing spends one of your four plays. <b>Discard</b> throws words back and "
+           + "deals you new ones, three times a round."
            + '<span class="do">Hit PLAY.</span>'; },
     done: function(){ return G.plays < 4; } },
 
@@ -4977,12 +4976,12 @@ const TUT = [
            + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
            + "and the targets climb faster than any deck can keep up with.<br><br>"
            + "A few want fewer words: <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
-           + "And the loudest ones are <b>flawed</b>: they pay more than anything else "
-           + "and take a play, a discard or your income back for it."
+           + "The loudest ones are <b>flawed</b>. They pay more than anything else, and "
+           + "each one takes back a play, a discard or your income."
            + '<span class="do">'
            + (G.roundScore >= G.target
                 ? "You have already cleared " + G.demand.n + ". The Bookseller is next."
-                : "That\u2019s the whole game. Go and clear " + G.demand.n + ".")
+                : "That is the whole game. Go and clear " + G.demand.n + ".")
            + "</span>"; } }
 ];
 
@@ -5229,7 +5228,7 @@ const IDLE_HINT = "Pick up to 3 words, then hit PLAY.";
    the board was still saying it — the game telling you to undo your own build.
    A Lens that wants a particular shape of hand says so instead. */
 const HAND_SHAPE = {
-  asc:     "ASCETIC pays ×5 for a single word — one at a time beats three.",
+  asc:     "ASCETIC pays ×5 for a single word, so one at a time beats three.",
   oracle:  "THE ORACLE only pays your first word, so a lone word loses nothing.",
   glut:    "GLUTTON wants exactly three.",
   entropy: "ENTROPY wants three, each shorter than the last."
@@ -5293,7 +5292,7 @@ function renderPreview(){
     txt.innerHTML = 'Wants '
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
       + '. Every matching tag you play is <b>+25 points</b>.'
-      + '<span class="dc-fig">The shape of your hand pays too &mdash; '
+      + '<span class="dc-fig">The shape of your hand pays too. '
       + '<button class="figlink" type="button">see the figures</button>.</span>';
     call.appendChild(icons);
     call.appendChild(txt);
@@ -5376,32 +5375,30 @@ function showFigures(back){
     const cell = function(n){
       const q = pay[n];
       return q ? '<td>+' + q.chips + ' &middot; +' + q.mult + ' mult</td>'
-               : '<td class="no">&mdash;</td>';
+               : '<td class="no">no</td>';
     };
     return '<tr><th>' + f.n + '<span>' + f.d + '</span></th>' + cell(2) + cell(3) + '</tr>';
   }).join("");
   showPanel(''
     + '<h2>The figures</h2>'
-    + '<div class="sub">What your words make before anything reads their meaning</div>'
-    + '<p>Every hand is scored for its <b>shape</b> first &mdash; how long the words are, '
-    + 'what letter they open on, what letter they close on. A figure adds its points and '
-    + 'its multiplier <b>before a single card is counted</b>, so every Lens that multiplies '
+    + '<div class="sub">The shape of your hand, before meaning comes into it</div>'
+    + '<p>Every hand is scored for its <b>shape</b> first: how long the words are, what '
+    + 'letter they start on, what letter they end on. A figure adds its points and its '
+    + 'multiplier <b>before a single card is counted</b>, so every Lens that multiplies '
     + 'multiplies the figure too.</p>'
-    + '<p class="gold"><b>But the round has to want your words.</b> A figure\'s multiplier is '
-    + 'paid only for the words that answer the Demand &mdash; three the same length that the '
-    + 'round wants nothing of is a shape with nothing behind it. The points still land. Two '
-    + 'words of three answering pays two thirds of the multiplier; none answering pays none '
-    + 'of it. That is the whole decision: the best three words for the round are rarely the '
-    + 'best three for the shape.</p>'
+    + '<p class="gold"><b>But the round has to want your words.</b> A figure pays its '
+    + 'multiplier only for the words that answer the Demand. Three of the same length that '
+    + 'the round wants nothing of keeps its points and loses its multiplier. Two words of '
+    + 'three answering pays two thirds. So the best three words for the round are rarely '
+    + 'the best three for the shape.</p>'
     + '<table class="figtab">'
     +   '<thead><tr><th>Figure</th><th>Two words</th><th>Three words</th></tr></thead>'
     +   '<tbody>' + rows + '</tbody></table>'
-    + '<p>Only your <b>best</b> figure pays. Every figure but one has to bind '
-    + '<b>every word you play</b>, so two words that chain stop chaining the moment you lay a '
-    + 'third beside them. THE PAIR is the exception and the floor: any two of your '
-    + 'words sharing a length is enough.</p>'
-    + '<p>The board names your figure while you pick, and tells you when the same words '
-    + 'would make a better one in a different order. It will not reorder them for you.</p>'
+    + '<p>Only your <b>best</b> figure pays. Every figure but one has to bind <b>every word '
+    + 'you play</b>, so two words that chain stop chaining the moment you lay a third beside '
+    + 'them. THE PAIR is the floor and the exception: any two words sharing a length.</p>'
+    + '<p>The board names your figure while you pick, and says when another order would do '
+    + 'better. It will not reorder them for you.</p>'
     + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
     + (back ? '<button class="btn' + (back === "title" ? ' primary' : '')
               + '" id="figsBack" type="button">Back to '
@@ -5464,7 +5461,7 @@ function renderRail(){
   if(G.lenses.length === 0){
     const e = document.createElement("div");
     e.className = "rail-empty";
-    e.textContent = "NO LENSES YET. Clear this round and you can buy one — they're what multiplies your score.";
+    e.textContent = "NO LENSES YET. Clear this round and you can buy one. Lenses are what multiply your score.";
     rail.appendChild(e);
     return;
   }
@@ -5538,7 +5535,7 @@ function renderControls(){
   document.getElementById("playBtn").disabled =
     G.animating || G.selected.length===0 || G.plays<=0 || owed;
   document.getElementById("playBtn").title = owed
-    ? "THE FORFEIT — give a word up first" : "";
+    ? "THE FORFEIT: give a word up first" : "";
   document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
   document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";
@@ -5599,7 +5596,7 @@ function syncSoundBtn(){
   const on = !!(prefs.music || prefs.sfx);
   dot.hidden = on;
   const btn = document.getElementById("menuBtn");
-  if(btn) btn.setAttribute("aria-label", on ? "Sound and feel" : "Sound and feel — currently off");
+  if(btn) btn.setAttribute("aria-label", on ? "Sound and feel" : "Sound and feel, currently off");
 }
 
 /* ---------- the title screen ----------
@@ -5683,7 +5680,7 @@ function showTitle(){
 
   const stat = function(k, v){
     return '<div><div class="k">' + k + '</div><div class="v' + (v ? '' : ' none') + '">'
-      + (v ? v.toLocaleString() : '\u2014') + '</div></div>';
+      + (v ? v.toLocaleString() : 'none') + '</div></div>';
   };
   /* A roguelite that keeps your record in localStorage and never shows it to
      you is keeping a secret for no reason. Shown flat, not as three tiles. */
@@ -5765,7 +5762,7 @@ function paintDiff(){
   });
 
   note.innerHTML = live && inRun.id !== now.id
-    ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
+    ? 'The run on the table is still <b>' + inRun.n + '</b>. A new run picks this up.'
     : now.d + (shut ? ' <b>SCHOLAR</b> opens once you finish a run, win or lose.' : '');
 }
 
@@ -5934,8 +5931,8 @@ function showMenu(back){
     + '<div class="sub">Saved on this device</div>'
     + row("music", "Music", "The track that loops under the game.")
     + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
-    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry \u2014 "
-        + "browsers on iPhone don\u2019t allow it.")
+    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry. "
+        + "Browsers on iPhone do not allow it.")
     + '<div class="rowend end">'
     + '<button class="btn primary" id="closeSettings" type="button">'
     +   (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
@@ -5979,70 +5976,63 @@ function showHelp(back){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Seven things and you are fine</div>'
+    + '<div class="sub">Seven short things and you are set</div>'
     + '<div class="why">'
-    +   '<p>Pluck a string and you do not hear one note. You hear the note, and quieter '
-    +   'frequencies above it \u2014 its <b>overtones</b>. They are why a violin and a '
-    +   'flute playing the same note do not sound the same.</p>'
+    +   '<p>Pluck a guitar string and you hear more than one note. Fainter notes ring under '
+    +   'it. Those are its <b>overtones</b>. They are why a violin and a flute do not sound '
+    +   'alike.</p>'
     +   '<p>Words do it too. <b>FURNACE</b> means a furnace. It also rings of '
     +   '<b class="gold">HEAT</b>, of <b class="gold">TOOL</b>, of '
-    +   '<b class="gold">DANGER</b> \u2014 none of that is the definition, all of it '
-    +   'arrives anyway. Those are the small tags under every card, and they are what '
-    +   'you are playing with. What the word <i>means</i> never scores a point.</p>'
+    +   '<b class="gold">DANGER</b>. None of that is the definition, and it turns up '
+    +   'anyway. '
+    +   'Those rings are the small tags on every card, and they are what you play with. '
+    +   'What a word <i>means</i> never scores a point.</p>'
     + '</div>'
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p><b>Match what the round wants.</b> Those small tags under each word are its '
-    +     '<b>overtones</b>. Every round asks for two of them. Tags that match light up '
-    +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>, '
-    +     'so a word carrying both pays twice.</p></div>'
+    +     '<p><b>Match what the round wants.</b> Every round asks for two overtones. Tags '
+    +     'that match light up <b class="gold">gold</b> and pay <b>+25</b> each. A word '
+    +     'carrying both pays twice.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div><div>'
-    +     '<p><b>The shape of your hand pays first.</b> Before any card is counted, your words '
-    +     'are scored for what they <b>are</b> rather than what they mean: three of the same '
-    +     'length, three climbing by the same step, each one opening on the letter the last '
-    +     'one closed on. That shape is a <b>figure</b>, and it reads left to right, so the '
-    +     'order you tap in is part of it.</p>'
-    +     '<p>A figure raises the multiplier, but it only pays for the words the round asked '
-    +     'for. Play three words in a perfect stair that answer nothing and you get the '
-    +     'shape’s points, but none of its multiplier. '
+    +     '<p><b>The shape of your hand pays first.</b> Before any card is counted, your '
+    +     'words are scored for what they <b>are</b>, not what they mean. Three words the same '
+    +     'length, or climbing by the same step, or each one starting where the last one '
+    +     'ended. That shape is a '
+    +     '<b>figure</b>, and it reads left to right, so tap order counts.</p>'
+    +     '<p>A figure only pays its multiplier for the words the round asked for. A perfect '
+    +     'shape that answers nothing keeps the points and loses the multiplier. '
     +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>Take three words, nearly always.</b> Each one adds its own points, and even a '
-    +     'word that matches nothing still adds its value, so a third card is rarely a mistake. '
-    +     'Clear a round with plays and discards to spare and you get paid <b>more money</b> for '
-    +     'it, which is how you afford better Lenses. Play fewer only when a Lens pays you to: '
-    +     '<b>ASCETIC</b> gives &times;5 for exactly one word, <b>ANTONYM ENGINE</b> wants a '
-    +     'specific pair side by side.</p></div>'
+    +     '<p><b>Take three words, nearly always.</b> Every word adds its own points, even '
+    +     'one that matches nothing. Finish a round with plays and discards to spare and you '
+    +     'earn <b>more money</b> for better Lenses. Play fewer only when a Lens pays you '
+    +     'to: <b>ASCETIC</b> gives &times;5 for a single word.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
-    +     '<p><b>Your score is points &times; multiplier.</b> Words and matching tags add points. '
-    +     'Your <b>figure</b> lifts the multiplier off 1 before anything else touches it, and '
-    +     'Lenses lift it further from there. That is the whole reason round 1 asks for '
-    +     TARGETS[0].toLocaleString() + ' and round 8 asks for '
+    +     '<p><b>Your score is points &times; multiplier.</b> Words and gold tags add points. '
+    +     'Your <b>figure</b> lifts the multiplier off 1, and Lenses lift it higher. That is '
+    +     'why round 1 wants ' + TARGETS[0].toLocaleString() + ' and round 8 wants '
     +     TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">5</div>'
-    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
-    +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
-    +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
-    +     'the biggest numbers in the game, and every one takes something back. A play, a '
-    +     'discard, cards in hand, your income, or the target itself.</p></div>'
+    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you '
+    +     'one. You can hold five. Some <b>grow</b> every round you keep them, so buy small '
+    +     'and early. Some are <b class="gold">flawed</b>: the biggest numbers in the game, '
+    +     'and each one takes something back.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">6</div>'
-    +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
-    +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
-    +     'it grew. So before you swap, look at what yours has already grown to: a smaller '
-    +     'Lens you have held for four rounds often beats a bigger one you have just met.</p></div>'
+    +     '<p><b>You can sell.</b> Every Lens sells back for half. That frees the slot, but a '
+    +     'Lens that has been growing loses everything it grew. A small one you have held '
+    +     'four rounds often beats a big one you just met.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">7</div>'
     +     '<p>' + (difficulty().id === "apprentice"
-        ? '<b>The last round is an Ordeal.</b> Round 8 changes a rule instead of just raising '
-          + 'the number: two words at a time, a word you have to give up before you play, every '
-          + 'hand starting at half a multiplier. Nothing is taken out of your hands before '
-          + 'then. <b>SCHOLAR</b> sets three of them, on rounds 4, 6 and 8, and they are '
-          + 'harsher.'
-        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
+        ? '<b>The last round is an Ordeal.</b> Round 8 changes a rule instead of raising the '
+          + 'number: two words at a time, or a word you give up first, or half a multiplier. '
+          + 'Rounds 1 to 7 leave your hands alone. <b>SCHOLAR</b> sets three Ordeals, and they '
+          + 'bite harder.'
+        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of '
           + 'raising the number: no discards, two words at a time, a four-card hand, words '
           + 'worth nothing on their own.')
-    +     ' The Bookseller tells you which one is coming before you spend, so an Ordeal is '
-    +     'something you buy against rather than something that happens to you.</p></div>'
+    +     ' The Bookseller names the next one before you spend, so you can buy against '
+    +     'it.</p></div>'
     + '</div>'
 
     + '<div class="worked">'
@@ -6052,29 +6042,26 @@ function showHelp(back){
     +     '<div class="tags">' + exTags + '</div></div>'
     +   '</div>'
     +   '<div class="worked-sum">'
-    +     'Say this round wants <b>HEAT</b>.<br>'
-    +     'FURNACE is worth <b>' + ex.base + '</b> on its own, and its gold HEAT tag adds '
-    +     'another <b>25</b>.<br>'
-    +     'Now hold <b>PYROMANIAC</b>. It pays +25 on every HEAT word when you buy it, and '
-    +     '+110 more for every round you keep it &mdash; so by round two the same card is '
-    +     '<b>' + withLens + '</b>, and it is still climbing.'
+    +     'Say the round wants <b>HEAT</b>.<br>'
+    +     'FURNACE is worth <b>' + ex.base + '</b>, and its gold HEAT tag adds <b>25</b>.<br>'
+    +     'Buy <b>PYROMANIAC</b> and it pays +25 on every HEAT word, then +110 more for each '
+    +     'round you keep it. By round two the same card is <b>' + withLens + '</b>.'
     +     '<span class="worked-tot">' + withLens + ' \u00d7 1 = ' + withLens + ' points</span>'
     +   '</div>'
     + '</div>'
 
     + '<div class="sub" style="margin:0 0 7px">Does the order I tap them in matter?</div>'
-    + '<p>Yes, from the first hand of your first run. A <b>figure</b> reads your words left to '
-    + 'right, so the same three words can be THE STAIR in one order and nothing at all in '
-    + 'another. The board will tell you when that is the case; it will not fix it for you.</p>'
-    + '<p>It matters a second way once you own a Lens that <b>reads position</b>. CARNIVORE eats the '
-    + 'word to its left. LEXICOGRAPHER pays for whichever word you put first. It also matters if '
-    + 'you hold one Lens that <b>adds</b> to the multiplier and another that <b>multiplies</b> it, '
-    + 'because (1+2)&times;3 is 9 and (1&times;3)+2 is 5 from the very same three cards. Put the '
-    + 'adders first. The board will tell you when any of this is live.</p>'
+    + '<p>Yes, from your first hand. A <b>figure</b> reads left to right, so three words can '
+    + 'be THE STAIR in one order and nothing in another. The board tells you. It will not '
+    + 'fix it for you.</p>'
+    + '<p>It counts again once a Lens <b>reads position</b>. CARNIVORE eats the word to its '
+    + 'left. LEXICOGRAPHER pays for whichever word you put first. And if one Lens '
+    + '<b>adds</b> to the multiplier while another <b>multiplies</b> it, put the adder '
+    + 'first: (1+2)&times;3 is 9, but (1&times;3)+2 is 5. Same three cards.</p>'
 
     + '<div class="sub" style="margin:0 0 7px">The nineteen overtones</div>'
     + '<div class="legend">' + legend + '</div>'
-    + '<p style="font-size:13px"><span class="kbd">1</span>&ndash;<span class="kbd">7</span> pick &middot; '
+    + '<p style="font-size:13px"><span class="kbd">1</span> to <span class="kbd">7</span> pick &middot; '
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
     + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'

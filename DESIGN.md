@@ -936,6 +936,37 @@ matters is the last one: **what the word means never scores a point.**
 
 ---
 
+## 6.15 Nobody reads a wall
+
+Everything in 6.14 was true and almost none of it was short. The help card had grown to seven
+paragraphs of five or six sentences each, the figures table sat under two dense blocks, and the
+tutorial explained a mechanic in the same breath as justifying it. On a phone, rule 7 alone ran
+ten lines. Text that long does not get skimmed, it gets closed.
+
+So the whole of the how-to-play, the figures table and the eight tutorial beats were rewritten to
+the same rules, in this order:
+
+- **One idea per sentence.** A rule and the reason for the rule are two sentences, not one with a
+  clause hanging off it.
+- **No em dashes.** A dash is a pause that makes a sentence longer than it needs to be; a full stop
+  is shorter and never ambiguous. There are now none anywhere in the game's copy, including the
+  shop, the result screen and the share text.
+- **Cut the justification.** The old copy kept arguing for its own mechanics ("which is how you
+  afford better Lenses", "so a third card is rarely a mistake"). A player mid-round does not need
+  to be sold the design, only told the rule.
+- **Say it plainly.** "Each word opens on the letter the word before it closed on" became "Each
+  word starts with the letter the last one ended on." Same rule, no ceremony.
+
+Two things stayed deliberately: every number, and the worked FURNACE example. Shortening copy is
+only safe while the arithmetic on the page stays exact, and the example is the one place the
+arithmetic is shown rather than described.
+
+One detail worth writing down. The figures table printed an em dash in the cell for a figure two
+words cannot make, which is a typographic shrug where the cell is being asked a question. It says
+**no** now.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or
