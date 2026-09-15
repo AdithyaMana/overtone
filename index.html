@@ -46,6 +46,8 @@
   --green-d:   #26795A;
   --lens:      #9B7BE0;
   --lens-d:    #5B3FA3;
+  /* the same purple, lifted until it clears 4.5:1 on the board's own ground */
+  --lens-lit:  #C3AEF2;
 
   --card:      #F6F1E4;
   --card-edge: #BFB49A;
@@ -318,7 +320,7 @@ button{ font-family: inherit; color: inherit; }
   display:flex; justify-content:space-between; align-items:center;
   font-size: 12px; letter-spacing:.1em; color: var(--text-dim); margin-bottom: 7px;
 }
-.lensbar-head b{ color: var(--lens); font-weight:700; font-size: 14px; }
+.lensbar-head b{ color: var(--lens-lit); font-weight:700; font-size: 14px; }
 .rail{ display:flex; gap:8px; flex-wrap:wrap; min-height: 54px; align-items:stretch; }
 .lens{
   position:relative; border-radius: 7px; padding: 7px 9px;
@@ -397,7 +399,9 @@ button{ font-family: inherit; color: inherit; }
   text-align:center; max-width: 56ch; text-shadow: var(--drop-sm);
 }
 .stage-hint b{ color: var(--gold); }
-.stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens); }
+/* --lens is the Lens purple, and at 13px on the stage it measured 4.36:1 —
+   under AA for body text, on the one line whose whole job is to be noticed. */
+.stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens-lit); }
 .stage-hint .fig-pay{
   display:inline-block; margin-left:9px; font-size:13.5px; font-weight:700;
   color: var(--gold); letter-spacing:.02em; vertical-align: middle;
@@ -414,8 +418,13 @@ button{ font-family: inherit; color: inherit; }
    name and in the help card. */
 @media (max-height: 700px){ .dc-fig{ display:none; } }
 .dc-text .figlink{
-  background:none; border:0; padding:0; font:inherit; color: var(--gold);
-  font-weight:700; text-decoration: underline; text-underline-offset:2px; cursor:pointer;
+  background:none; border:0; font:inherit; color: var(--gold);
+  font-weight:700; text-decoration: underline; text-underline-offset:3px; cursor:pointer;
+  /* It was 78x14: a real link, but not a real target. WCAG 2.5.8 asks 24, and
+     the negative margin that keeps the padding from growing the board also
+     pushes the box under .stage-hint, which then eats the bottom of it. */
+  display:inline-block; padding: 10px 6px; margin: -7px 0;
+  position: relative; z-index: 2;
 }
 .figtab{ width:100%; border-collapse:collapse; margin: 0 0 14px; font-size:13px; }
 .figtab th, .figtab td{ text-align:left; padding: 7px 8px; border-bottom:1px solid var(--edge); }
@@ -746,8 +755,17 @@ button{ font-family: inherit; color: inherit; }
   100%{ transform: translateY(0) rotate(0) scale(1); }
 }
 
+/* --stack is how many labels are already in the air in this host. They live
+   900ms and land 130-210ms apart, so up to five share a card at once — and
+   every one of them used the same spot, which is how a word with two matching
+   overtones printed MATCH +25 exactly on top of MATCH +25. */
 .float{
-  position:absolute; left:50%; top:-8px; transform:translateX(-50%);
+  position:absolute;
+  /* Each label rises 60px over its 850ms life, so a vertical step alone still
+     lets two born 210ms apart cross. They fan sideways as well. */
+  left: calc(50% + (var(--stack, 0) - 1.5) * 34px);
+  top: calc(-8px - var(--stack, 0) * 22px);
+  transform:translateX(-50%);
   font-size: 14px; font-weight:700; white-space:nowrap; pointer-events:none;
   padding: 3px 9px; border-radius: 5px; z-index: 8;
   text-shadow: var(--drop-sm);
@@ -756,6 +774,10 @@ button{ font-family: inherit; color: inherit; }
 .float.c{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .float.m{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
 .float.r{ background: var(--gold); color:#12181C; box-shadow: 0 3px 0 var(--gold-d); }
+/* The figure belongs to the whole hand rather than to any one word, so it gets
+   its own lane above the row instead of landing on the first card's labels. */
+.float.fig{ top: calc(-40px - var(--stack, 0) * 20px); font-size: 13px; z-index: 9; }
+@media (max-width: 620px){ .float.fig{ top: calc(-30px - var(--stack, 0) * 18px); font-size: 11.5px; } }
 @keyframes floatUp{
   0%{ opacity:0; transform: translate(-50%,6px) scale(.78); }
   16%{ opacity:1; transform: translate(-50%,-18px) scale(1.1); }
@@ -1028,6 +1050,11 @@ button{ font-family: inherit; color: inherit; }
   0%,100%{ filter: brightness(1); }
   50%{ filter: brightness(1.35); }
 }
+/* Announced, never drawn. */
+.sr-only{
+  position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
+}
 .toast{
   position: fixed; left:50%; bottom:22px; transform:translateX(-50%);
   background: var(--panel); color:#FFF; font-size:14px; font-weight:600;
@@ -1058,7 +1085,10 @@ button{ font-family: inherit; color: inherit; }
   .card .w{ font-size: 16px; }
   .card .tg{ font-size: 11px; }
   .card .base{ font-size: 14px; right: 8px; bottom: 6px; }
-  .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 30px; }
+  /* 28/28 rather than 28/30: at exactly 1280x860 -- the shortest viewport this
+     breakpoint admits -- the board came out 862px tall and PLAY hung two pixels
+     under the fold. */
+  .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 28px; }
   .pos{ width: 26px; height: 26px; font-size: 14px; top: -10px; left: -8px; }
 
   /* the round's rule, at the size it deserves */
@@ -1311,7 +1341,7 @@ button{ font-family: inherit; color: inherit; }
   .blind-badge{ font-size: 12px; padding: 5px 7px; }
   .blind-wants .w{ font-size: 9px; padding: 2px 5px; }
   .blind-req .k{ font-size: 9px; }
-  .blind-req .v{ font-size: 18px; }
+  .blind-req .v{ font-size: 19.5px; }
   .progress{ height: 5px; }
 
   .tally{ padding: 4px 5px 5px; }
@@ -1432,29 +1462,86 @@ button{ font-family: inherit; color: inherit; }
   .money{ font-size: 21px; }
 }
 
-/* ---------- phone, landscape ----------
+/* ---------- landscape, or any viewport this short ----------
    Short and wide. The sidebar can go back beside the board, and everything
-   vertical has to shrink or PLAY drops off a 380px-tall viewport. */
-@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
-  #app{ padding-block: 5px 0; gap: 5px; }
+   vertical has to shrink or PLAY drops off the bottom.
+
+   The width cap used to be 900px, which was the width of a phone when this was
+   written and is not any more: a 932x430 handset matched none of this and got
+   the portrait layout squeezed into 430px, with PLAY 487px below the fold. A
+   viewport this short needs the compact treatment whatever its width, so the
+   cap is gone and the height is the whole test.
+
+   Seven cards also have to make ONE row. At 72px wide they needed 534px of a
+   530px track, wrapped to two rows, and cost 150px nobody had. */
+@media (max-height: 500px) and (orientation: landscape){
+  #app{ padding-block: 4px 0; gap: 4px; min-height: 0; }
   .masthead{ display: none; }
-  .table{ grid-template-columns: 190px 1fr; gap: 7px; }
-  .sidebar{ grid-template-columns: repeat(2, 1fr); }
+  .table{ grid-template-columns: 168px 1fr; gap: 6px; }
+  /* The sidebar was five slabs stacked in a column -- 421px of a 400px screen,
+     which is what actually pushed PLAY off the bottom, not the board. Only the
+     three that need the width get it; the small ones pair up. */
+  .sidebar{ grid-template-columns: repeat(2, 1fr); gap: 5px; align-content: start; }
   .blind, .tally, .runinfo{ grid-column: 1 / -1; }
-  .stage{ min-height: 84px; }
-  #app.resolving .stage{ min-height: 150px; }
-  .lensbar{ padding: 5px 7px; }
-  .rail{ min-height: 38px; }
-  .card{ width: 72px; height: 141px; padding: 5px 4px; --strip: 13px; }
-  .card .art{ height: 34px; padding: 0 3px; }
-  .card .art .ms{ font-size: 11px; }
-  .card .art .ms.hit{ padding: 3px; }
+  .meters{ display: contents; }
+  .roundscore{ grid-column: 1; }
+  .money{ grid-column: 2; margin: 0; }
+  .blind{ padding: 6px 8px; }
+  .blind-badge{ font-size: 12px; padding: 6px 6px; border-radius: 5px; }
+  .blind-wants{ gap: 3px; }
+  .slab{ padding: 6px 8px; }
+  .meter .k, .roundscore .k, .money .k{ font-size: 9px; }
+  .roundscore .v{ font-size: 15px; }
+  .runinfo{ font-size: 9px; }
+  .blind-req{ margin-top: 5px; }
+  .blind-req .v{ font-size: 21px; }
+  .progress{ margin-top: 5px; height: 5px; }
+  .stage{ min-height: 56px; padding: 4px; }
+  #app.resolving .stage{ min-height: 120px; }
+  .dc-icons .ms{ font-size: 20px; }
+  .dc-icons{ gap: 8px; }
+  .demand-call{ gap: 2px; }
+  .dc-text{ font-size: 10.5px; line-height: 1.25; }
+  .stage-hint{ font-size: 11.5px; }
+  .stage-hint .hand-name{ font-size: 11.5px; padding: 3px 9px; margin-bottom: 3px; }
+  .lensbar{ padding: 4px 7px; }
+  .lensbar-head{ margin-bottom: 3px; font-size: 10px; }
+  .rail{ min-height: 26px; }
+  .hand{ min-height: 0; gap: 5px; padding-top: 8px; padding-bottom: 6px;
+         flex-wrap: nowrap; }
+  /* 62px could not hold INHERITANCE without breaking it in half; 72 can, and
+     seven of them plus their gaps still come to 534px of a 550px track. */
+  .card{ width: 72px; height: 108px; padding: 4px 3px; --strip: 10px; }
+  .card .art{ height: 28px; padding: 0 2px; }
+  .card .art .ms{ font-size: 10px; }
+  .card .art .ms.hit{ padding: 2px; }
   .card .art .icons{ gap: 1px; }
-  .card .base{ font-size: 9.5px; right: 4px; bottom: 3px; }
-  .card .w{ font-size: 12px; }
-  .card .tg{ font-size: 8px; padding: 1px 3px; letter-spacing: 0; }
-  .btn{ min-height: 42px; padding: 9px 6px; }
-  .controls{ padding-block: 6px; }
+  .card .base{ font-size: 9px; right: 3px; bottom: 2px; }
+  /* CORMORANT is the longest word in the deck and it broke as CORMORA/NT at
+     62px wide. The band is two lines high either way; the job is to make the
+     break land between words and never inside one. */
+  .card .w{ font-size: 10px; height: 2.15em; letter-spacing: -.04em; }
+  .card .tg{ font-size: 7.5px; padding: 1px 2px; letter-spacing: 0; }
+  .btn{ min-height: 40px; padding: 8px 6px; font-size: 13px; }
+  .controls{ padding-block: 4px; gap: 7px; margin-top: 2px; position: relative; z-index: 3; }
+  .coach{ display: none; }
+}
+
+/* On a touch screen the header controls came out 25-38px wide and 30 tall:
+   a miss waiting to happen on the three buttons a player reaches for when
+   they are already confused. This sits after the breakpoints that shrink
+   them, and doubles the class so it wins wherever it lands. */
+@media (pointer: coarse){
+  .chip-btn{ position: relative; }
+  /* Growing the buttons themselves cost 14px of a phone’s vertical budget and
+     pushed the bottom row of the hand under the controls. WCAG 2.5.8 measures
+     the TARGET, not the paint, so the chip stays the size the layout can
+     afford and the hit area grows underneath it. */
+  .chip-btn::after{
+    content:""; position:absolute; left:50%; top:50%;
+    width: max(100%, 44px); height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1552,6 +1639,11 @@ button{ font-family: inherit; color: inherit; }
 
   </div>
 </div>
+
+<!-- Announced, never drawn. Outside every overlay on purpose: parked inside
+     the tutorial it sat in a hidden subtree, where a screen reader will not
+     read it and the whole thing is decoration. -->
+<div id="say" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <div class="veil" id="veil" hidden>
   <div class="panel" id="panel"></div>
@@ -2928,7 +3020,7 @@ function resolve(cards){
     chips += fig.chips;
     mult += fig.mult;
     events.push({ k:"card", i:-1, cls:"m", fig:fig.id,
-                  txt: fig.n + "  +" + fig.chips + " and +" + fig.mult + " mult",
+                  txt: fig.n + " +" + fig.chips + " and +" + fig.mult + " mult",
                   chips:chips, mult:mult });
   }
 
@@ -2937,10 +3029,17 @@ function resolve(cards){
     chips += c.base;
     events.push({ k:"card", i:i, cls:"c", txt:"+"+c.base, chips:chips, mult:mult });
 
+    /* One label per card, not one per tag. A word carrying both of the round’s
+       overtones used to print MATCH +25 and then MATCH +25 again, 210ms apart,
+       in the same spot — so the second was invisible and the player had no way
+       to see that the card had paid twice. */
     const hits = c.t.filter(function(t){ return G.demand.tags.includes(t); });
-    for(let h=0;h<hits.length;h++){
-      chips += 25;
-      events.push({ k:"card", i:i, cls:"r", txt:"MATCH +25", chips:chips, mult:mult });
+    if(hits.length){
+      chips += 25 * hits.length;
+      events.push({ k:"card", i:i, cls:"r",
+                    txt: hits.length > 1 ? hits.length + " MATCHES +" + (25 * hits.length)
+                                         : "MATCH +25",
+                    chips:chips, mult:mult });
     }
 
     /* The Ordeal lands between the word's own worth and the Lenses, so a Lens
@@ -3047,13 +3146,17 @@ async function play(){
       host.classList.add("scoring");
       setTimeout(function(){ host.classList.remove("scoring"); }, 320);
     }
-    floatLabel(host || stageCards, ev.txt, ev.cls);
+    floatLabel(host || stageCards, ev.txt, ev.cls + (ev.fig ? " fig" : ""));
     if(ev.k === "lens"){ flashLens(ev.lens); buzz(11); }
     /* the number leaves the word that earned it and lands on the counter */
     chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, gap - 20);
     setTally(ev.chips, ev.mult);
     if(ev.k === "lens") SFX.lens(); else SFX.score(e, ev.cls === "m");
-    await sleep(gap);
+    /* The figure is the opening beat of the hand rather than one more trigger
+       in the chain, and it is the only label that belongs to all three words at
+       once. Hold it long enough to be read and to clear the lane before the
+       cards start printing their own. */
+    await sleep(ev.fig ? gap + 420 : gap);
   }
 
   await sleep(240);
@@ -3171,6 +3274,11 @@ function floatLabel(host, txt, cls){
   f.className = "float " + cls;
   f.textContent = txt;
   if(getComputedStyle(host).position === "static") host.style.position = "relative";
+  /* Step each new label clear of every label still in the air, not just the
+     ones in this host: a wide label on a narrow card overflows both its edges,
+     so two cards side by side printed MATCH +25 across each other. */
+  const stage = document.getElementById("stage");
+  f.style.setProperty("--stack", (stage || host).querySelectorAll(".float").length);
   host.appendChild(f);
   setTimeout(function(){ try{ f.remove(); }catch(e){} }, 900);
 }
@@ -3196,6 +3304,7 @@ function discardSel(){
 
 /* ---------- round win + shop ---------- */
 function winRound(){
+  say("Round cleared. " + G.roundScore.toLocaleString() + " against " + G.target.toLocaleString() + ".");
   let reward = 4 + G.plays + G.discards;
   G.lenses.forEach(function(l){ if(l.onReward) reward = l.onReward(reward); });
   reward = Math.max(0, Math.round(reward));
@@ -4093,6 +4202,16 @@ function cardEl(c, staticCard){
       el.appendChild(p);
     }
     if(pos >= 0) el.classList.add("sel");
+    /* The lift, the gold badge and the number are the whole of "this one is
+       picked, and it is third" — and none of it reaches anyone who is not
+       looking at the screen. A figure is made of ORDER, so the position is
+       not decoration here; it is the state. */
+    el.setAttribute("aria-pressed", pos >= 0 ? "true" : "false");
+    if(pos >= 0){
+      el.setAttribute("aria-label",
+        c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", ")
+        + ". Picked, word " + (pos + 1) + " of " + G.selected.length + ".");
+    }
     const toggle = function(){ toggleSel(c.id); };
     el.onclick = toggle;
     el.onkeydown = function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggle(); } };
@@ -4163,18 +4282,30 @@ const TUT = [
            + '<span class="do">Tap two more, so you are holding three.</span>'; },
     done: function(){ return G.selected.length >= 3; } },
 
+  /* This step used to assert that the three cards in hand "make a figure" and
+     then sit on top of the readout that would have shown whether they did. It
+     reads the board now, so it cannot be wrong about it. */
   { sel: "#stageHint", pos: "bottom", label: "The shape of your hand",
     text: function(){
-      return "Now read the words themselves rather than their tags. Those three make a "
-           + "<b>figure</b> &mdash; the shape they form by length and by letter &mdash; "
-           + "and the board has just named it for you.<br><br>"
-           + "Three words the same length is <b>THE COLUMN</b>. Three climbing or falling "
-           + "by the same step is <b>THE STAIR</b>. Each one opening on the letter the "
-           + "last one closed on is <b>THE CHAIN</b>. A figure is scored <b>before</b> "
-           + "anything else and it lifts the multiplier, so it is usually the largest "
-           + "thing on the board."
-           + '<span class="do">Swap a word, or tap them in another order, and watch the '
-           + 'name change.</span>'; } },
+      const cards = G.selected.map(function(id){
+        return G.hand.find(function(c){ return c.id === id; });
+      }).filter(Boolean);
+      const f = figureFor(cards);
+      const better = figureByReorder(cards);
+      const found = f
+        ? "Yours make <b>" + f.n + "</b> &mdash; " + f.d.charAt(0).toLowerCase() + f.d.slice(1)
+          + ". That is <b>+" + f.chips + "</b> and <b>+" + f.mult + " to the multiplier</b>, "
+          + "before a single card is counted."
+        : (better
+            ? "Yours make <b>nothing</b> in this order &mdash; but the board says they would "
+              + "make <b>" + better.n + "</b> in another one."
+            : "Yours make <b>nothing</b>: no two share a length, and no two link letters. "
+              + "That is worth knowing too &mdash; it is the one thing here you can still fix "
+              + "by picking differently.");
+      return "Now read the words themselves rather than their tags. Their shape is a "
+           + "<b>figure</b>, and it is scored <b>before</b> everything else, which is why it "
+           + "is usually the largest thing on the board.<br><br>" + found
+           + '<span class="do">Swap a word and watch the name above it change.</span>'; } },
 
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
@@ -4205,6 +4336,48 @@ const TUT = [
            + "</span>"; } }
 ];
 
+/* The tutorial tells the player to tap three cards and then names the FIGURE
+   they made. Dealt at random those three make nothing 43% of the time and THE
+   PAIR — which demonstrates neither length order nor letters — another 44%, so
+   the step that teaches the mechanic mostly taught that the mechanic does not
+   fire. Same seven words, same difficulty, laid out so the lesson is there to
+   be found. */
+let tutHandOrder = null;
+function arrangeForTutorial(){
+  if(!G || !G.hand || G.hand.length < 3) return;
+  const hand = G.hand.slice();
+  tutHandOrder = hand;
+  let best = null, bestValue = -1;
+  for(let i = 0; i < hand.length; i++)
+    for(let j = 0; j < hand.length; j++){
+      if(j === i) continue;
+      for(let k = 0; k < hand.length; k++){
+        if(k === i || k === j) continue;
+        const trio = [hand[i], hand[j], hand[k]];
+        const f = figureFor(trio);
+        if(!f) continue;
+        /* a figure that shows what a figure IS beats the floor */
+        const v = figValue(f) + (f.id === "pair" ? 0 : 500);
+        if(v > bestValue){ bestValue = v; best = trio; }
+      }
+    }
+  if(!best) return;
+  G.hand = best.concat(hand.filter(function(c){ return best.indexOf(c) < 0; }));
+}
+
+/* Put the deal back the way it was dealt. The arrangement is a teaching aid,
+   not a handout: left in place it meant anyone who saw the tutorial had their
+   first three cards pre-sorted into a figure for the rest of the round, which
+   cleared round 1 in a single hand and quietly made the daily seed worth more
+   to them than to somebody who skipped. Same seven words either way — only
+   where they sit while the lesson is running. */
+function restoreHandOrder(){
+  if(!tutHandOrder || !G || !G.hand) { tutHandOrder = null; return; }
+  const want = tutHandOrder.filter(function(c){ return G.hand.indexOf(c) >= 0; });
+  if(want.length === G.hand.length) G.hand = want;
+  tutHandOrder = null;
+}
+
 let tutStep = -1, tutWatch = null;
 
 function tutActive(){ return tutStep >= 0; }
@@ -4213,6 +4386,8 @@ function tutorialSeen(){ return store.get("tutorial", false); }
 function startTutorial(force){
   if(!force && tutorialSeen()) return;
   tutStep = 0;
+  arrangeForTutorial();
+  renderHand();
   /* render() has already drawn the coach by now; stand it down so the two
      guides never talk over each other. */
   coachSet(null);
@@ -4238,6 +4413,8 @@ function endTutorial(completed){
   tutStep = -1;
   document.getElementById("tut").hidden = true;
   store.set("tutorial", true);
+  restoreHandOrder();
+  if(G) renderHand();
   /* Finishing the tutorial makes the coach redundant. SKIPPING it does not —
      a player who dismisses a six-step overlay has not necessarily learned
      anything, and the coach is one unobtrusive line. Leave them the net. */
@@ -4302,9 +4479,17 @@ function pointTut(){
   if(docked){
     box.classList.remove("dock-top");
     if(el){
-      const r = el.getBoundingClientRect();
-      /* sit at whichever end is further from the thing being pointed at */
-      if(r.top + r.height / 2 > window.innerHeight * 0.5) box.classList.add("dock-top");
+      /* Which end is further from the target is the wrong question — a tall
+         card docked at the far end still reaches back across the screen. Ask
+         which end actually clears it. THE SHAPE OF YOUR HAND spent a release
+         sitting on top of the readout it was telling players to watch. */
+      const t = el.getBoundingClientRect();
+      const bh = box.offsetHeight;
+      const topCovers = 8 + bh > t.top - 8;
+      const bottomCovers = window.innerHeight - 8 - bh < t.bottom + 8;
+      if(bottomCovers && !topCovers) box.classList.add("dock-top");
+      else if(bottomCovers && topCovers
+              && t.top + t.height / 2 > window.innerHeight * 0.5) box.classList.add("dock-top");
     }
   }
   if(!r){
@@ -4339,17 +4524,40 @@ function pointTut(){
 
   box.style.transform = "none";
   const bw = box.offsetWidth, bh = box.offsetHeight, gap = 14;
-  /* Side placement needs room the phone layout does not have, so narrow
-     screens always get the card above or below the spotlight. */
-  const narrow = window.innerWidth < 960;
-  let left, top;
-  if(s.pos === "right" && !narrow){ left = r.right + gap; top = r.top; }
-  else if(s.pos === "top"){ left = r.left; top = r.top - gap - bh; }
-  else { left = r.left; top = r.bottom + gap; }
-  if(top < 12) top = r.bottom + gap;
-  if(top + bh > window.innerHeight - 12) top = r.top - gap - bh;
-  box.style.left = Math.max(12, Math.min(left, window.innerWidth - bw - 12)) + "px";
-  box.style.top = Math.max(12, Math.min(top, window.innerHeight - bh - 12)) + "px";
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const clamp = function(v, lo, hi){ return Math.max(lo, Math.min(v, hi < lo ? lo : hi)); };
+  const spot = { left: r.left - pad, top: r.top - pad,
+                 right: r.right + pad, bottom: r.bottom + pad };
+
+  /* Four placements, tried in the order the step asked for, scored by how much
+     of the spotlight each one covers. The old version picked a side, clamped it
+     into the viewport, and never looked again — so a tall card pointing at
+     something in the middle of the screen got clamped straight back on top of
+     it. A card in an awkward corner is a smaller failure than a card covering
+     the one thing the step is about. */
+  const side = {
+    below: { left: clamp(r.left, 12, vw - bw - 12), top: spot.bottom + gap },
+    above: { left: clamp(r.left, 12, vw - bw - 12), top: spot.top - gap - bh },
+    right: { left: spot.right + gap, top: clamp(r.top, 12, vh - bh - 12) },
+    left:  { left: spot.left - gap - bw, top: clamp(r.top, 12, vh - bh - 12) }
+  };
+  /* Side placement needs room the phone layout does not have. */
+  const narrow = vw < 960;
+  const order = s.pos === "right" && !narrow ? ["right", "left", "below", "above"]
+              : s.pos === "top" ? ["above", "below", "right", "left"]
+              : ["below", "above", "right", "left"];
+  const cover = function(c){
+    const l = clamp(c.left, 12, vw - bw - 12), t = clamp(c.top, 12, vh - bh - 12);
+    return Math.max(0, Math.min(l + bw, spot.right) - Math.max(l, spot.left))
+         * Math.max(0, Math.min(t + bh, spot.bottom) - Math.max(t, spot.top));
+  };
+  let best = side[order[0]], bestCover = Infinity;
+  order.forEach(function(k){
+    const c = cover(side[k]);
+    if(c < bestCover){ bestCover = c; best = side[k]; }
+  });
+  box.style.left = clamp(best.left, 12, vw - bw - 12) + "px";
+  box.style.top = clamp(best.top, 12, vh - bh - 12) + "px";
 }
 
 /* ---------- first-run coaching ----------
@@ -4485,12 +4693,16 @@ function renderPreview(){
             : ''));
   const nm = hint.querySelector(".hand-name");
   if(nm && !solo) nm.onclick = showFigures;
+  say((solo ? resonanceName(hits) : (fig ? fig.n : "No figure"))
+      + (fig ? ", plus " + fig.chips + " and " + fig.mult + " multiplier" : "")
+      + ". Worth " + res.total.toLocaleString() + " points."
+      + (better ? " In another order these make " + better.n + "." : ""));
 }
 
 /* ---------- the figures, written down ----------
    Balatro shows you its hand rankings from the first second, and the game is
    better for it: the list is not a spoiler, it is the puzzle. Same here. */
-function showFigures(){
+function showFigures(back){
   const rows = FIGURES.map(function(f){
     const pay = FIG_PAY[f.id];
     const cell = function(n){
@@ -4518,8 +4730,14 @@ function showFigures(){
     + '<p>The board names your figure while you pick, and tells you when the same words '
     + 'would make a better one in a different order. It will not reorder them for you.</p>'
     + '<div class="rowend">'
+    + (back ? '<button class="btn" id="figsBack" type="button">Back to how it works</button>'
+            : '<span></span>')
     + '<button class="btn primary" id="closeFigs" type="button">Play</button></div>');
   document.getElementById("closeFigs").onclick = hidePanel;
+  /* Opened from the help card, this used to be a door that only went one way:
+     the sole button said Play, so reading the table cost you your place. */
+  const b = document.getElementById("figsBack");
+  if(b) b.onclick = showHelp;
 }
 
 function renderDemand(){
@@ -4667,6 +4885,17 @@ function showPanel(html){
 }
 function hidePanel(){ document.getElementById("veil").hidden = true; }
 
+/* Everything a sighted player reads off the board as it changes: what the hand
+   is worth, what it made, whether the round is won. Without this the only
+   thing the page ever announced was the tutorial. */
+let sayLast = "";
+function say(msg){
+  const el = document.getElementById("say");
+  if(!el || msg === sayLast) return;
+  sayLast = msg;
+  el.textContent = msg;
+}
+
 let toastTimer = null;
 function toast(msg){
   const t = document.getElementById("toast");
@@ -4744,12 +4973,10 @@ function showHelp(){
     +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>. '
     +     'A word carrying both pays twice.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div>'
-    +     '<p><b>The shape of your hand pays first.</b> Before a single card is counted, your '
-    +     'words are scored for what they <b>are</b> rather than what they mean. Three of the '
-    +     'same length is <b>THE COLUMN</b>. Three climbing or falling by the same step is '
-    +     '<b>THE STAIR</b>. Each one opening on the letter the last one closed on is '
-    +     '<b>THE CHAIN</b>. A figure adds points <i>and</i> lifts the multiplier, which makes '
-    +     'it the biggest thing on most boards &mdash; and because it reads left to right, the '
+    +     '<p><b>The shape of your hand pays first.</b> Before any card is counted, your words '
+    +     'are scored for what they <b>are</b> rather than what they mean &mdash; three of the '
+    +     'same length, three climbing by the same step, each one opening where the last one '
+    +     'closed. A <b>figure</b> lifts the multiplier, and it reads left to right, so the '
     +     'order you tap in is part of it. '
     +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
@@ -4820,7 +5047,7 @@ function showHelp(){
     + '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
     + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
   document.getElementById("closeHelp").onclick = hidePanel;
-  document.getElementById("helpFigs").onclick = showFigures;
+  document.getElementById("helpFigs").onclick = function(){ showFigures(true); };
   document.getElementById("replayTut").onclick = function(){
     hidePanel();
     startTutorial(true);

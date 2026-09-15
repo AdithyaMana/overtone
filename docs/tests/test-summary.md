@@ -1,6 +1,6 @@
 # Test Automation Summary — Overtone
 
-**345 tests, 0 failures.** 135 engine tests + 210 E2E tests across two device profiles.
+**371 tests, 0 failures.** 135 engine tests + 236 E2E tests across two device profiles.
 
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
@@ -50,7 +50,7 @@ It now runs on the harness too.
 | **figures** (`figures.test.js`) | what makes each of the five figures and what does not; that one word is never a figure; that every figure but THE PAIR has to bind the whole hand; that only the best one pays and the pay ladder never rewards an easier figure more; that the figure lands *before* the Lenses, proved by BRUTALIST giving `(1+3)×1.6³` rather than `1×1.6³+3`; that a hand with no figure scores exactly what it scored before figures existed; that the reorder nudge finds a better order and never offers a worse one; an 800-hand fuzz over the real deck |
 | **run end** (`runend.test.js`) | runs counted; personal best only beaten scores replace it; **the Memory unlock carries a Lens the player owned and it actually fires in run 2**; the share block names the game, seed, score, the Demand that ended it, the best play and the interpreted word, and stays under 280 chars |
 
-### E2E — `tests/e2e/` (105 × desktop + phone)
+### E2E — `tests/e2e/` (118 × desktop + phone)
 
 | Suite | Covers |
 |---|---|
@@ -58,6 +58,7 @@ It now runs on the harness too.
 | playing a hand | selection lifts, numbers and scores live; **order badges 1‑2‑3**; hand-name shape; the 4th card is refused with a reason; deselection clears; playing spends a play and refills; discarding replaces cards |
 | the Bookseller | opens on clearing a round; states the exponential; offers three items; **"Leave with no Lens"** when empty-handed; a bought Lens equips and survives into the next round |
 | the figure on the board | the board names the figure and what it pays; it says **NO FIGURE** out loud rather than going quiet; the same three words tapped in another order are nothing, and the board says which figure they would make; the figure moves the live multiplier; the figure name opens the table of all five; the idle board links to it |
+| **the UX audit** (`ux.spec.js`) | the tutorial card never covers the readout it points at, and never names a figure the board disagrees with; the tutorial's arrangement of the hand does not outlive the tutorial; no two identical scoring labels land on each other and none is more than 92% hidden; the figure gets its own beat; PLAY is reachable and the hand stays one row at 740×400, 844×390 and 932×430; no word in the lexicon breaks mid-word at any of four sizes; a picked card exposes `aria-pressed` and its position in the hand; the live region is outside every hidden subtree and announces what the hand is worth; every control clears 24px of hit area on a touch screen |
 | the Interpreter | a typed word becomes a real card via the house appraiser, which names itself; a 1-letter word is rejected |
 | layout | never scrolls sideways; **the controls stay in the viewport**; help reopens and closes on Escape |
 | **the opening tutorial** | greets a first-timer instead of a rules modal; the spotlight lands on the real element; the overlay does not swallow clicks, so the player can tap the cards it points at; **three** steps wait for a real action; the "how many words" step states both reasons and is only cleared by taking a second word; the last step names the exception (ASCETIC); skipping leaves the lighter coach running while finishing retires it; it never ambushes a returning player; replayable from the help card; on a phone the card docks clear of the control it is pointing at |
@@ -160,6 +161,9 @@ of the viewport and the welcome card floated over a fully lit board. A zero-size
 | Shop economy | covered — offers, buying, word packs, rerolling, slot limits, rewards |
 | Interpreter | covered — fallback, live path, response validation and every refusal code |
 | Figures | covered — rules, ranking, position in the score, reorder nudge, 800-hand fuzz |
+| Onboarding UX | covered — spotlight occlusion, copy that matches the board, hand arrangement and its restoration |
+| Accessibility | covered — target sizes, selection state, live region, contrast measured in `tools/` probes |
+| Landscape / short viewports | covered — PLAY reachable, one row, no mid-word breaks |
 | Run end | covered — bookkeeping, Memory unlock, share block |
 | Coach / onboarding | covered |
 | API | not applicable — no backend |

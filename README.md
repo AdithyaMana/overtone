@@ -75,6 +75,15 @@ jackpot at +6 mult. A seven-card hand holds 210 ordered triples, so a three-word
 36% of them; three words sharing an initial turns up in 8%. The pay table follows the measurement,
 and `tests/figures.test.js` asserts the ladder never inverts.
 
+**The tutorial deals a hand it can teach from.** The step that introduces figures tells you to tap
+three cards and then names what they made. Dealt at random those three make nothing 43% of the
+time and THE PAIR — which demonstrates neither length order nor letters — another 44%, so the one
+step that teaches the mechanic mostly taught that the mechanic does not fire. `arrangeForTutorial()`
+reorders the same seven words so the first three make the best figure available; 98% now land on
+something worth naming. It is a teaching aid, not a handout, so the deal goes back the way it was
+dealt the moment the tutorial ends — left in place it cleared round 1 in a single hand and made the
+daily seed worth more to a player who watched the tutorial than to one who skipped it.
+
 **The multiplier is added, not multiplied**, which was the other half of the feedback. An added
 multiplier is worth most to a deck that has none of its own and least to a runaway engine: it is
 a 3× swing on a bare round-1 hand and about 1.5× on a deck already holding three +mult Lenses.
@@ -125,6 +134,7 @@ git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.htm
 | `tests/logic.test.js` | Engine tests (node:test). |
 | `tests/lenses.test.js` | Exact arithmetic for all 24 Lenses. |
 | `tests/figures.test.js` | What makes a figure, which one pays, and where it lands in the score. |
+| `tests/e2e/ux.spec.js` | The findings of a UX audit, turned into things that cannot come back. |
 | `tests/runend.test.js` | Memory unlock and share block. |
 | `tests/e2e/` | Browser tests (Playwright). |
 | `docs/tests/test-summary.md` | What is covered, and what is not. |
@@ -174,7 +184,7 @@ npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
 ```
 
-**345 tests, 0 failures.** 135 engine + 210 E2E. The engine tier uses Node’s built-in runner and needs no
+**371 tests, 0 failures.** 135 engine + 236 E2E. The engine tier uses Node’s built-in runner and needs no
 dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
 Playwright is a devDependency only — the game still has zero runtime dependencies and still
 opens by double-clicking `index.html`.

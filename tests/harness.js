@@ -125,7 +125,7 @@ function load(){
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,
     LEXICON, LENSES, DEMANDS, TARGETS, TAGS, TAG_KEYS, ICONS, TAG_COLOR,
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES,
-    FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue
+    FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue, arrangeForTutorial
   };`, ctx);
 
   return { api: ctx.__api, ctx, byId, storage: store };
