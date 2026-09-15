@@ -712,6 +712,42 @@ Three rules hold it:
   with nothing said about it reads as the game dealing at random; it is Memory, and the title says
   `Carrying in — <LENS>` with its rule before you press Play.
 
+A UX pass over the finished screen found three more. All three worked for a mouse and for nothing
+else:
+
+- **Blocking the pointer is not hiding a screen.** With the menu up, Tab walked eight controls on
+  the board before it reached PLAY, and a screen reader read out a hand nobody had been dealt yet.
+  `#app` carries `inert` while the title is open now, with `aria-hidden` behind it for browsers
+  that have not got inert.
+- **The most destructive row sat directly under the most constructive one.** Mid-run the menu
+  offered *Resume run* and, one row down, *New run*: same shape, no question asked, and a round and
+  103 points gone in one press. Leaving a run you have actually played now costs one sentence
+  naming what you are leaving. An untouched board does not ask. The masthead's own *New run* goes
+  through the same door.
+- **Told a mode exists, then given no way to play it.** The SCHOLAR unlock said it was on the main
+  menu whenever you wanted it, and offered three buttons, none of them SCHOLAR. There is a *Play
+  SCHOLAR* button in the block now, the mirror of the *Try APPRENTICE* button the gentler offer has
+  had all along.
+
+One more came out of the test suite rather than the audit: **changing difficulty rebuilt the whole
+menu**, which threw away the button the player's finger was on and dropped keyboard focus. Two
+things change when you switch, the lit pill and the line under it, so those are the two things that
+change now.
+
+### The copy
+
+A pass over everything a player reads, against the AI-writing tells, found one habit doing most of
+the damage: the em dash was the game's default connector. It turned up in nearly every teaching
+sentence, and each one asks the reader to hold a clause open while the real point arrives. Most are
+now full stops or colons.
+
+The bigger fix was structural. Teach row 2 landed six ideas in one paragraph — figures exist, they
+score first, they are about shape and not meaning, here are three of them, the multiplier is
+coupled to the Demand, and order matters — at the exact moment a new player is carrying the most.
+The coupling, which is the hardest rule in the game, arrived in a subordinate clause. It is two
+paragraphs now, and the coupling is stated as something that happens to you: *play three words in a
+perfect stair that answer nothing and you get the shape's points, but none of its multiplier.*
+
 ---
 
 ## 7. Reference games

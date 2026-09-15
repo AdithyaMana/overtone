@@ -33,6 +33,24 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/* Chromium flushes localStorage to the browser process asynchronously, so a
+   reload fired in the same breath as a write can lose it — which is a flake in
+   a test and, for a player who closes the tab the instant they change a
+   setting, a real if rare loss. Read the key back before reloading: that
+   round-trip is the beat a hand moving to the reload button gives it. */
+async function reloadKeeping(page, key, value) {
+  /* First that the page really wrote what the test thinks it wrote. */
+  await expect.poll(async () =>
+    page.evaluate(k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, key),
+    { timeout: 3000 }).toContain(value);
+  /* Then a beat. Chromium hands localStorage to the browser process over an
+     async channel with no event to wait on, and a reload fired in the same
+     breath as the write can tear the renderer down before it lands. Under
+     eight parallel workers that is a real race and this test caught it. */
+  await page.waitForTimeout(150);
+  await page.reload();
+}
+
 /* Open the game and clear the first-run help card. */
 /* Open the game past whatever first-run guidance is showing. The spotlight
    tutorial replaced the auto-opening help modal, so handle either. */
@@ -965,7 +983,7 @@ test.describe("the opening tutorial", () => {
     await expect(page.locator("#tut")).toBeHidden();
 
     /* and it does not ambush a returning player */
-    await page.reload();
+    await reloadKeeping(page, "overtone:tutorial", "true");
     await enterGame(page);
     await expect(page.locator("#hand .card")).toHaveCount(7);
     await expect(page.locator("#tut")).toBeHidden();
@@ -977,7 +995,7 @@ test.describe("the opening tutorial", () => {
     await page.click("#tutSkip");
     await expect(page.locator("#tut")).toBeHidden();
     await expect(page.locator("#hand .card")).toHaveCount(7);
-    await page.reload();
+    await reloadKeeping(page, "overtone:tutorial", "true");
     await enterGame(page);
     await expect(page.locator("#tut")).toBeHidden();
   });
@@ -1069,7 +1087,7 @@ test.describe("sound, vibration and motion", () => {
     await expect(page.locator("#muteDot")).toBeVisible(); // everything off, and the board says so
 
     await page.click("#closeSettings");
-    await page.reload();
+    await reloadKeeping(page, "overtone:music", "false");
     await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.click("#menuBtn");

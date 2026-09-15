@@ -1045,6 +1045,7 @@ button{ font-family: inherit; color: inherit; }
 .unlock.open .k{ color:#0A2E21; }
 .unlock.open .v{ color:#08241A; text-shadow:none; }
 .unlock.open .d{ color:#0D3728; }
+.unlock.open .btn{ margin-top: 10px; background: var(--felt-d); box-shadow: 0 4px 0 var(--edge); }
 
 #interpInput{
   width:100%; padding: 13px 14px; font-family: var(--f-display);
@@ -1061,6 +1062,7 @@ button{ font-family: inherit; color: inherit; }
 
 .teach{ display:flex; flex-direction:column; gap:13px; margin: 4px 0 16px; }
 .teach-row{ display:flex; gap:12px; align-items:flex-start; }
+.teach-row > div:not(.teach-n){ flex:1; display:flex; flex-direction:column; gap:9px; }
 .teach-n{
   flex:none; width:28px; height:28px; border-radius:6px;
   background: var(--chips); color:#06233D; font-weight:700; font-size:15px;
@@ -2483,7 +2485,7 @@ const TARGETS = [350, 800, 5200, 9200, 19000, 23000, 34000, 46000];
    what actually ends an early run is a dead draw, not a wrong choice. */
 const DIFFICULTIES = [
   { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"Lower targets and a fourth discard. Same words, same Lenses, same Ordeals — more room to be wrong in." },
+    d:"Lower targets and a fourth discard. Same words, same Lenses, same Ordeals, with more room to be wrong in." },
   { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
     d:"The game as it is balanced. Four plays, three discards, and a curve that outruns any deck that is not multiplying." }
 ];
@@ -4173,7 +4175,8 @@ function endRun(won){
     + (runs === 1
         ? '<div class="unlock open"><div class="k">Unlocked</div><div class="v">SCHOLAR</div>'
           + '<div class="d">The game as it is balanced: the targets it was tuned to and one '
-          + 'discard fewer. It is on the main menu whenever you want it.</div></div>'
+          + 'discard fewer. Four runs in five end early on it.</div>'
+          + '<button class="btn" id="goHard" type="button">Play SCHOLAR \u2192</button></div>'
         : '')
     + '<div class="share" id="shareBox">' + escapeHtml(share) + '</div>'
     + '<div class="rowend">'
@@ -4182,6 +4185,14 @@ function endRun(won){
     +   '<button class="btn primary" id="againNew" type="button">New run →</button>'
     + '</div>';
   showPanel(html, true);
+
+  const hard = document.getElementById("goHard");
+  if(hard) hard.onclick = function(){
+    setPref("difficulty", "scholar");
+    hidePanel();
+    newRun("free-" + Math.random().toString(36).slice(2,8), true);
+    toast("SCHOLAR. The targets it was tuned to.");
+  };
 
   const easy = document.getElementById("goEasy");
   if(easy) easy.onclick = function(){
@@ -4709,18 +4720,18 @@ const TUT = [
         ? "Yours make <b>" + f.n + "</b>: " + f.d.charAt(0).toLowerCase() + f.d.slice(1)
           + ". <b>+" + f.chips + "</b> and <b>+" + paid + " multiplier</b>"
           + (paid < f.mult
-              ? " &mdash; the shape is worth +" + f.mult + ", but only " + answering
+              ? ". The shape is worth +" + f.mult + ", but only " + answering
                 + " of your " + cards.length + " words answer the round."
               : ", and the round wants every one of them.")
         : (better
-            ? "Yours make <b>nothing</b> in this order &mdash; but the board says they would "
-              + "make <b>" + better.n + "</b> in another one."
+            ? "Yours make <b>nothing</b> in this order. The board says they would make <b>"
+              + better.n + "</b> in another one."
             : "Yours make <b>nothing</b>: no two share a length, and no two link letters. "
-              + "That is worth knowing too &mdash; it is the one thing here you can still fix "
-              + "by picking differently.");
+              + "Worth knowing, because it is the one thing here you can still fix by "
+              + "picking differently.");
       return "Now read the words themselves, not their tags. Their shape is a <b>figure</b>, "
-           + "scored <b>before</b> everything else &mdash; but its multiplier is only paid for "
-           + "the words the round wants.<br><br>" + found
+           + "and it scores <b>before</b> everything else. The catch: its multiplier only "
+           + "pays for the words the round asked for.<br><br>" + found
            + '<span class="do">Swap a word and watch the name above it change.</span>'; } },
 
   { sel: "#tally", pos: "right", label: "The score",
@@ -4742,7 +4753,7 @@ const TUT = [
       return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>: a rule "
            + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
            + "and the targets climb faster than any deck can keep up with.<br><br>"
-           + "A few want fewer words &mdash; <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
+           + "A few want fewer words: <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
            + "And the loudest ones are <b>flawed</b>: they pay more than anything else and take "
            + "a play, a discard or your income back for it."
            + '<span class="do">'
@@ -5162,9 +5173,9 @@ function showFigures(back){
     + '<table class="figtab">'
     +   '<thead><tr><th>Figure</th><th>Two words</th><th>Three words</th></tr></thead>'
     +   '<tbody>' + rows + '</tbody></table>'
-    + '<p>Only your <b>best</b> figure pays, and every figure but one has to bind '
-    + '<b>every word you play</b>: two words that chain stop chaining the moment you lay a '
-    + 'third beside them. THE PAIR is the exception and the floor &mdash; any two of your '
+    + '<p>Only your <b>best</b> figure pays. Every figure but one has to bind '
+    + '<b>every word you play</b>, so two words that chain stop chaining the moment you lay a '
+    + 'third beside them. THE PAIR is the exception and the floor: any two of your '
     + 'words sharing a length is enough.</p>'
     + '<p>The board names your figure while you pick, and tells you when the same words '
     + 'would make a better one in a different order. It will not reorder them for you.</p>'
@@ -5385,6 +5396,7 @@ let titleFromGame = false;
 function showTitle(){
   titleOpen = true;
   hidePanel();
+  behindTitle(true);
   const el = document.getElementById("title");
   const runs = store.get("runs", 0);
   const now = difficulty(), first = runs === 0;
@@ -5415,11 +5427,7 @@ function showTitle(){
   /* What it means to press the thing you just chose, in one line. A player who
      has a run on the table is told the run keeps the difficulty it was dealt,
      because changing it under them would be the game cheating. */
-  const note = live && inRun.id !== now.id
-    ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
-    : now.d + (shut
-        ? ' <b>SCHOLAR</b> opens when you finish a run &mdash; win or lose.'
-        : '');
+
 
   document.getElementById("titleBody").innerHTML = ''
     + '<div class="mlist">'
@@ -5434,7 +5442,7 @@ function showTitle(){
     +   '<div class="mseg">'
     +     '<div class="msl" id="titleDiffLabel">How hard</div>'
     +     '<div class="segs" role="group" aria-labelledby="titleDiffLabel">' + pills + '</div>'
-    +     '<p class="setnote">' + note + '</p>'
+    +     '<p class="setnote" id="titleNote"></p>'
     +   '</div>'
     +   row("titleHelp", "How to play")
     +   row("titleFigs", "The figures")
@@ -5458,7 +5466,10 @@ function showTitle(){
 
   const resume = document.getElementById("titleResume");
   if(resume) resume.onclick = function(){ titleFromGame = false; hideTitle(); };
-  document.getElementById("titlePlay").onclick = function(){ startFromTitle(); };
+  document.getElementById("titlePlay").onclick = function(){
+    if(live && runTouched()) confirmNewRun();
+    else startFromTitle();
+  };
   document.getElementById("titleHelp").onclick = function(){ showHelp("title"); };
   document.getElementById("titleFigs").onclick = function(){ showFigures("title"); };
   document.getElementById("titleSound").onclick = function(){ showMenu("title"); };
@@ -5470,12 +5481,13 @@ function showTitle(){
   };
   Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(btn){
     btn.onclick = function(){
-      if(btn.getAttribute("aria-pressed") === "true") return;
+      if(btn.disabled || btn.getAttribute("aria-pressed") === "true") return;
       setPref("difficulty", btn.dataset.diff);
       SFX.buy();
-      showTitle();                 /* redraw so the note and the marks agree */
+      paintDiff();
     };
   });
+  paintDiff();
 
   /* Hover moves the caret without stealing the keyboard's place in the list. */
   titleItems().forEach(function(n, i){
@@ -5484,6 +5496,42 @@ function showTitle(){
     n.addEventListener("focus", function(){ titleMark(i); });
   });
   titleMark(titleSel);
+}
+
+/* Which pill is lit, which is shut, and the one line under them. Done in place
+   rather than by rebuilding the menu, so the button a player just pressed is
+   still the button under their finger and the keyboard keeps its place. */
+function paintDiff(){
+  const el = document.getElementById("title");
+  const note = document.getElementById("titleNote");
+  if(!el || !note) return;
+  const now = difficulty();
+  const live = titleFromGame && G && !G.over;
+  const inRun = G ? runDifficulty() : now;
+  /* never lock the one they are standing on, whatever storage says */
+  const shut = !scholarOpen() && now.id !== "scholar";
+
+  Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(btn){
+    const on = btn.dataset.diff === now.id;
+    const locked = shut && btn.dataset.diff === "scholar";
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.disabled = locked;
+    if(locked) btn.setAttribute("aria-disabled", "true");
+    else btn.removeAttribute("aria-disabled");
+    const tag = btn.querySelector(".tip");
+    if(locked && !tag){
+      const t = document.createElement("span");
+      t.className = "tip lock";
+      t.textContent = "Locked";
+      btn.appendChild(t);
+    } else if(!locked && tag) tag.remove();
+  });
+
+  note.innerHTML = live && inRun.id !== now.id
+    ? 'The run on the table is still <b>' + inRun.n + '</b> &mdash; a new run picks this up.'
+    : now.d + (shut
+        ? ' <b>SCHOLAR</b> opens once you finish a run, win or lose.'
+        : '');
 }
 
 /* The stops on the list, top to bottom. The difficulty switch is one stop, and
@@ -5547,6 +5595,50 @@ function titleKey(e){
 function hideTitle(){
   titleOpen = false;
   document.getElementById("title").hidden = true;
+  behindTitle(false);
+}
+
+/* Everything the menu is standing in front of. One attribute takes it out of
+   the tab order and out of the accessibility tree at the same time;
+   aria-hidden is the fallback for a browser that has not got inert yet. */
+function behindTitle(shut){
+  const app = document.getElementById("app");
+  if(!app) return;
+  if(shut){ app.setAttribute("inert", ""); app.setAttribute("aria-hidden", "true"); }
+  else { app.removeAttribute("inert"); app.removeAttribute("aria-hidden"); }
+}
+
+/* Has anything happened on this board that a player would miss? */
+function runTouched(){
+  if(!G) return false;
+  const d = runDifficulty();
+  return G.round > 0 || G.total > 0 || G.plays < 4 || G.discards < 3 + d.discards;
+}
+
+/* Asked in the game's own voice, with the thing being thrown away named. */
+function confirmNewRun(after){
+  hideTitle();
+  showPanel('<h2>Leave this run?</h2>'
+    + '<div class="sub">Round ' + (G.round + 1) + ' of ' + ROUNDS
+      + ' &middot; ' + G.total.toLocaleString() + ' points so far</div>'
+    + '<p>Starting again deals a new board. This one does not come back.</p>'
+    + '<div class="rowend">'
+    +   '<button class="btn danger" id="dropRun" type="button">Start a new run</button>'
+    +   '<button class="btn primary" id="keepRun" type="button">Keep playing</button>'
+    + '</div>');
+  document.getElementById("keepRun").onclick = function(){
+    hidePanel();
+    if(after === "board"){ titleFromGame = false; }
+    else showTitle();
+  };
+  document.getElementById("dropRun").onclick = function(){
+    hidePanel();
+    if(after === "board"){
+      titleFromGame = false;
+      newRun("free-" + Math.random().toString(36).slice(2,8), true);
+      toast("Fresh run. No Lenses, no Memory.");
+    } else startFromTitle();
+  };
 }
 
 /* PLAY. A first-timer gets the tutorial on the board they are about to play. */
@@ -5626,18 +5718,20 @@ function showHelp(back){
 
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p><b>Match what the round wants.</b> Every round names two overtones. They are the '
-    +     'small tags along the bottom of each word. The ones that match light up '
-    +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>. '
-    +     'A word carrying both pays twice.</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">2</div>'
+    +     '<p><b>Match what the round wants.</b> Those small tags under each word are its '
+    +     '<b>overtones</b>. Every round asks for two of them. Tags that match light up '
+    +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>, '
+    +     'so a word carrying both pays twice.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">2</div><div>'
     +     '<p><b>The shape of your hand pays first.</b> Before any card is counted, your words '
-    +     'are scored for what they <b>are</b> rather than what they mean &mdash; three of the '
-    +     'same length, three climbing by the same step, each one opening where the last one '
-    +     'closed. A <b>figure</b> lifts the multiplier &mdash; but only for the words the '
-    +     'round actually wants, so you have to earn it twice. It reads left to right too, so '
-    +     'the order you tap in is part of it. '
-    +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div>'
+    +     'are scored for what they <b>are</b> rather than what they mean: three of the same '
+    +     'length, three climbing by the same step, each one opening on the letter the last '
+    +     'one closed on. That shape is a <b>figure</b>, and it reads left to right, so the '
+    +     'order you tap in is part of it.</p>'
+    +     '<p>A figure raises the multiplier, but it only pays for the words the round asked '
+    +     'for. Play three words in a perfect stair that answer nothing and you get the '
+    +     'shape’s points, but none of its multiplier. '
+    +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
     +     '<p><b>Take three words, nearly always.</b> Each one adds its own points, and even a '
     +     'word that matches nothing still adds its value, so a third card is rarely a mistake. '
@@ -5655,13 +5749,13 @@ function showHelp(back){
     +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
     +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
     +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
-    +     'the biggest numbers in the game, and every one of them takes something back &mdash; '
-    +     'a play, a discard, cards in hand, your income, or the target itself.</p></div>'
+    +     'the biggest numbers in the game, and every one takes something back. A play, a '
+    +     'discard, cards in hand, your income, or the target itself.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">6</div>'
     +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
     +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
-    +     'it grew &mdash; so the question is never just "is this one better", it is "is it '
-    +     'better than what mine has already become".</p></div>'
+    +     'it grew. So before you swap, look at what yours has already grown to: a smaller '
+    +     'Lens you have held for four rounds often beats a bigger one you have just met.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">7</div>'
     +     '<p><b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
     +     'raising the number: no discards, two words at a time, a four-card hand, words worth '
@@ -5733,6 +5827,7 @@ document.getElementById("homeBtn").onclick = function(){
 };
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel();
+  if(runTouched()){ confirmNewRun("board"); return; }
   newRun("free-" + Math.random().toString(36).slice(2,8), true);
   toast("Fresh run. No Lenses, no Memory.");
 };

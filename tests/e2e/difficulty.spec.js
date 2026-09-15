@@ -30,6 +30,25 @@ async function open(page) {
   await expect(page.locator("#veil")).toBeHidden();
 }
 
+/* Chromium flushes localStorage to the browser process asynchronously, so a
+   reload fired in the same breath as a write can lose it — which is a flake in
+   a test and, for a player who closes the tab the instant they change a
+   setting, a real if rare loss. Read the key back before reloading: that
+   round-trip is the beat a hand moving to the reload button gives it. */
+async function reloadKeeping(page, key, value) {
+  /* First that the page really wrote what the test thinks it wrote. */
+  await expect.poll(async () =>
+    page.evaluate(k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, key),
+    { timeout: 3000 }).toContain(value);
+  /* Then a beat. Chromium hands localStorage to the browser process over an
+     async channel with no event to wait on, and a reload fired in the same
+     breath as the write can tear the renderer down before it lands. Under
+     eight parallel workers that is a real race and this test caught it. */
+  await page.waitForTimeout(150);
+  await page.reload();
+}
+
+
 test.describe("choosing how hard", () => {
   /* Everything below asserts the game as balanced, so it pins SCHOLAR. The two
      tests about what a NEW player gets clear that themselves. */
@@ -71,7 +90,7 @@ test.describe("choosing how hard", () => {
       const scholar = page.locator('#title .diffopt[data-diff="scholar"]');
       await expect(scholar).toBeDisabled();
       await expect(scholar.locator(".tip")).toHaveText("Locked");
-      await expect(page.locator("#title .setnote")).toContainText("opens when you finish a run");
+      await expect(page.locator("#title .setnote")).toContainText("opens once you finish a run");
       expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
 
       /* and pressing it changes nothing */
@@ -127,7 +146,7 @@ test.describe("choosing how hard", () => {
     await expect(page.locator("#title")).toBeHidden();
     expect(await page.evaluate(() => runDifficulty().id)).toBe("scholar");
 
-    await page.reload();
+    await reloadKeeping(page, "overtone:difficulty", "apprentice");
     await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     expect(await page.evaluate(() => difficulty().id), "the choice did not survive a reload")

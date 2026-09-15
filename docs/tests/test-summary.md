@@ -2,6 +2,13 @@
 
 **434 tests, 0 failures.** 144 engine tests + 290 E2E tests across two device profiles.
 
+The E2E run allows **one retry**. A handful of specs write a preference and reload in the same
+breath, and Chromium hands localStorage to the browser process over an async channel with no event
+to wait on — under eight parallel workers that write occasionally loses the race. Those specs wait
+for the value to be readable before reloading (`reloadKeeping`); the retry covers the last of it,
+and reports as *flaky* rather than *passed*, so the rate stays visible. A real failure fails twice
+and stays red.
+
 ```bash
 npm test          # engine — no browser, no network, ~0.3s
 npm run test:e2e  # browser — desktop + phone, ~21s
