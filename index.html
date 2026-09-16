@@ -736,6 +736,28 @@ button{ font-family: inherit; color: inherit; }
   font-variant-numeric: tabular-nums; line-height: 1.1;
   opacity: .8;
 }
+/* Bottom left, opposite the value, in the same strip - so it costs the card
+   no room it was using and cannot land on a tag. Smaller and quieter than the
+   value because it is not a score: it is the one number on the card you read
+   ACROSS cards rather than on one, and what it has to do is make three equal
+   lengths, or a run of them, visible without being read one at a time. */
+.card .len{
+  /* Sits a couple of pixels lower than the value and on a tighter line box.
+     Tags fill from the LEFT, so the last row of them reaches this corner where
+     it never reaches the value's - at the same offset the two boxes touched by
+     a pixel on a phone. Nothing was visible, but the strip is supposed to be
+     clear and now it is. */
+  position: absolute; left: 7px; bottom: 3px; z-index: 3;
+  font-size: 11px; font-weight: 700; color: var(--card-ink);
+  font-variant-numeric: tabular-nums; line-height: 1;
+  opacity: .55;
+}
+/* Sharing a length with something already picked. The same gold a tag wears
+   when it answers the round: both of them mean this one counts. */
+.card .len.same{
+  opacity: 1; background: var(--gold); color: #12181C;
+  left: 5px; bottom: 2px; padding: 1px 4px; border-radius: 3px;
+}
 /* Tags fill the band from the top and stop at its edge. Three rows fit
    exactly; the handful of words carrying a fifth overtone lose their last row
    rather than pushing the plate around, and the plate is still showing every
@@ -1572,6 +1594,7 @@ button{ font-family: inherit; color: inherit; }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   #app:not(.resolving) #stageCards .card .tags,
+  #app:not(.resolving) #stageCards .card .len,
   #app:not(.resolving) #stageCards .card .base{ display: none; }
   #app:not(.resolving) #stageCards .card .pos{
     width: 14px; height: 14px; font-size: 9px; top: -5px; left: -4px;
@@ -4856,6 +4879,44 @@ function cardEl(c, staticCard){
   const base = document.createElement("div");
   base.className = "base"; base.textContent = c.base;
 
+  /* How many letters, in the corner opposite the value. Three of the five
+     figures - COLUMN, STAIR and PAIR - are defined on the length of a word,
+     so finding one meant counting letters across seven words before you
+     could make a decision. A playtester called it what it is: arithmetic
+     homework in the middle of a card game.
+
+     The number was always on the card. A word is worth 5 + 3 per letter, so
+     the value IS the length, linearly transformed and unreadable as one.
+     Printing the length itself changes nothing about the game and turns
+     spotting a figure from counting into looking. */
+  const len = document.createElement("div");
+  len.className = "len";
+  len.textContent = c.w.length;
+  /* The label already reads the word, and a screen reader counting it out
+     is the one place this number is noise. */
+  len.setAttribute("aria-hidden", "true");
+  /* And the number answers back. Printing the length stops you counting, but
+     it still leaves you comparing seven digits to find three that match, and
+     a figure is a thing you should be able to SEE. So once a word is picked,
+     every word in the hand that shares its length lights up - COLUMN and PAIR
+     stop being a search and become the cards that went gold.
+
+     Nothing about scoring moves. It marks what was already true, and it is
+     the same gold a tag uses when it answers the round, because it means the
+     same thing: this one counts for what you are building. */
+  if(!staticCard && G && G.selected && G.selected.length){
+    /* Every picked card EXCEPT this one. Counting itself would light a lone
+       first pick against its own length, which is a match with nothing and
+       reads as a figure that is not there. */
+    const others = G.selected.filter(function(id){ return id !== c.id; })
+      .map(function(id){
+        const f = G.hand.find(function(x){ return x.id === id; });
+        return f ? f.w.length : -1;
+      });
+    if(others.indexOf(c.w.length) >= 0) len.classList.add("same");
+  }
+  el.appendChild(len);
+
   const w = document.createElement("div");
   w.className = "w";
   /* The word in its own element so that reading it back gives the word and
@@ -6066,7 +6127,7 @@ function showHelp(back){
     +     'words are scored for what they <b>are</b>, not what they mean. Three words the same '
     +     'length, or climbing by the same step, or each one starting where the last one '
     +     'ended. That shape is a '
-    +     '<b>figure</b>, and it reads left to right, so tap order counts.</p>'
+    +     '<b>figure</b>, and it reads left to right, so tap order counts. The small number in the corner of each card is how many letters it has, so you never have to count them.</p>'
     +     '<p>A figure only pays its multiplier for the words the round asked for. A perfect '
     +     'shape that answers nothing keeps the points and loses the multiplier. '
     +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p></div></div>'

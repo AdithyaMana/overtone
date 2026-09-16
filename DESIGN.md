@@ -1078,6 +1078,48 @@ where the file already said it belonged and said why.
 
 ---
 
+## 6.17 Counting letters is not a decision
+
+> "Having to count letters complicates the flow a bit."
+
+Three of the five figures are defined on the length of a word — THE COLUMN wants three the same,
+THE STAIR wants three in a run, THE PAIR wants two. The other two, THE MONOGRAM and THE CHAIN,
+are about first and last letters, and you see those without doing anything.
+
+So a third of the time the game was asking a player to count the letters of seven words, hold
+seven numbers in their head, and find three that matched — before they could make a decision.
+That is arithmetic homework in the middle of a card game, and it is exactly the kind of thing
+that reads as "the flow is off" without being easy to point at.
+
+The embarrassing part: the number was already on the card. A word is worth `5 + 3` per letter,
+so a card showing 26 is a seven-letter word. The length was printed on every card in the game,
+linearly transformed into something unreadable as a length.
+
+### Two changes, neither of which touches scoring
+
+**The card says how long its word is.** A small number in the corner opposite the value. Nothing
+about the game moves; it stops hiding a number it was already using.
+
+**Picking a word lights the ones that share its length.** Printing the number stops you counting,
+but it still leaves you comparing seven digits to find three that match, and a figure is
+something you ought to be able to *see*. Pick one word and every word in the hand with the same
+length goes gold — the same gold a tag wears when it answers the round, because it means the same
+thing: this one counts for what you are building.
+
+The rule is exact, and the exactness matters. A marker lights only when some **other** picked card
+shares its length. Lighting a lone first pick against its own length would mark a figure that is
+not there, which is worse than making the player count.
+
+### Where it went
+
+Bottom left, in the strip the value already owns, so it costs the card no room and cannot land on
+a tag. It went in at the value's own offset first, which on a phone put it a pixel into the tag
+band — tags fill from the *left*, so the last row of them reaches that corner where it never
+reaches the value's. Two to five square pixels, nothing visible, but the strip exists to be clear.
+It sits two pixels lower now, on a tighter line box.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or

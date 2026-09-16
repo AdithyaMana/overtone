@@ -371,6 +371,56 @@ test.describe("the figure on the board", () => {
   });
 });
 
+/* ------------------------------------------------------------------ */
+/* Three of the five figures - COLUMN, STAIR and PAIR - are defined on how
+   long a word is, so before this the only way to find one was to count the
+   letters of seven words. A playtester called it what it was: arithmetic in
+   the middle of a card game. */
+test.describe("how long a word is", () => {
+  test("every card says it, so nobody counts letters", async ({ page }) => {
+    await open(page);
+    const wrong = await page.evaluate(() =>
+      [...document.querySelectorAll("#hand .card")]
+        .map(c => ({
+          w: c.querySelector(".wt").textContent,
+          n: c.querySelector(".len") ? c.querySelector(".len").textContent : null
+        }))
+        .filter(x => x.n !== String(x.w.length))
+        .map(x => x.w + " says " + x.n));
+    expect(wrong, "a card miscounted its own word").toEqual([]);
+  });
+
+  test("picking a word lights what matches it, and never its own", async ({ page }) => {
+    await open(page);
+    /* One deliberate pair in a hand of otherwise distinct lengths, so what
+       should light is known rather than whatever the deal happened to give. */
+    await page.evaluate(() => {
+      G.hand = ["OAK", "KILN", "EMBER", "FURNACE", "MARSHLAND", "TIDE", "INHERITANCE"]
+        .map(w => makeCard({ w, t: ["NAT"] }, false));
+      G.selected = []; render();
+    });
+    await expect(page.locator("#hand .card .len.same"),
+      "something lit before anything was picked").toHaveCount(0);
+
+    await page.keyboard.press("2");                 // KILN, four letters
+    const lit = await page.evaluate(() =>
+      [...document.querySelectorAll("#hand .card")]
+        .filter(c => c.querySelector(".len.same"))
+        .map(c => c.querySelector(".wt").textContent).sort());
+    /* TIDE is the other four. KILN is NOT lit: a lone pick matching only
+       itself is a figure that is not there. */
+    expect(lit, "the wrong words lit up").toEqual(["TIDE"]);
+
+    /* and the pair holds itself up once both are in */
+    await page.keyboard.press("6");                 // TIDE
+    const both = await page.evaluate(() =>
+      [...document.querySelectorAll("#hand .card")]
+        .filter(c => c.querySelector(".len.same"))
+        .map(c => c.querySelector(".wt").textContent).sort());
+    expect(both, "the pair did not hold itself up").toEqual(["KILN", "TIDE"]);
+  });
+});
+
 test.describe("the Bookseller", () => {
   test("opens on clearing a round and teaches the economy", async ({ page }) => {
     await open(page);
