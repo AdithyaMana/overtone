@@ -1075,13 +1075,13 @@ test.describe("the opening tutorial", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("sound, vibration and motion", () => {
-  test("three separate switches, and they stick", async ({ page }) => {
+  test("four separate switches, and they stick", async ({ page }) => {
     await open(page);
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
     /* the board's button is sound; everything else is on the title screen */
     await expect(panel).toContainText("Sound & feel");
-    await expect(panel.locator(".switch")).toHaveCount(3);
+    await expect(panel.locator(".switch")).toHaveCount(4);
     /* the iPhone gap is stated rather than quietly shipped */
     await expect(panel).toContainText("Android only");
 

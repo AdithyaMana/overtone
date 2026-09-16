@@ -347,7 +347,7 @@ test.describe("the menu", () => {
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
     await expect(panel.locator("h2")).toHaveText("Sound & feel");
-    await expect(panel.locator(".switch")).toHaveCount(3);
+    await expect(panel.locator(".switch")).toHaveCount(4);
     /* the second copy of the title screen that used to live in here */
     await expect(panel.locator(".diffopt")).toHaveCount(0);
     await expect(panel.locator(".runstat")).toHaveCount(0);

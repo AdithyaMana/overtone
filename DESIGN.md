@@ -967,6 +967,117 @@ words cannot make, which is a typographic shrug where the cell is being asked a 
 
 ---
 
+## 6.16 A hand has one length
+
+A playtester said the game was not smooth, and that the loop was stagnant and slow. Three
+separate complaints wearing one word, so they got measured separately.
+
+### The hand got slower as the deck got better
+
+Scoring held a fixed beat per event: 210ms, dropping to 130ms past twelve events. The event
+count is the size of your engine. A round-one hand fires six events; a round-seven hand with
+five Lenses fires twenty. So the beat was constant and the *hand* was not, and the reward for
+building the thing the whole game is about was a longer wait to watch it work.
+
+Measured in the browser, against the real script, on three loadouts:
+
+| hand | before | after |
+|---|---|---|
+| round 1, no Lenses | 3260ms | 1584ms |
+| mid run, three Lenses | 3238ms | 1600ms |
+| late run, five Lenses | 3022ms | 1106ms |
+
+The fix is one line: budget the whole hand and divide the budget by what is in it, rather than
+paying a fixed price per event. A dense hand plays denser, not longer. The second column is the
+point as much as the first — every hand now lands on the same beat, which is the difference
+between a rhythm and a queue.
+
+Two other holds were flat constants sitting in front of every hand in the game: a 420ms pause on
+the figure, before anything had scored, and a 1250ms hold on the finished total. Both are
+proportionate now.
+
+Thirty-two hands is a full run, so that is close to a minute of animation taken out of one.
+
+The beat has a floor, and it is set by readability rather than by frame budget. Recording every
+frame interval through a hand says the rendering is never the constraint: median 16.7ms, nothing
+at all over 50ms, on a bare deck and a five-Lens one alike. What breaks first is the labels — a
+beat fast enough and they stack past the lanes that keep them off each other.
+
+### Quick scoring is a setting, and it is on
+
+The full performance is still there under **Sound & feel**, because somebody who has never seen a
+twenty-event hand resolve should get to watch one. It is off by default. A player who has seen it
+four hundred times has not asked to see it again.
+
+### Where the difficulty actually was
+
+`tools/balance.js`, 400 runs, optimal play. Win rate 22.3%, which is healthy. Where the runs died:
+
+| round | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| runs lost | 0.0% | 0.0% | 2.5% | 12.3% | 15.3% | 20.8% | 8.5% | 18.5% |
+
+One thing worth writing down before the conclusion, because I got it wrong first: the table the
+tool prints is headed *how far a run gets*, and its last row counts the runs that **won** as well
+as the ones that died there. Read as a death count it says round 8 ends 40.8% of runs and is a
+wall carrying half the game. It is 18.5%, and it is not. I spent two candidate curves trying to
+solve a problem that was an artefact of misreading a column header.
+
+What the corrected numbers do say is still damning at the front. Nobody has ever lost round 1 or
+round 2 — across four hundred runs, not once — and round 3 ends one run in forty. So the first
+three rounds of every run, the window where a new player decides whether this is worth a second
+run, carry no stakes at all. After that the danger does not climb so much as wander: round 7
+kills less than half what round 6 does, which is a round with no news in it sitting between two
+that have some.
+
+That is what stagnant means, in numbers, and the targets say it out loud too — 800 to 5,200 is a
+jump of six and a half times, sitting between two rounds nobody can lose.
+
+So the targets were re-derived against what a round can actually produce rather than adjusted by
+feel. The point was never to make the game harder — 22.3% is where a roguelite wants to be — but
+to give the early rounds and round 7 a share of the danger the middle was carrying alone.
+
+| | r1 | r2 | r3 | r4 | r5 | r6 | r7 | r8 | win |
+|---|---|---|---|---|---|---|---|---|---|
+| before | 0.0% | 0.0% | 2.5% | 12.3% | 15.3% | 20.8% | 8.5% | 18.5% | 22.3% |
+| after | 0.0% | 1.8% | 4.8% | 13.8% | 12.3% | 17.0% | 11.3% | 15.8% | 23.5% |
+
+Round 2 goes from never having killed anybody to 1.8%. Round 3 nearly doubles. Round 7's dip
+fills and round 6's spike comes down, so the danger rises and then tapers instead of lurching.
+And the win rate is 23.5% against 22.3%, which is the same game.
+
+One note on reading these, because I nearly shipped a worse curve off them. An intermediate
+candidate measured 27.5% at 200 runs and looked like it had made the game meaningfully easier,
+so I raised two rounds to correct it — and that came back at 29.0%, higher than what it was
+supposed to fix. At 200 runs the standard error on a win rate near 25% is about three points,
+so neither number could tell those curves apart and I was tuning against noise. The table above
+is 400 runs, the same as the baseline it is compared against, which is the only reason the
+comparison means anything.
+
+Rounds 4, 6 and 8 are the Ordeals, and their numbers climb least. That is deliberate, and it is
+the one place the curve looks flat on purpose: an Ordeal takes a tool away rather than asking for
+more, so the round takes its difficulty from its rule. The Bookseller names it before you spend,
+which is why the number does not have to.
+
+APPRENTICE scales SCHOLAR per round, so moving SCHOLAR moved it too, and its round 2 would have
+gone from 480 to 1,740 against a beginner floor whose 80th percentile is 842. Every fraction was
+re-derived to hold APPRENTICE at the numbers it was already tested at — except round 2, which
+moves from 480 to 900 for the same reason SCHOLAR's did.
+
+### Round 1 is not round 2, and the tests said so
+
+Round 1 went up to 500 in the first draft of this curve, on the same argument that moved round
+2: a round nobody can lose is a round with nothing in it. Three tests failed — the two
+Bookseller ones and the full run — all of them tests that clear round 1 by playing the first
+three cards as dealt, which is exactly the beginner the floor measures.
+
+The argument is right about round 2 and wrong about round 1, and the difference is that round 1
+is the tutorial. 500 sits near the 30th percentile of that floor: it does not add a decision,
+it fails one beginner in three on the first screen they ever play. It is back at 350, which is
+where the file already said it belonged and said why.
+
+---
+
 ## 7. Reference games
 
 These were pulled apart as systems — what each one does mechanically, and what I took or
