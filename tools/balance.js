@@ -32,6 +32,20 @@ const PLAY = flag("play", "optimal");
    numbers taken a week apart. resolve() reads figureFor off the script's global
    scope, which is what makes the swap possible at all. */
 if (ARGS.includes("--nofigures")) ctx.figureFor = () => null;
+/* --noledger is the pre-ledger game exactly: nothing is banked and nothing
+   levels. Both halves are stubbed on purpose rather than just the scoring
+   one — with banking left on, the ladder-reach report at the bottom would
+   still print real levels next to flattened scores, which reads as a bug.
+
+   figPay() calls figLevel() unqualified, so it resolves off the script's
+   global scope; same mechanism --nofigures uses on figureFor. Note this
+   does NOT redirect api.figLevel, which was captured at export time — so
+   the report below reads the real function and a 0 there means banking
+   genuinely stopped, which is what makes it a usable alarm. */
+if (ARGS.includes("--noledger")) {
+  ctx.figLevel = () => 0;
+  ctx.noteFigure = () => null;
+}
 /* --targets 1400,3300,... scores a candidate curve without editing the game, so
    a sweep can run several curves at once instead of serially rewriting the one
    file they all read from. */
@@ -162,6 +176,19 @@ function playRound(optimal) {
     G.hand = G.hand.filter(c => best.cards.indexOf(c) < 0);
     G.discard = G.discard.concat(best.cards);
     G.plays--;
+    /* play() banks the figure once a hand commits; this loop never calls
+       play(), so it banks it here. Without this the ladder would be dead in
+       every simulated run and the win rate would describe the old game.
+
+       bestPlay() scores candidates through api.resolve(), which reads the
+       ledger, so the policy values a levelled shape correctly WITHOUT being
+       told to. What it does not do is invest — it will not take a weaker
+       hand now to level a shape for later, because it only ever looks at
+       the hand in front of it. That makes this number a FLOOR on what the
+       ladder is worth, not a ceiling: a player who commits to a shape on
+       purpose does better than this. */
+    /* through ctx, not the captured export, so --noledger can stub it */
+    ctx.noteFigure(best.cards);
     G.roundScore += best.total;
     G.total += best.total;
     if (best.mult > G.best.mult) G.best = { word: "", mult: best.mult, score: best.total };
@@ -285,6 +312,9 @@ function shop(policy) {
 function runOnce(seed, opts) {
   api.newRun(seed);
   const G = api.G;
+  /* The highest figure level this run reached, reported so a regression that
+     stops the ledger banking shows up as a zero rather than as silence. */
+  const topFig = () => Math.max(0, ...api.FIGURES.map(f => api.figLevel(f.id)));
   /* Memory: from run 2 onward a real player starts holding a Lens they earned.
      The simulator never called endRun, so it never banked one, and every run it
      measured was somebody's first. */
@@ -302,7 +332,7 @@ function runOnce(seed, opts) {
   for (let round = 0; round < api.ROUNDS; round++) {
     const cleared = playRound(opts.optimal);
     if (!cleared) {
-      return { reached: round + 1, won: false, total: G.total,
+      return { reached: round + 1, won: false, total: G.total, topFig: topFig(),
                lenses: G.lenses.map(l => l.id), bestMult: G.best.mult };
     }
     let reward = 4 + G.plays + G.discards;
@@ -313,7 +343,7 @@ function runOnce(seed, opts) {
     if (!opts.noShop && !opts.solo) shop(opts.buy);
     api.startRound();
   }
-  return { reached: api.ROUNDS, won: true, total: G.total,
+  return { reached: api.ROUNDS, won: true, total: G.total, topFig: topFig(),
            lenses: G.lenses.map(l => l.id), bestMult: G.best.mult };
 }
 
@@ -328,6 +358,13 @@ function headline() {
   const opts = { optimal: PLAY === "greedy" ? false : PLAY, buy: BUY };
   const res = [];
   for (let s = 0; s < RUNS; s++) res.push(runOnce("bal-" + s, opts));
+
+  /* How far the ladder actually got. This exists to be a regression alarm:
+     if playRound ever stops calling noteFigure, every number above still
+     prints and every one of them silently describes the pre-ledger game.
+     A row of zeroes here is that failure, made visible. */
+  const tops = res.map(r => r.topFig || 0).sort((a, b) => a - b);
+  const banked = res.filter(r => (r.topFig || 0) > 0).length;
 
   const wins = res.filter(r => r.won).length;
   const reach = Array.from({ length: api.ROUNDS + 1 }, () => 0);
@@ -350,6 +387,12 @@ function headline() {
       + "  x" + mults[Math.floor(mults.length * q)].toFixed(1));
   });
   console.log("  max  x" + mults[mults.length - 1].toFixed(1));
+  console.log("\nFigure ladder reached  (0 across the board = the ledger is not being banked)");
+  console.log("  runs that levelled anything  " + banked + " of " + res.length
+    + "  (" + (banked / res.length * 100).toFixed(1) + "%)");
+  console.log("  best level in a run   p50 " + tops[Math.floor(tops.length * 0.5)]
+    + "   p90 " + tops[Math.floor(tops.length * 0.9)]
+    + "   max " + tops[tops.length - 1]);
   return res;
 }
 

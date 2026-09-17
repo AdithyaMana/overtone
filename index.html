@@ -323,6 +323,52 @@ button{ font-family: inherit; color: inherit; }
 }
 .lensbar-head b{ color: var(--lens-lit); font-weight:700; font-size: 14px; }
 .rail{ display:flex; gap:8px; flex-wrap:wrap; min-height: 54px; align-items:stretch; }
+
+/* ---------- the figure ledger ----------
+   Gold, because gold is already what every figure payout on this board is
+   written in. Flat fills and a hard rule above it, same as everything else. */
+/* Sits inside .lensbar-head between the label and the count, so it adds no
+   height to the board at all - it lives in a row that was already there. */
+.figbar{
+  display: flex; flex-wrap: nowrap; gap: 0 13px; align-items: center;
+  margin: 0 auto; min-width: 0; overflow: hidden;
+}
+.figp{ display: flex; align-items: center; gap: 5px; }
+.figp b{
+  font-size: 10px; letter-spacing: .09em; font-weight: 700;
+  color: var(--text-faint);
+}
+.figp.lit b{ color: var(--gold); }
+.figp i{ width: 6px; height: 6px; border-radius: 2px; background: var(--inset); }
+.figp.lit i{ background: rgba(239,163,29,.28); }
+.figp i.on{ background: var(--gold); }
+/* Below this the header row cannot hold five names as well as LENSES and the
+   count, so the names go and the pips stay. The pips are the part that has
+   to survive: the exact figure is spelled out on the stage the moment cards
+   are selected, but which shape is furthest along is only readable here. */
+@media (max-width: 1080px){
+  .figp b{ display: none; }
+  .figbar{ gap: 0 9px; }
+}
+@media (max-width: 420px){
+  .figbar{ gap: 0 6px; }
+  .figp{ gap: 3px; }
+  .figp i{ width: 5px; height: 5px; }
+}
+
+/* the level beside the named figure, at the moment of choosing */
+.stage-hint .figlv{
+  display: inline-block; margin-left: 7px; vertical-align: middle;
+  font-family: var(--f-display); font-size: 11px; letter-spacing: .04em;
+  background: var(--gold); color: #12181C; border-radius: 3px; padding: 2px 5px;
+}
+.stage-hint .figlv.new, .figtab th .lvtag.new{
+  background: var(--chips); color: #06233D;
+}
+.figtab th .lvtag{
+  font-style: normal; margin-left: 7px; font-size: 10px; letter-spacing: .05em;
+  background: var(--gold); color: #12181C; border-radius: 3px; padding: 1px 5px;
+}
 .lens{
   position:relative; border-radius: 7px; padding: 7px 9px;
   min-width: 118px; max-width: 168px; cursor: pointer;
@@ -2010,6 +2056,7 @@ button{ font-family: inherit; color: inherit; }
       <div class="lensbar slab">
         <div class="lensbar-head">
           <span>LENSES</span>
+          <div class="figbar" id="figBar"></div>
           <b id="lensCount">0/5</b>
         </div>
         <div class="rail" id="rail"></div>
@@ -2792,8 +2839,129 @@ FIGURES.forEach(function(f){ FIG_BY_ID[f.id] = f; });
    in resolve(), in the reorder nudge, and in the reference panel. */
 function figValue(f){ return f ? f.chips + 150 * f.mult : 0; }
 
-/* Every figure these words make IN THIS ORDER, best first. Pure — the board
-   calls it on every click. */
+/* ---------- the ledger ----------
+   Every escalating quantity in this game used to be a number the player did
+   not touch - the target, the Lens multipliers. Every quantity they DID
+   touch - which three words, in which order, for which shape - was the same
+   in round 8 as in round 1. Nothing a player LEARNED fed back into the run,
+   so somebody who had spotted four CHAINs was in the identical mechanical
+   position to somebody who had spotted none. That is what "stagnant" meant,
+   and it was never a balance problem: 400 simulated runs put SCHOLAR at
+   23.5%, inside the healthy band, with deaths spread across rounds 4-8.
+
+   So the ledger. Play a shape and the run remembers; the next one of that
+   shape pays more.
+
+   The thresholds are TRIANGULAR rather than linear, and that is the whole
+   design. A linear ladder capped at four tops out on the fourth play of a
+   thirty-two-play run and re-stagnates everything after it. At 1/3/6/10 the
+   top is a ten-play commitment, which is a third of a run spent on one
+   shape - a strategy rather than a formality. */
+const FIG_STEPS = [1, 3, 6, 10];
+/* Priced by measurement, and repriced once. The first ladder ran to +140%
+   chips and +2 multiplier at the top, which put 400 simulated runs at
+   29.0% against a 23.5% baseline — inside the healthy band on the point
+   estimate and outside it on the evidence, because the standard error at
+   that sample is 2.27 points and the interval reached 33.4%.
+
+   The reasoning that overpriced it is worth writing down. "Chips are the
+   safe term, the multiplier is the runaway one" is true of a figure's own
+   additive multiplier and false of this engine, because chips are then
+   multiplied by the whole deck. At the x60 a real run reaches by p90, the
+   old +448 chips on a maxed MONOGRAM was worth twenty-seven thousand
+   points. When the multiplier is large nothing is the safe term.
+
+   So: +80% chips at the top instead of +140%, and the multiplier moves
+   once, at the very top, for the shape you actually committed ten plays
+   to. These percentages are also exact on every base in FIG_PAY — no cell
+   in the ladder rounds at all, which is a property worth keeping.
+
+   Level 0 pays exactly what the game paid before this existed, so the
+   ladder is additive on top of the shipped balance and a first-timer's
+   first figure is untouched. */
+/* Percent, not a float factor: 110 * 2.05 evaluates to 225.49999999999997 and
+   rounds to 225 where the arithmetic says 226. These steps happen to divide
+   every FIG_PAY base exactly, so nothing rounds — but the integer form is
+   what guarantees that rather than luck. */
+const FIG_CHIPS_PCT = [100, 120, 140, 160, 180];
+const FIG_MULT_UP = [0, 0, 0, 0, 1];
+const FIG_MAX_LV = FIG_STEPS.length;
+/* A level is a thing you have become, not a number you have accumulated.
+   "COLUMN LV3" is a counter; FLUENT is the same fact said as mastery, which
+   is the whole point of the ledger. The register follows the difficulties
+   this game already has - APPRENTICE, SCHOLAR - so a shape you have worked
+   at reads as craft rather than as inventory. */
+const FIG_LEVEL_NAME = ["", "NOTICED", "PRACTISED", "FLUENT", "INSTINCT"];
+function figLevelName(id){ return FIG_LEVEL_NAME[figLevel(id)] || ""; }
+
+/* The counterweight. Without it the ladder only ever says "do the thing you
+   already did", and a run collapses onto one shape by round three. The first
+   of a shape in a run pays once, flat - flat on purpose, so discovering a
+   STAIR (80 base) is worth as much as discovering a MONOGRAM (320), and the
+   cheap shapes you would otherwise never touch become worth one visit.
+
+   That is the breadth-against-depth decision the session asked for: every
+   hand, deepen a shape you know or go and find one you do not.
+
+   It lives in resolve() rather than in figPay() for two reasons. figPay's
+   level 0 must keep paying exactly what the shipped game paid - that is a
+   spec constraint and a test - and a bonus folded into the ladder would
+   break it. And resolve() is where one-off terms belong. */
+const FIG_FOUND = 150;
+
+function figCount(id){ return (G && G.figSeen && G.figSeen[id]) || 0; }
+function figLevel(id){
+  const n = figCount(id);
+  let lv = 0;
+  for(let i = 0; i < FIG_STEPS.length; i++) if(n >= FIG_STEPS[i]) lv = i + 1;
+  return lv;
+}
+/* How many more of this shape before it levels again, or 0 at the cap. */
+function figToNext(id){
+  const lv = figLevel(id);
+  return lv >= FIG_MAX_LV ? 0 : FIG_STEPS[lv] - figCount(id);
+}
+/* The ONE place the ladder is applied, so every surface that reads a figure
+   reads the same number. */
+function figPay(id, bind){
+  /* COLUMN and STAIR have no two-word entry, so the old fallback chain
+     (bind, then 2) could land on undefined and throw inside the scoring
+     path. figuresIn never asks for those at two words, so this was
+     unreachable — but an unreachable throw in resolve() is one refactor
+     away from being reachable, and it would take the hand with it. The
+     chain now ends somewhere that exists for every figure in the table. */
+  const tbl = FIG_PAY[id];
+  const base = tbl[bind] || tbl[3] || tbl[2];
+  const lv = figLevel(id);
+  return { chips: Math.round(base.chips * FIG_CHIPS_PCT[lv] / 100),
+           mult: base.mult + FIG_MULT_UP[lv],
+           lv: lv };
+}
+/* Banked when a hand commits - by play() in the game and by the simulator in
+   tools/balance.js, so both count the same thing. It counts the figure that
+   SCORED, never the ones merely present: a hand holds several and resolve()
+   pays exactly one. That is also what keeps PAIR honest without a special
+   case. PAIR is reachable in ~95% of hands, so levelling everything present
+   would max it on the first turn - but it only ever SCORES when nothing
+   better was there, so it levels on the consolation track, which is where a
+   shape that costs nothing to find belongs.
+
+   Not called from resolve(). resolve() is pure because renderPreview runs it
+   on every click, and a ledger that advanced on preview would pay a number
+   the board never showed. */
+function noteFigure(cards){
+  if(!G) return null;
+  const f = figureFor(cards);
+  if(!f) return null;
+  G.figSeen = G.figSeen || {};
+  G.figSeen[f.id] = (G.figSeen[f.id] || 0) + 1;
+  return f.id;
+}
+
+/* Every figure these words make IN THIS ORDER, best first. Side-effect free —
+   the board calls it on every click. It reads the run's ledger, so the same
+   three words are worth more later in a run than they were at the start;
+   what it never does is CHANGE the ledger. */
 function figuresIn(cards){
   const out = [];
   if(!cards || cards.length < 2) return out;
@@ -2830,8 +2998,9 @@ function figuresIn(cards){
 
   const bind = Math.min(w.length, 3);
   return out.map(function(id){
-    const pay = FIG_PAY[id][bind] || FIG_PAY[id][2];
-    return { id:id, n:FIG_BY_ID[id].n, d:FIG_BY_ID[id].d, chips:pay.chips, mult:pay.mult };
+    const pay = figPay(id, bind);
+    return { id:id, n:FIG_BY_ID[id].n, d:FIG_BY_ID[id].d,
+             chips:pay.chips, mult:pay.mult, lv:pay.lv };
   }).sort(function(a,b){ return figValue(b) - figValue(a); });
 }
 function figureFor(cards){ const f = figuresIn(cards); return f.length ? f[0] : null; }
@@ -3313,6 +3482,10 @@ function newRun(seedStr, fresh){
     coachStep: null,
     /* what each Lens has grown to this run, keyed by Lens id */
     lensState: {},
+    /* how many times each figure has SCORED this run. The run's record of
+       what the player has learned to see. Dies with the run on purpose:
+       that is what makes a run a story rather than a save file. */
+    figSeen: {},
     /* which Lens in the rail is opened out to its full rule */
     openLens: null,
     /* a round result deferred while the opening tutorial finishes */
@@ -3643,14 +3816,17 @@ function resolve(cards){
      thing that multiplies them has to be earned twice. */
   const fig = figureFor(cards);
   if(fig){
-    chips += fig.chips;
+    /* read-only: resolve() stays pure, play() is what banks the count */
+    const found = figCount(fig.id) === 0 ? FIG_FOUND : 0;
+    chips += fig.chips + found;
     const answering = cards.filter(function(c){
       return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
     }).length;
     const paid = Math.round(fig.mult * answering / cards.length);
     mult += paid;
     events.push({ k:"card", i:-1, cls:"m", fig:fig.id, answering:answering, paid:paid,
-                  txt: fig.n + " +" + fig.chips
+                  found:found,
+                  txt: fig.n + (found ? " \u00b7 FIRST" : "") + " +" + (fig.chips + found)
                      + (paid ? " and +" + paid + " mult" : ", no answer so no multiplier"),
                   chips:chips, mult:mult });
   }
@@ -3757,6 +3933,9 @@ async function play(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.plays--;
+  /* After resolve(), never before: this hand is paid at the level it had
+     when the player chose it, and the count moves for the next one. */
+  noteFigure(cards);
   /* the one place growth is banked */
   for(const gid in res.growth){
     G.lensState[gid] = (G.lensState[gid] || 0) + res.growth[gid];
@@ -5522,7 +5701,14 @@ function renderPreview(){
   hint.innerHTML =
       '<span class="hand-name' + (solo || fig ? '' : ' none') + '">'
     +   (solo ? resonanceName(hits) : (fig ? fig.n : "NO FIGURE")) + '</span>'
-    + (fig ? '<span class="fig-pay' + (short ? ' short' : '') + '">+' + fig.chips
+    + (fig && fig.lv ? '<span class="figlv" title="Level ' + fig.lv + ' of '
+        + FIG_MAX_LV + ' — you have played this shape ' + figCount(fig.id)
+        + ' times this run">' + FIG_LEVEL_NAME[fig.lv] + '</span>' : '')
+    + (fig && figCount(fig.id) === 0
+        ? '<span class="figlv new" title="Your first of this shape this run">FIRST +'
+          + FIG_FOUND + '</span>' : '')
+    + (fig ? '<span class="fig-pay' + (short ? ' short' : '') + '">+'
+             + (fig.chips + (figCount(fig.id) === 0 ? FIG_FOUND : 0))
              + ' and +' + paid + ' mult'
              + (short ? ' <i>(' + answering + ' of ' + cards.length + ' answer)</i>' : '')
              + '</span>' : '')
@@ -5538,6 +5724,8 @@ function renderPreview(){
   const nm = hint.querySelector(".hand-name");
   if(nm && !solo) nm.onclick = function(){ showFigures(); };
   say((solo ? resonanceName(hits) : (fig ? fig.n : "No figure"))
+      + (fig && fig.lv ? ", " + FIG_LEVEL_NAME[fig.lv] : "")
+      + (fig && figCount(fig.id) === 0 ? ", your first this run, plus " + FIG_FOUND : "")
       + (fig ? ", plus " + fig.chips + " and " + fig.mult + " multiplier" : "")
       + ". Worth " + res.total.toLocaleString() + " points."
       + (better ? " In another order these make " + better.n + "." : ""));
@@ -5547,14 +5735,27 @@ function renderPreview(){
    Balatro shows you its hand rankings from the first second, and the game is
    better for it: the list is not a spoiler, it is the puzzle. Same here. */
 function showFigures(back){
+  /* What the shapes are worth TO THIS PLAYER, not what they are worth in
+     the abstract. A reference panel quoting the unlevelled table would be
+     the board advising a play it then declines to pay for.
+
+     Only while a run is actually live, though. G outlives the run that
+     made it — endRun sets G.over and nothing clears it — so opening this
+     from the title after finishing a run was quoting the dead run's
+     levels at somebody whose next run starts at zero. */
+  const live = G && !G.over;
   const rows = FIGURES.map(function(f){
-    const pay = FIG_PAY[f.id];
+    const lv = live ? figLevel(f.id) : 0;
     const cell = function(n){
-      const q = pay[n];
-      return q ? '<td>+' + q.chips + ' &middot; +' + q.mult + ' mult</td>'
-               : '<td class="no">no</td>';
+      const base = FIG_PAY[f.id][n];
+      if(!base) return '<td class="no">no</td>';
+      const q = live ? figPay(f.id, n) : base;
+      return '<td>+' + q.chips + ' &middot; +' + q.mult + ' mult</td>';
     };
-    return '<tr><th>' + f.n + '<span>' + f.d + '</span></th>' + cell(2) + cell(3) + '</tr>';
+    return '<tr><th>' + f.n
+      + (lv ? '<em class="lvtag">' + FIG_LEVEL_NAME[lv] + '</em>'
+            : live ? '<em class="lvtag new">FIRST +' + FIG_FOUND + '</em>' : '')
+      + '<span>' + f.d + '</span></th>' + cell(2) + cell(3) + '</tr>';
   }).join("");
   showPanel(''
     + '<h2>The figures</h2>'
@@ -5712,8 +5913,31 @@ function renderControls(){
     + (rd.id === "scholar" ? "" : " \u00b7 " + rd.n);
 }
 
+/* Five shapes, four pips each, lit to the level this run has earned. No
+   numbers: this row is for scanning "which shape is mine", and the exact
+   figure is spelled out on the stage the moment cards are selected. */
+function renderFigBar(){
+  const bar = document.getElementById("figBar");
+  if(!bar || !G) return;
+  bar.innerHTML = FIGURES.map(function(f){
+    const lv = figLevel(f.id);
+    let pips = "";
+    for(let i = 1; i <= FIG_MAX_LV; i++)
+      pips += '<i aria-hidden="true"' + (i <= lv ? ' class="on"' : '') + '></i>';
+    const left = figToNext(f.id);
+    const said = f.n + (lv ? ", " + FIG_LEVEL_NAME[lv] + ", level " + lv
+                              + " of " + FIG_MAX_LV
+                            : ", not yet played, worth " + FIG_FOUND + " to find")
+      + (left ? ", " + left + " more to level " + (lv + 1) : lv ? ", at its best" : "");
+    return '<span class="figp' + (lv ? " lit" : "") + '" title="' + said + '"'
+      + ' role="img" aria-label="' + said + '">'
+      + '<b aria-hidden="true">' + f.n.replace(/^THE /, "") + '</b>'
+      + pips + '</span>';
+  }).join("");
+}
+
 function render(){
-  renderDemand(); renderRail(); renderHand(); renderControls(); renderPreview();
+  renderDemand(); renderRail(); renderFigBar(); renderHand(); renderControls(); renderPreview();
   coachSet(G.coachStep);
   /* Anything that redraws the board can move what the tutorial is pointing at,
      and a fifth of a second of a spotlight sitting off its target is visible.

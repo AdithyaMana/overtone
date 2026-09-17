@@ -1389,10 +1389,16 @@ test.describe("the Bookseller tells the truth", () => {
          date, which would make this test start failing on a Tuesday for no
          reason anyone could find.
 
-         On this seed a bare deck tops out at 4,484 against round 3's 6,500.
-         GLUTTON pays x2.5 for a three-word hand, which covers it. */
+         On this seed a bare deck tops out at 9,615 against 20,000. GLUTTON
+         pays x2.5 for a three-word hand, which covers it.
+
+         The round moved from 2 to 4 when the figure ledger's discovery
+         bonus went in: a bare deck now finds each of the five shapes once
+         for a flat 150 apiece, which lifted its ceiling past round 3's
+         target on this seed. Same seed, same Lens, same assertions — the
+         round where the gap exists is what changed. */
       newRun("reality-near", true);
-      G.round = 2; G.lenses = []; G.lensState = {}; G.bank = 20;
+      G.round = 4; G.lenses = []; G.lensState = {}; G.bank = 20;
       G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "glut"), cost: 6 }];
       openShop(9);
       const el = document.querySelector(".reality");
