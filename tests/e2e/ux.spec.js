@@ -549,6 +549,98 @@ test.describe("the main menu", () => {
     await expect(page.locator("#title")).toBeVisible();
   });
 
+  /* The deal. It is the one thing on the front door that only this game
+     could put there, and the whole of its value is that it is TRUE — three
+     of the cards the run is about to be played with, not decoration. */
+  test("the hand on the menu is the hand the run starts with", async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.setItem("overtone:tutorial", "true"); } catch (e) {}
+    });
+    await page.goto(GAME);
+    const shown = await page.evaluate(() =>
+      [].map.call(document.querySelectorAll("#titleDeal .card .wt"), n => n.textContent));
+    expect(shown).toHaveLength(3);
+
+    await page.click("#titlePlay");
+    const dealt = await page.evaluate(() =>
+      [].map.call(document.querySelectorAll("#hand .card .wt"), n => n.textContent).slice(0, 3));
+    expect(dealt).toEqual(shown);
+  });
+
+  test("and it says so, rather than saying today", async ({ page }) => {
+    await page.goto(GAME);
+    const cap = page.locator("#titleDeal .cap");
+    await expect(cap).toContainText("opening hand");
+    await enterGame(page);
+    await page.click("#homeBtn");
+    /* mid-run those same cards are not an opening hand any more */
+    await expect(cap).toContainText("on the table");
+
+    /* toContainText reads textContent and passes on display:none, so say out
+       loud where the caption is actually drawn: on a phone the cards go above
+       the wordmark, where three cards over the name of the game need no label
+       and the label would cost the door its room. */
+    const wide = page.viewportSize().width > 880;
+    if (wide) await expect(cap).toBeVisible();
+    else await expect(cap).toBeHidden();
+  });
+
+  test("a finished run is not offered as today's hand", async ({ page }) => {
+    /* G outlives the run, so the cards are still sitting there. Captioning a
+       dead run as the hand you are about to play would be the menu lying. */
+    await page.goto(GAME);
+    await page.evaluate(() => { G.over = true; showTitle(); });
+    await expect(page.locator("#titleDeal")).toBeHidden();
+    /* and the column closes rather than standing empty beside the door */
+    await expect(page.locator("#titleCard")).toHaveClass(/solo/);
+    await expect(page.locator("#titlePlay")).toBeVisible();
+  });
+
+  test("the record shows the numbers that exist and no others", async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("overtone:runs", "6");
+        localStorage.setItem("overtone:best", "31000");
+        localStorage.setItem("overtone:tutorial", "true");
+      } catch (e) {}
+    });
+    await page.goto(GAME);
+    const line = page.locator("#title .runstat");
+    await expect(line).toContainText("31,000");
+    /* BEST · APPRENTICE none was an empty stat holding room on the one
+       screen with none to spare */
+    await expect(line).not.toContainText("apprentice");
+    /* with one number there is nothing to tell apart, so it is just "best" */
+    await expect(line).toContainText("best");
+  });
+
+  test("the arrow keys reach every door on it", async ({ page }) => {
+    /* The stops used to be .mrow and .segs. They are a button, a segmented
+       control, a swap and four text links now, and the walk has to cover all
+       of them or part of the menu is keyboard-only by accident. */
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("overtone:runs", "4");
+        localStorage.setItem("overtone:tutorial", "true");
+        localStorage.setItem("overtone:memory", JSON.stringify("chron"));
+      } catch (e) {}
+    });
+    await page.goto(GAME);
+    const ids = [];
+    for (let i = 0; i < 7; i++) {
+      await page.keyboard.press("ArrowDown");
+      ids.push(await page.evaluate(() =>
+        document.activeElement.id || document.activeElement.className));
+    }
+    expect(ids[0]).toBe("titlePlay");
+    expect(ids[1]).toContain("diffopt");
+    expect(ids.slice(2)).toEqual(
+      ["titleCarry", "titleHelp", "titleFigs", "titleTut", "titleSound"]);
+    /* and the row under the cursor is marked, not just focused */
+    await page.keyboard.press("ArrowUp");
+    await expect(page.locator("#title .sel")).toHaveCount(1);
+  });
+
   test("the game can be left and come back to", async ({ page }) => {
     await page.goto(GAME);
     await page.click("#titlePlay");

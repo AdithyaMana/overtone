@@ -1252,218 +1252,261 @@ button{ font-family: inherit; color: inherit; }
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
 /* ---------- the title screen ----------
-   Not a settings page with a PLAY button on it. A short stack of entries you
-   walk with the arrow keys, anchored left the way a game menu is, over a
-   vignette and a scanline. Everything that needed a paragraph to explain
-   itself was the wrong entry. */
+   Two objects and the identity, instead of five rows speaking five visual
+   languages. THE DOOR is PLAY with the two things pressing PLAY will actually
+   do folded inside it — how hard, and what it carries in — one line each and
+   no prose. THE SHELF under it is the four ways off this screen, as text,
+   because they are a footer and not four slabs competing with PLAY.
+
+   And beside them, THE DEAL: three cards of the hand the run actually starts
+   with. They cost nothing — newRun() has already dealt them before the menu
+   is shown — and they are the one thing only this game could put on its front
+   door. They also teach the card before the tutorial does.
+
+   Written to the rules at the top of this file, which the old title screen
+   broke on every line: flat fills, hard shadows, colour as information. Blue
+   is the door, gold is where you are standing, and nothing else here spends a
+   colour at all. */
 .title{
   /* Under the veil on purpose: a panel opened FROM the menu has to sit on top
      of it, or reading the rules shows you a dimmed rectangle behind the menu
      you were just looking at. Above the tutorial, which must never run here. */
   position: fixed; inset: 0; z-index: 72;
-  display: flex; align-items: flex-start;
-  padding: 26px clamp(20px, 9vw, 120px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 26px clamp(18px, 5vw, 64px);
   overflow-y: auto;
-  background:
-    radial-gradient(ellipse 70% 60% at 22% 26%, rgba(0,147,255,.14), transparent 62%),
-    radial-gradient(ellipse 62% 55% at 88% 88%, rgba(254,95,85,.12), transparent 60%),
-    var(--bg);
+  background: var(--bg);
 }
 /* Centred only where centring cannot clip: a flex item with auto margins in a
    scroller loses its own top once the content outgrows the box. */
 @media (min-height: 720px){ .title{ align-items: center; } }
 .title[hidden]{ display:none !important; }
-/* the room the cabinet is standing in */
+/* One ambient light so the screen has a middle, in place of the scanline and
+   vignette stack that used to sit here. */
 .title::before{
   content:""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
-  background:
-    repeating-linear-gradient(rgba(0,0,0,0) 0 2px, rgba(0,0,0,.17) 2px 4px),
-    radial-gradient(ellipse 72% 66% at 42% 46%, transparent 42%, rgba(0,0,0,.55));
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0,147,255,.08), transparent 66%);
 }
 .title-card{
   position: relative; z-index: 2;
-  width: 100%; max-width: 430px; margin: auto 0;
+  width: 100%; max-width: 900px; margin: auto 0;
+  display: grid; grid-template-columns: minmax(0, 400px) auto;
+  justify-content: center; align-items: center; gap: 0 52px;
   animation: titleIn .45s cubic-bezier(.2,1,.3,1) both;
 }
+/* No hand to show — a finished run's cards are not today's opening hand and
+   saying so would be a lie. The column closes rather than standing empty. */
+.title-card.solo{ grid-template-columns: minmax(0, 430px); }
 @keyframes titleIn{ 0%{ opacity:0; transform: translateY(14px) } 100%{ opacity:1; transform:none } }
 
-.title-head{ margin: 0 0 20px; }
+.title-head{ margin: 0 0 22px; }
 .title .title-mark{
-  font-size: clamp(34px, 8.5vw, 56px); margin: 0 0 9px; letter-spacing: .04em;
-  text-shadow: 4px 4px 0 var(--mult), 0 0 36px rgba(254,95,85,.3);
+  font-size: clamp(34px, 6vw, 58px); margin: 0; letter-spacing: .04em;
+  text-shadow: 4px 4px 0 var(--mult);
 }
 .tagline{
-  margin: 0; color: var(--text-dim);
+  margin: 8px 0 0; color: var(--text-faint);
   font-size: 12px; letter-spacing: .13em; text-transform: uppercase;
 }
-.title-rule{
-  height: 2px; margin: 15px 0 12px;
-  background: linear-gradient(90deg, var(--gold), rgba(239,163,29,0) 78%);
-}
 
-/* ---------- the entries ---------- */
-.mlist{ display: flex; flex-direction: column; gap: 5px; }
-.mrow{
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  text-align: left; cursor: pointer; border: 0; border-radius: 0 6px 6px 0;
-  padding: 12px 14px;
-  font-family: var(--f-display); font-size: 14px; letter-spacing: .09em;
-  text-transform: uppercase; text-shadow: var(--drop-sm);
-  color: var(--text-dim);
-  background: linear-gradient(90deg, rgba(44,65,80,.92), rgba(44,65,80,.12));
-  border-left: 3px solid rgba(112,136,154,.4);
-  transition: color .12s ease, background .12s ease, border-color .12s ease,
-              transform .1s ease;
+/* ---------- the door ---------- */
+.door{
+  background: var(--panel); border-radius: 9px; padding: 9px;
+  box-shadow: 0 5px 0 var(--edge);
 }
-/* the caret, which is the whole point of a menu you walk rather than read */
-.mrow .mk{
-  flex: none; width: 8px; height: 11px; opacity: 0;
-  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%);
-  transition: opacity .12s ease;
+.go{
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; border: 0; cursor: pointer; text-align: left;
+  padding: 17px 18px; border-radius: 7px;
+  background: var(--chips); color: #06233D;
+  box-shadow: 0 5px 0 var(--chips-d);
+  font-family: var(--f-display); font-size: 21px; letter-spacing: .05em;
+  transition: filter .12s ease, transform .06s ease, box-shadow .12s ease;
 }
-.mrow .ml{ flex: 1; }
-.mrow .mx{
-  font-family: var(--f); font-size: 11px; letter-spacing: .08em;
-  text-transform: none; text-shadow: none; color: var(--text-faint);
+.go .d{
+  font-family: var(--f); font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  opacity: .72; font-variant-numeric: tabular-nums;
 }
-.mrow.sel, .mrow:hover{
-  color: #FFF; border-left-color: var(--gold); transform: translateX(5px);
-  background: linear-gradient(90deg, rgba(239,163,29,.3), rgba(44,65,80,.12));
+.go:hover, .go.sel{ filter: brightness(1.1); }
+.go:active{ transform: translateY(5px); box-shadow: none; }
+.go:focus-visible{ outline: 3px solid var(--gold); outline-offset: 3px; }
+/* The second door, for a run there is something to come back to. Same object,
+   quieter, because a new run is not what somebody pressing HOME came for. */
+.go.alt{
+  margin-top: 7px; padding: 12px 18px; font-size: 15px;
+  background: var(--panel-2); color: #FFF; text-shadow: var(--drop-sm);
+  box-shadow: 0 4px 0 var(--edge);
 }
-.mrow.sel .mk, .mrow:hover .mk{ opacity: 1; }
-.mrow.sel .mx, .mrow:hover .mx{ color: var(--text-dim); }
-.mrow:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
-.mrow:active{ transform: translateX(5px) scale(.992); }
-/* the entry the screen exists for */
-.mrow.go{
-  font-size: 18px; padding: 15px 14px; color: #FFF;
-  background: linear-gradient(90deg, rgba(0,147,255,.6), rgba(0,147,255,.06));
-  border-left-color: var(--chips);
-}
-.mrow.go.sel, .mrow.go:hover{
-  background: linear-gradient(90deg, rgba(0,147,255,.92), rgba(0,147,255,.14));
-  border-left-color: var(--gold);
-}
+.go.alt:active{ transform: translateY(4px); }
 
-/* ---------- how hard, as a switch rather than two essays ---------- */
-.mseg{
-  margin: 13px 0 0; padding: 12px 14px; border-radius: 0 6px 6px 0;
-  border-left: 3px solid rgba(112,136,154,.4);
-  background: linear-gradient(90deg, rgba(44,65,80,.55), rgba(44,65,80,.06));
-  transition: border-color .12s ease;
+/* the two lines inside the door: what PLAY is about to do */
+.setup{ margin-top: 9px; display: flex; flex-direction: column; gap: 7px; }
+.set{
+  display: flex; align-items: center; gap: 10px;
+  background: var(--inset); border-radius: 6px; padding: 7px 7px 7px 12px;
+  box-shadow: inset 0 2px 0 rgba(0,0,0,.35);
+  transition: box-shadow .12s ease;
 }
-.mseg.sel{ border-left-color: var(--gold); }
-.msl{
-  font-family: var(--f-display); font-size: 11px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px;
+/* Where the arrow keys are standing. A bar rather than a ring, because the
+   pill inside the row carries a gold focus ring of its own and two frames
+   round the same thing is one too many. */
+.set.sel{ box-shadow: inset 3px 0 0 var(--gold), inset 0 2px 0 rgba(0,0,0,.35); }
+.set > .k{
+  flex: none;
+  font-size: 9.5px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--text-faint);
 }
-.segs{
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
-  background: var(--inset); border-radius: 7px; padding: 4px;
-  box-shadow: inset 0 2px 0 rgba(0,0,0,.4);
-}
+.segs{ display: flex; gap: 3px; margin-left: auto; }
 .diffopt{
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  flex-wrap: wrap; min-height: 44px; padding: 9px 6px;
+  min-height: 34px; padding: 8px 13px;
   border: 0; border-radius: 5px; cursor: pointer; background: transparent;
-  font-family: var(--f-display); font-size: 12px; letter-spacing: .07em;
+  font-family: var(--f-display); font-size: 11.5px; letter-spacing: .06em;
   color: var(--text-faint); text-shadow: var(--drop-sm);
   transition: background .12s ease, color .12s ease;
 }
 .diffopt:hover{ color: #FFF; }
-.diffopt[aria-pressed="true"]{
-  background: var(--lens); color: #FFF; box-shadow: 0 3px 0 var(--lens-d);
-}
+.diffopt[aria-pressed="true"]{ background: var(--panel-2); color: #FFF; }
 .diffopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
 /* what is not yours yet, marked on the thing it is not */
 .diffopt .tip{
   font-size: 8.5px; letter-spacing: .1em; text-shadow: none;
-  background: var(--gold); color: #12181C; border-radius: 3px; padding: 2px 5px;
+  background: rgba(112,136,154,.45); color: var(--text-dim);
+  border-radius: 3px; padding: 2px 5px;
 }
-.diffopt .tip.lock{ background: rgba(112,136,154,.45); color: var(--text-dim); }
-.diffopt:disabled{ cursor: not-allowed; opacity: .75; }
-.diffopt:disabled:hover{ color: var(--text-faint); }
+.diffopt:disabled{ cursor: not-allowed; color: #4D6172; }
+.diffopt:disabled:hover{ color: #4D6172; }
 
 /* the Lens the last finished run handed forward, named before PLAY rather
    than discovered on the board */
-.carry{
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 9px;
-  margin: 5px 0 0; padding: 9px 14px; border-radius: 0 6px 6px 0;
-  border-left: 3px solid var(--lens);
-  background: linear-gradient(90deg, rgba(155,123,224,.24), rgba(155,123,224,.03));
-}
-.carry .k{
-  font-family: var(--f-display); font-size: 9.5px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--lens-lit);
-}
 .carry .v{
-  font-family: var(--f-display); font-size: 12.5px; letter-spacing: .05em;
-  color: #FFF; text-shadow: var(--drop-sm);
+  font-family: var(--f-display); font-size: 12.5px; letter-spacing: .04em;
+  color: var(--lens-lit); text-shadow: var(--drop-sm);
 }
-.carry .d{ flex: 1 0 100%; font-size: 11.5px; line-height: 1.45; color: var(--text-dim); }
-/* Turned off, it is still the same row saying the same thing, so it keeps its
-   shape and loses its colour rather than disappearing. */
-.carry.off{
-  border-left-color: rgba(112,136,154,.45);
-  background: linear-gradient(90deg, rgba(44,65,80,.5), rgba(44,65,80,.05));
+/* Left behind, it is still the word for what you are leaving behind, so it
+   stays on the row and gets struck through rather than disappearing. */
+.carry .v.off{ color: var(--text-faint); text-decoration: line-through; }
+.swap{
+  margin-left: auto; border: 0; cursor: pointer; border-radius: 5px;
+  background: var(--panel); color: var(--text-dim);
+  font-family: var(--f); font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 8px 12px; min-height: 34px;
 }
+.swap:hover{ background: var(--panel-2); color: #FFF; }
+.swap:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
 .lens.static{ cursor: default; margin: 12px 0; }
-.carry.off .k{ color: var(--text-faint); }
-.carry.off .v{ color: var(--text-dim); }
-.carrybtn{
-  flex: 1 0 100%; margin-top: 7px; align-self: flex-start;
-  border: 0; border-radius: 6px; cursor: pointer; padding: 8px 12px; min-height: 36px;
-  font-family: var(--f-display); font-size: 10.5px; letter-spacing: .08em;
-  text-transform: uppercase; text-align: left;
-  background: rgba(0,0,0,.28); color: var(--text-dim); text-shadow: var(--drop-sm);
-}
-.carrybtn:hover{ color: #FFF; background: rgba(0,0,0,.42); }
-.carrybtn:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* the one line of consequence, under the door rather than inside it */
 .setnote{ font-size: 12.5px; color: var(--text-faint); margin: 0 0 15px; }
-.title .setnote{ margin: 9px 0 0; font-size: 12px; line-height: 1.55; }
+.title .setnote{ margin: 11px 2px 0; font-size: 12px; line-height: 1.55; }
+
+/* ---------- the shelf ---------- */
+.shelf{ margin: 24px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; }
+.shelf button{
+  border: 0; background: none; cursor: pointer; padding: 7px 9px; border-radius: 5px;
+  font-family: var(--f); font-size: 13px; font-weight: 600; color: var(--text-faint);
+  transition: color .12s ease, background .12s ease;
+}
+.shelf button:hover, .shelf button.sel{ color: #FFF; background: rgba(255,255,255,.06); }
+.shelf button:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.shelf i{ color: var(--panel); font-style: normal; }
 
 /* ---------- what the game has been keeping ---------- */
+/* A roguelite that keeps your record in localStorage and never shows it to you
+   is keeping a secret for no reason. One line, and only the numbers that
+   exist: an empty BEST on a front door is dead weight. */
 .title .runstat{
-  display: flex; flex-wrap: wrap; gap: 3px 22px; margin: 0;
-  background: none; padding: 0;
+  margin: 14px 0 0; font-size: 13px; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
 }
-.runstat > div{ background: none; padding: 0; }
-.runstat .k{
-  font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--text-faint);
+.runstat b{
+  font-family: var(--f-display); font-weight: 400; font-size: 15px; color: var(--text-dim);
 }
-.runstat .v{
-  font-family: var(--f-display); font-size: 17px; color: #FFF;
-  font-variant-numeric: tabular-nums; line-height: 1.3; text-shadow: var(--drop-sm);
-}
-.runstat .v.none{ color: var(--text-faint); }
 
+/* ---------- the deal ---------- */
+.opening{
+  display: flex; flex-direction: column; align-items: center; justify-self: center;
+  gap: 20px;
+}
+.opening[hidden]{ display: none; }
+.fan{ display: flex; justify-content: center; }
+.opening .card{
+  margin: 0 2px; cursor: default;
+  /* .card.static turns the transform off, and a fan is nothing but transform */
+  transform-origin: 50% 120%;
+  transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg));
+  box-shadow: 0 4px 0 var(--card-edge), 0 9px 18px rgba(0,0,0,.45);
+}
+.opening .cap{
+  font-size: 11px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--text-faint); text-align: center;
+}
+/* The board shrinks its cards on a phone down to 74x98, because seven of them
+   have to fit above the controls. Three do not, and the whole point of putting
+   them here is that a new player reads one before the tutorial hands them
+   seven — so the deal holds the card at the size it was drawn at, on every
+   screen. Every one of these outranks the responsive rule it is undoing on
+   specificity rather than on order. */
+.opening .card{
+  width: 104px; height: 192px; min-height: 0;
+  padding: 7px; border-radius: 7px; --strip: 17px;
+}
+.opening .card-inner{ gap: 5px; }
+.opening .card .art{ height: 56px; flex: none; border-radius: 5px; padding: 0 4px; }
+.opening .card .art .icons{ gap: 3px; }
+.opening .card .art .ms{ font-size: 16px; }
+.opening .card .w{ font-size: 15px; }
+.opening .card .base{ font-size: 13px; right: 7px; bottom: 5px; }
+.opening .card .len{ font-size: 11px; left: 7px; bottom: 3px; }
+.opening .card .tags{ flex: initial; height: auto; gap: 3px; }
+.opening .card .tg{ font-size: 10px; padding: 2px 5px; letter-spacing: .02em; line-height: normal; }
 
+/* On a phone the deal goes on top, where it is the first thing seen, and the
+   caption goes: three cards over the word OVERTONE need no label. */
+@media (max-width: 880px){
+  .title-card{ grid-template-columns: minmax(0, 1fr); max-width: 430px; gap: 0; }
+  .opening{ order: -1; margin-bottom: 20px; }
+  .opening .cap{ display: none; }
+}
+@media (max-width: 420px){
+  .fan{ transform: scale(.88); transform-origin: top center; height: 176px; }
+}
 /* A title screen with PLAY below the fold is the one layout failure a menu
-   cannot have. A short screen is a wide screen turned on its side, so it gets
-   the name on the left and the entries beside it rather than a squeeze. */
-@media (max-height: 560px){
+   cannot have. A short screen is a wide screen turned on its side: the deal
+   comes out, and the name goes beside the door rather than above it. */
+@media (max-width: 560px){
+  .shelf{ gap: 2px 8px; }
+  .shelf button{ font-size: 12.5px; padding: 7px 5px; }
+  .shelf i{ display: none; }
+}
+/* Compact enough that centring cannot clip: the deal is out and the whole
+   screen is two short columns. */
+@media (max-height: 620px) and (min-height: 340px){ .title{ align-items: center; } }
+@media (max-height: 620px){
   .title{ padding: 14px clamp(14px, 5vw, 60px); }
-  .title-card{
-    max-width: 780px; display: grid; align-items: center; gap: 0 28px;
-    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  .opening{ display: none; }
+  .title-card, .title-card.solo{
+    grid-template-columns: minmax(0, 1fr); max-width: 780px;
+  }
+  .title-side{
+    display: grid; align-items: center; gap: 0 28px;
+    grid-template-columns: minmax(0, 230px) minmax(0, 1fr);
   }
   .title-head{ margin: 0; }
-  .title .title-mark{ font-size: clamp(26px, 5vw, 40px); text-shadow: 3px 3px 0 var(--mult); }
+  .title .title-mark{ font-size: clamp(24px, 4vw, 34px); text-shadow: 3px 3px 0 var(--mult); }
   .tagline{ font-size: 10.5px; }
-  .title-rule{ margin: 11px 0 9px; }
-  .mrow{ padding: 9px 12px; font-size: 13px; }
-  .mrow.go{ padding: 11px 12px; font-size: 15.5px; }
-  .mseg{ margin-top: 8px; padding: 9px 12px; }
-  .msl{ margin-bottom: 6px; }
-  .diffopt{ min-height: 38px; padding: 7px 5px; }
-  .carry{ padding: 7px 12px; }
-  .carry .d{ display: none; }
-  .title .setnote{ margin-top: 6px; font-size: 11px; }
-  .runstat .v{ font-size: 15px; }
+  .title .runstat{ margin-top: 10px; font-size: 11px; }
+  .runstat b{ font-size: 13px; }
+  .door{ padding: 7px; }
+  .go{ padding: 12px 14px; font-size: 16px; }
+  .go.alt{ padding: 10px 14px; font-size: 13px; }
+  .setup{ margin-top: 7px; }
+  .shelf{ margin-top: 13px; }
+  .title .setnote{ margin-top: 8px; font-size: 11px; }
 }
-@media (max-height: 560px) and (max-width: 660px){
-  .title-card{ grid-template-columns: 1fr; }
+@media (max-height: 620px) and (max-width: 660px){
+  .title-side{ grid-template-columns: minmax(0, 1fr); }
+  .title-head{ margin: 0 0 14px; }
 }
 
 #menuBtn, #homeBtn{ display:inline-flex; align-items:center; gap:7px; }
@@ -2106,14 +2149,16 @@ button{ font-family: inherit; color: inherit; }
 <div class="stamp" id="stamp" hidden><span id="stampText"></span></div>
 
 <div class="title" id="title">
-  <div class="title-card">
-    <div class="title-head">
-      <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
-      <p class="tagline">Meaning is the physics</p>
-      <div class="title-rule" aria-hidden="true"></div>
-      <div class="runstat" id="titleStats"></div>
+  <div class="title-card" id="titleCard">
+    <div class="title-side">
+      <div class="title-head">
+        <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
+        <p class="tagline">Meaning is the physics</p>
+        <p class="runstat" id="titleStats"></p>
+      </div>
+      <div class="title-main" id="titleBody"></div>
     </div>
-    <div class="title-main" id="titleBody"></div>
+    <div class="opening" id="titleDeal" hidden></div>
   </div>
 </div>
 
@@ -6015,12 +6060,14 @@ function showTitle(){
   const mem = store.get("memory", null);
   const memLens = mem && LENSES.find(function(l){ return l.id === mem; });
 
-  function row(id, label, cls, acc){
-    return '<button class="mrow' + (cls ? " " + cls : "") + '" type="button" id="' + id + '">'
-      + '<span class="mk" aria-hidden="true"></span>'
-      + '<span class="ml">' + label + '</span>'
-      + (acc ? '<span class="mx">' + acc + '</span>' : '')
-      + '</button>';
+  /* Every stop the arrow keys walk carries .tnav, so the order they are
+     walked in is the order they are read in and nothing can drift apart. */
+  function door(id, label, acc, alt){
+    return '<button class="go tnav' + (alt ? ' alt' : '') + '" type="button" id="' + id + '">'
+      + label + (acc ? '<span class="d">' + acc + '</span>' : '') + '</button>';
+  }
+  function shelf(id, label){
+    return '<button class="tnav" type="button" id="' + id + '">' + label + '</button>';
   }
 
   /* Never lock the one they are standing on, whatever storage says. */
@@ -6034,52 +6081,55 @@ function showTitle(){
       + '</button>';
   }).join("");
 
-  /* What it means to press the thing you just chose, in one line. A player who
-     has a run on the table is told the run keeps the difficulty it was dealt,
-     because changing it under them would be the game cheating. */
-
-
+  /* The door: PLAY, and folded inside the same slab the two things pressing
+     PLAY will actually do. What either one MEANS goes underneath it, where it
+     is consequence rather than furniture — a front door does not need two
+     paragraphs of body copy on it. */
   document.getElementById("titleBody").innerHTML = ''
-    + '<div class="mlist">'
-    +   (live ? row("titleResume", "Resume run", "go", "Round " + (G.round + 1)) : '')
-    +   row("titlePlay", live ? "New run" : (first ? "Play" : "Play the daily"),
-            live ? "" : "go", todayKey())
-    +   (!live && memLens
-          ? '<div class="carry' + (prefs.carryMemory ? '' : ' off') + '">'
+    + '<div class="door">'
+    +   (live ? door("titleResume", "Resume run", "Round " + (G.round + 1)) : '')
+    +   door("titlePlay", live ? "New run" : (first ? "Play" : "Play the daily"),
+             todayKey(), live)
+    +   '<div class="setup">'
+    +     '<div class="set">'
+    +       '<span class="k" id="titleDiffLabel">How hard</span>'
+    +       '<div class="segs tnav" role="group" aria-labelledby="titleDiffLabel">' + pills + '</div>'
+    +     '</div>'
+    +     (!live && memLens
+          ? '<div class="set carry' + (prefs.carryMemory ? '' : ' off') + '">'
             + '<span class="k">' + (prefs.carryMemory ? 'Carrying in' : 'Starting clean') + '</span>'
-            + '<span class="v">' + escapeHtml(prefs.carryMemory ? memLens.n : 'No Lens') + '</span>'
-            + '<span class="d">' + (prefs.carryMemory
-                ? escapeHtml(memLens.d)
-                : escapeHtml(memLens.n) + ' stays where it is.')
-              + '</span>'
-            + '<button class="carrybtn" id="titleCarry" type="button">'
-            + (prefs.carryMemory
-                ? 'Start clean instead'
-                : 'Carry ' + escapeHtml(memLens.n) + ' in') + '</button></div>'
+            + '<span class="v' + (prefs.carryMemory ? '' : ' off') + '">'
+            + escapeHtml(memLens.n) + '</span>'
+            + '<button class="swap tnav" id="titleCarry" type="button">'
+            + (prefs.carryMemory ? 'Start clean' : 'Carry it in') + '</button></div>'
           : '')
-    +   '<div class="mseg">'
-    +     '<div class="msl" id="titleDiffLabel">How hard</div>'
-    +     '<div class="segs" role="group" aria-labelledby="titleDiffLabel">' + pills + '</div>'
-    +     '<p class="setnote" id="titleNote"></p>'
     +   '</div>'
-    +   row("titleHelp", "How to play")
-    +   row("titleFigs", "The figures")
-    +   row("titleTut", "Run the tutorial")
-    +   row("titleSound", "Sound &amp; feel")
+    + '</div>'
+    + '<p class="setnote" id="titleNote"></p>'
+    + '<div class="shelf">'
+    +   shelf("titleHelp", "How to play") + '<i aria-hidden="true">\u00b7</i>'
+    +   shelf("titleFigs", "The figures") + '<i aria-hidden="true">\u00b7</i>'
+    +   shelf("titleTut", "Tutorial") + '<i aria-hidden="true">\u00b7</i>'
+    +   shelf("titleSound", "Sound &amp; feel")
     + '</div>';
 
-  const stat = function(k, v){
-    return '<div><div class="k">' + k + '</div><div class="v' + (v ? '' : ' none') + '">'
-      + (v ? v.toLocaleString() : 'none') + '</div></div>';
-  };
   /* A roguelite that keeps your record in localStorage and never shows it to
-     you is keeping a secret for no reason. Shown flat, not as three tiles. */
+     you is keeping a secret for no reason. One line — and only the numbers
+     that exist, because BEST · APPRENTICE none is an empty stat taking up
+     room on the one screen with nothing to spare. The difficulty is named
+     only when there are two of them to tell apart. */
+  const bests = [{ n: "scholar", v: store.get("best", 0) },
+                 { n: "apprentice", v: store.get("best:apprentice", 0) }]
+    .filter(function(b){ return b.v > 0; });
   document.getElementById("titleStats").innerHTML = runs
-    ? stat("Runs", runs)
-      + stat("Best \u00b7 Scholar", store.get("best", 0))
-      + stat("Best \u00b7 Apprentice", store.get("best:apprentice", 0))
+    ? '<b>' + runs.toLocaleString() + '</b> run' + (runs === 1 ? '' : 's')
+      + bests.map(function(b){
+          return ' \u00b7 ' + (bests.length > 1 ? b.n + ' best' : 'best')
+            + ' <b>' + b.v.toLocaleString() + '</b>';
+        }).join('')
     : '';
 
+  titleDeal();
   el.hidden = false;
 
   const resume = document.getElementById("titleResume");
@@ -6113,13 +6163,52 @@ function showTitle(){
   });
   paintDiff();
 
-  /* Hover moves the caret without stealing the keyboard's place in the list. */
+  /* Hover moves the mark without stealing the keyboard's place in the list. */
   titleItems().forEach(function(n, i){
-    const stop = n.closest(".mrow") || n.closest(".mseg");
+    const stop = titleStop(n);
     if(stop) stop.onmouseenter = function(){ titleMark(i); };
     n.addEventListener("focus", function(){ titleMark(i); });
   });
   titleMark(titleSel);
+}
+
+/* Three cards of the hand this run starts with, fanned, beside the door.
+
+   They are free: start() calls newRun(null) before it shows the menu, so the
+   deal already exists and was being thrown away unseen. What it buys is a
+   front door only Overtone could have, and a player who has read a card
+   before the tutorial hands them seven.
+
+   It is shown only when it is TRUE. A finished run's hand is not today's
+   opening hand, and captioning it as one would be the game lying on its own
+   menu — so the column closes instead. */
+function titleDeal(){
+  const wrap = document.getElementById("titleDeal");
+  const card = document.getElementById("titleCard");
+  if(!wrap || !card) return;
+  const live = titleFromGame && G && !G.over;
+  const ok = G && G.hand && G.hand.length >= 3 && !G.over;
+  wrap.hidden = !ok;
+  card.classList.toggle("solo", !ok);
+  wrap.innerHTML = "";
+  if(!ok) return;
+
+  const fan = document.createElement("div");
+  fan.className = "fan";
+  G.hand.slice(0, 3).forEach(function(c, i){
+    const el = cardEl(c, true);
+    /* The pivot sits below the cards, so the tilt reads as one held fan
+       rather than three cards that happen to be crooked. */
+    el.style.setProperty("--rot", ((i - 1) * 4) + "deg");
+    el.style.setProperty("--dy", (i === 1 ? 0 : 6) + "px");
+    fan.appendChild(el);
+  });
+  wrap.appendChild(fan);
+
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  cap.textContent = live ? "The hand on the table" : "Today\u2019s opening hand";
+  wrap.appendChild(cap);
 }
 
 /* Which pill is lit, which is shut, and the one line under them. Done in place
@@ -6156,15 +6245,22 @@ function paintDiff(){
     : now.d + (shut ? ' <b>SCHOLAR</b> opens once you finish a run.' : '');
 }
 
-/* The stops on the list, top to bottom. The difficulty switch is one stop, and
-   the pill you are on is the one that is currently chosen. */
+/* The stops, in the order they are read in. The difficulty switch is one stop,
+   and the pill you are on is the one that is currently chosen. */
 function titleItems(){
   const el = document.getElementById("title");
   if(!el || el.hidden) return [];
-  return Array.prototype.map.call(el.querySelectorAll(".mrow, .segs"), function(n){
-    return n.classList.contains("mrow") ? n
-      : (n.querySelector('.diffopt[aria-pressed="true"]') || n.querySelector(".diffopt"));
+  return Array.prototype.map.call(el.querySelectorAll(".tnav"), function(n){
+    return n.classList.contains("segs")
+      ? (n.querySelector('.diffopt[aria-pressed="true"]') || n.querySelector(".diffopt"))
+      : n;
   }).filter(Boolean);
+}
+
+/* What lights up for a stop: the whole row for anything living inside one,
+   and the button itself for everything else. */
+function titleStop(n){
+  return n.closest(".set") || n.closest(".tnav") || n;
 }
 
 function titleMark(i){
@@ -6172,7 +6268,7 @@ function titleMark(i){
   if(!items.length) return;
   titleSel = (i + items.length) % items.length;
   items.forEach(function(n, k){
-    const stop = n.closest(".mrow") || n.closest(".mseg");
+    const stop = titleStop(n);
     if(stop) stop.classList.toggle("sel", k === titleSel);
   });
 }
