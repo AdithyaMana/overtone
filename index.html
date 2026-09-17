@@ -1144,6 +1144,43 @@ button{ font-family: inherit; color: inherit; }
 .switch[aria-pressed="true"]{ background: var(--green); color:#08241A; text-shadow:none; box-shadow: 0 3px 0 var(--green-d); }
 .switch:active{ transform: translateY(3px); box-shadow: none; }
 
+/* ---------- how loud ----------
+   Flat track, hard-lipped thumb, same two objects as every other control.
+   The input is 30px tall and invisible; only the track inside it is drawn,
+   so a finger gets a real target and the row still reads as a thin line. */
+.setrow .sinfo{ flex: 1; min-width: 0; }
+.vol{ display: flex; align-items: center; gap: 12px; margin-top: 7px; }
+.vol input[type="range"]{
+  -webkit-appearance: none; appearance: none;
+  flex: 1; min-width: 0; height: 30px; margin: 0;
+  background: transparent; cursor: pointer;
+}
+.vol input[type="range"]::-webkit-slider-runnable-track{
+  height: 6px; border-radius: 3px; background: var(--edge);
+}
+.vol input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none; appearance: none; border: 0;
+  width: 18px; height: 18px; margin-top: -6px; border-radius: 5px;
+  background: var(--panel-2); box-shadow: 0 2px 0 var(--edge);
+}
+.vol input[type="range"]::-moz-range-track{
+  height: 6px; border-radius: 3px; background: var(--edge);
+}
+.vol input[type="range"]::-moz-range-thumb{
+  border: 0; width: 18px; height: 18px; border-radius: 5px;
+  background: var(--panel-2); box-shadow: 0 2px 0 var(--edge);
+}
+.vol input[type="range"]:focus-visible{ outline: 3px solid var(--gold); outline-offset: 3px; }
+.vol .volv{
+  flex: none; width: 30px; text-align: right;
+  font-family: var(--f-display); font-size: 12px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+/* Muted, the level is still true and still there - it is just not the
+   thing you are able to change until the sound is back on. */
+.vol.off{ opacity: .34; }
+.vol.off input[type="range"]{ cursor: not-allowed; }
+
 .kbd{
   display:inline-block; font-size:11.5px; font-weight:700; padding:2px 7px;
   border-radius:4px; background: var(--inset); color:#FFF;
@@ -2857,18 +2894,21 @@ const prefs = {
   sfx:     store.get("sfx", true),
   music:   store.get("music", true),
   haptics: store.get("haptics", true),
-  /* Scoring used to take as long as the deck was big: a fixed beat per
-     trigger meant the six-event hand you start with resolved in a second
-     and a half and the twenty-event hand you spent the whole run building
-     took three times that. The game got slower exactly as it got good, so
-     the beat is budgeted now and this is how much of that budget to spend. */
-  quick:   store.get("quick", true),
+  /* How loud, rather than whether: the two switches above are mutes and
+     these are the levels under them. 1 is the level every sound in the
+     game was mixed at, so a player who never opens this hears what the
+     mix intended. */
+  musicVol: store.get("musicVol", 1),
+  sfxVol:   store.get("sfxVol", 1),
   carryMemory: store.get("carryMemory", true),
   difficulty: store.get("difficulty", "scholar")
 };
-/* One number, read by every beat in a hand, so the setting can never leave
-   half the animation fast and the other half slow. */
-function animScale(){ return prefs.quick ? 0.55 : 1; }
+/* One number, read by every beat in a hand, so no two parts of a hand can
+   disagree about how fast the game is. This was a switch with a slow side
+   on it. Nobody wants the slow side, and an option that changes the rhythm
+   of every hand is an option that makes the game feel inconsistent rather
+   than one that makes it feel yours. */
+function animScale(){ return 0.55; }
 function setPref(k, v){ prefs[k] = v; store.set(k, v); }
 
 /* ---------- haptics ----------
@@ -2906,7 +2946,7 @@ function audio(){
     const AC = window.AudioContext || window.webkitAudioContext;
     actx = new AC();
     bus = actx.createGain();
-    bus.gain.value = 0.9;
+    bus.gain.value = 0.9 * prefs.sfxVol;
 
     /* tanh soft clip: four layers at once should thicken, not clip */
     const shaper = actx.createWaveShaper();
@@ -3096,6 +3136,8 @@ const MUSIC_SRC = "audio/theme.mp3";
 /* The theme is scenery, not the show. It sat at .32 and swallowed the effects
    it is supposed to sit under. */
 const MUSIC_VOL = 0.15;
+/* The mixed level, times what the player asked for. */
+function themeVol(){ return MUSIC_VOL * prefs.musicVol; }
 let music = null, musicFade = null;
 
 function musicFadeTo(target, ms){
@@ -3122,7 +3164,7 @@ function musicStart(){
     /* Autoplay policy, a missing file, a browser with no codec: all of them
        land here, and none of them is worth breaking a hand of cards over. */
     if(p && p.catch) p.catch(function(){});
-    musicFadeTo(MUSIC_VOL, 1600);
+    musicFadeTo(themeVol(), 1600);
   }catch(e){}
 }
 function musicStop(){
@@ -3133,8 +3175,16 @@ function musicStop(){
 /* Drop the theme under a big moment so the moment is audible. */
 function musicDuck(ms){
   if(!music || music.paused) return;
-  musicFadeTo(MUSIC_VOL * 0.25, 70);
-  setTimeout(function(){ if(prefs.music) musicFadeTo(MUSIC_VOL, 800); }, ms || 700);
+  musicFadeTo(themeVol() * 0.25, 70);
+  setTimeout(function(){ if(prefs.music) musicFadeTo(themeVol(), 800); }, ms || 700);
+}
+
+/* A level has to land on the sound that is already playing, not on the next
+   one - a slider you cannot hear while you drag it is a slider you cannot
+   set. */
+function applyVol(){
+  if(bus) bus.gain.value = 0.9 * prefs.sfxVol;
+  if(music && !music.paused) musicFadeTo(themeVol(), 120);
 }
 
 /* Browsers gate audio behind a real gesture, and they do not all agree on
@@ -3735,13 +3785,28 @@ async function play(){
      the labels stop being readable, which is a different limit and a lower one. */
   const sp = animScale();
   const gap = Math.max(70, Math.min(190, Math.round((820 * sp) / Math.max(1, res.events.length))));
-  /* The figure is the opening beat and belongs to all three words at once, so
-     it keeps a hold of its own. Proportionate, but with a floor: it is the
-     only label that names a thing rather than printing a number, and the
-     longest string the scoring animation ever prints - THE COLUMN +150, no
-     answer so no multiplier. Budgeting that down with everything else was the
-     one compression in this pass that cost more than it bought. */
-  const figHold = Math.max(620, gap + Math.round(320 * sp));
+  /* The figure is the opening beat and belongs to all three words at once.
+     It held the hand still for 620ms against a 70ms beat, which is the
+     hitch at the front of every hand - eight beats of nothing moving.
+
+     Cutting it to two beats and letting the cards start underneath does
+     not work, and the reason is geometry rather than timing. Labels pick
+     a lane from how many are already in the air, so the figure takes lane
+     zero and the first card takes lane one - ten pixels apart. They also
+     rise at the same rate, so that ten pixels is all they ever get, and
+     the figure is the widest label the game prints. Measured: a card's
+     +20 came out 100% covered by THE MONOGRAM +320 and +5 mult.
+
+     Raising the figure's lane does not fix it either, because the card
+     lanes keep climbing with the stack and pass through wherever it is
+     put. So the figure keeps an exclusive beat, and the beat buys only
+     what it has to: 400ms rather than 620, with the label's life cut to
+     match so it is fading as the first card prints rather than hanging
+     over it. Still the longest beat in the hand, and no longer a stop. */
+  const figStep = Math.max(400, gap * 4);
+  /* Life is figHold + 240 in floatLabel, so this lands at figStep + 150:
+     up for its own beat and a breath after it, never longer. */
+  const figHold = figStep - 90;
   /* Both beats, so a label can be given a life that ends on the beat it was
      born on rather than on whichever one happens to be longer. */
   window.FLOAT_GAP = gap;
@@ -3759,7 +3824,7 @@ async function play(){
     chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, Math.max(120, gap * 2));
     setTally(ev.chips, ev.mult);
     if(ev.k === "lens") SFX.lens(); else SFX.score(e, ev.cls === "m");
-    await sleep(ev.fig ? figHold : gap);
+    await sleep(ev.fig ? figStep : gap);
   }
 
   await sleep(Math.round(180 * sp));
@@ -6021,21 +6086,32 @@ function startFromTitle(){
    looks for them — a second copy of all of it behind a button on the board
    was two menus disagreeing about which one was the menu. */
 function showMenu(back){
-  function row(key, label, desc){
-    return '<div class="setrow"><div><div class="sl">' + label + '</div>'
-      + '<div class="sd">' + desc + '</div></div>'
+  /* The switch mutes, the slider sets the level, and they share a row -
+     because a second row that also says "music" is a second row. */
+  function row(key, label, desc, vol){
+    return '<div class="setrow"><div class="sinfo"><div class="sl">' + label + '</div>'
+      + '<div class="sd">' + desc + '</div>'
+      + (vol ? slider(key, vol, label) : '')
+      + '</div>'
       + '<button class="switch" type="button" data-pref="' + key + '" aria-pressed="'
       + (prefs[key] ? "true" : "false") + '">' + (prefs[key] ? "ON" : "OFF") + '</button></div>';
+  }
+  function slider(key, vol, label){
+    const pc = Math.round(prefs[vol] * 100);
+    return '<div class="vol' + (prefs[key] ? '' : ' off') + '">'
+      + '<input type="range" min="0" max="100" step="5" value="' + pc + '"'
+      +   ' data-vol="' + vol + '" aria-label="' + label + ' volume"'
+      +   (prefs[key] ? '' : ' disabled') + '>'
+      + '<span class="volv">' + pc + '</span></div>';
   }
 
   showPanel('<h2>Sound &amp; feel</h2>'
     + '<div class="sub">Saved on this device</div>'
-    + row("music", "Music", "The track that loops under the game.")
-    + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
+    + row("music", "Music", "The track that loops under the game.", "musicVol")
+    + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.",
+        "sfxVol")
     + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry. "
         + "Browsers on iPhone do not allow it.")
-    + row("quick", "Quick scoring", "Hands resolve fast. Turn this off to watch every "
-        + "trigger land one at a time.")
     + '<div class="rowend end">'
     + '<button class="btn primary" id="closeSettings" type="button">'
     +   (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
@@ -6051,7 +6127,27 @@ function showMenu(back){
       if(k === "music"){ v ? musicStart() : musicStop(); }
       if(k === "sfx" && v) SFX.buy();
       if(k === "haptics" && v) buzz(18);
+      /* A level you cannot reach is a level that should not look reachable. */
+      const vr = b.parentNode.querySelector(".vol");
+      if(vr){
+        vr.classList.toggle("off", !v);
+        const sl = vr.querySelector("input");
+        if(sl) sl.disabled = !v;
+      }
       syncSoundBtn();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".vol input"), function(sl){
+    const out = sl.parentNode.querySelector(".volv");
+    sl.oninput = function(){
+      const n = parseInt(sl.value, 10) || 0;
+      out.textContent = n;
+      setPref(sl.dataset.vol, n / 100);
+      applyVol();
+    };
+    /* One sound at the level they landed on, not sixty on the way there. */
+    sl.onchange = function(){
+      if(sl.dataset.vol === "sfxVol" && prefs.sfx) SFX.score(0, false);
     };
   });
 }

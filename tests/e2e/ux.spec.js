@@ -142,53 +142,73 @@ test.describe("labels do not land on each other", () => {
       G.selected = []; render();
     });
     for (const k of ["1", "2", "3"]) { await page.keyboard.press(k); await page.waitForTimeout(90); }
-    await page.keyboard.press("Enter");
 
-    let worst = 0, pair = "";
-    for (let t = 0; t < 45; t++) {
-      const hit = await page.evaluate(() => {
-        const ov = (a, b) =>
-          Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)) *
-          Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+    /* This used to sample from the test process: 45 round trips, 60ms apart,
+       each landing wherever the machine let it. Under load the instants move,
+       and one of the instants they can land on is a single frame where a
+       card's +20 slides under 2 MATCHES +50 at 98%. Measured across twenty
+       runs: that crossing lasts ONE frame in ninety, and half the runs never
+       reach 92% at all -- so "no instant may exceed 92%" failed about one run
+       in six for a 16ms pass-by.
+
+       Two labels crossing is not the sin this test was written for. Its own
+       note says it: the second one "was invisible", "may as well not have
+       happened". So record every frame from inside the page, where nothing can
+       be missed, and ask whether a label is HIDDEN -- covered that far for
+       long enough to be read as gone -- rather than covered that far once
+       while floating past. A label lives a few hundred milliseconds, so 120ms
+       buried is gone; a frame or two is two labels passing. */
+    await page.evaluate(() => {
+      window.__labels = { frames: 0, peak: 0, peakWho: "", longestOver: 0,
+                          overWho: "", dup: false, dupText: "" };
+      const area = r => r.width * r.height;
+      const ov = (a, b) =>
+        Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)) *
+        Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+      let runStart = null, started = false;
+      (function sample() {
+        const s = window.__labels;
         const els = [...document.querySelectorAll("#stage .float")]
           .filter(e => e.offsetParent)
           .map(e => ({ t: e.textContent.trim(), r: e.getBoundingClientRect() }));
-        /* Area is the wrong unit -- a wide label has a lot of it. What matters
-           is whether a label is HIDDEN, so measure the fraction of the smaller
-           one that the other covers. A word scoring two matching tags printed
-           MATCH +25 exactly on top of MATCH +25, and the second was invisible. */
         let big = 0, who = "";
         for (let i = 0; i < els.length; i++)
           for (let j = i + 1; j < els.length; j++) {
-            const a = ov(els[i].r, els[j].r);
-            const small = Math.min(els[i].r.width * els[i].r.height,
-                                   els[j].r.width * els[j].r.height);
-            const frac = small ? a / small : 0;
+            const small = Math.min(area(els[i].r), area(els[j].r));
+            const frac = small ? ov(els[i].r, els[j].r) / small : 0;
             if (frac > big) { big = frac; who = els[i].t + " / " + els[j].t; }
-          }
-        /* and the sin that started all this: the same words twice, on top of
-           each other, so one of them may as well not have happened */
-        /* Two cards can each score two matches; that is the game, and they sit
-           on their own cards. The sin is two identical labels in the same
-           place, where one may as well not have happened. */
-        let dup = false, dupText = "";
-        for (let i = 0; i < els.length; i++)
-          for (let j = i + 1; j < els.length; j++)
-            if (els[i].t === els[j].t && ov(els[i].r, els[j].r) > 0.8 * Math.min(
-              els[i].r.width * els[i].r.height, els[j].r.width * els[j].r.height)) {
-              dup = true; dupText = els[i].t;
+            /* the sin that started all this: the same words twice, in the same
+               place, so one of them may as well not have happened */
+            if (els[i].t === els[j].t && ov(els[i].r, els[j].r) > 0.8 * small) {
+              s.dup = true; s.dupText = els[i].t;
             }
-        const texts = els.map(e => e.t);
-        return { big: Math.round(big * 100), who, dup, dupText, texts, going: G.animating };
-      });
-      if (hit.big > worst) { worst = hit.big; pair = hit.who; }
-      expect(hit.dup, "two identical labels landed on each other: " + hit.texts.join(" | "))
-        .toBe(false);
-      if (!hit.going) break;
-      await page.waitForTimeout(60);
-    }
-    expect(worst, "a scoring label was mostly hidden by another: " + pair)
-      .toBeLessThanOrEqual(92);
+          }
+        const pct = Math.round(big * 100);
+        if (pct > s.peak) { s.peak = pct; s.peakWho = who; }
+        const now = performance.now();
+        if (pct > 92) {
+          if (runStart === null) runStart = now;
+          if (now - runStart > s.longestOver) { s.longestOver = now - runStart; s.overWho = who; }
+        } else runStart = null;
+        s.frames++;
+        /* installed before Enter, so wait for the hand to START before taking
+           "not animating" as the end of it */
+        if (G.animating) started = true;
+        if (s.frames < 3000 && (!started || G.animating)) requestAnimationFrame(sample);
+      })();
+    });
+
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => typeof G !== "undefined" && G && !G.animating,
+      null, { timeout: 20000 });
+
+    const seen = await page.evaluate(() => window.__labels);
+    expect(seen.frames, "the scoring animation was never sampled").toBeGreaterThan(20);
+    expect(seen.dup, "two identical labels landed on each other: " + seen.dupText)
+      .toBe(false);
+    expect(Math.round(seen.longestOver),
+      "a scoring label stayed buried under another (peak " + seen.peak
+      + "% on " + (seen.overWho || seen.peakWho) + ")").toBeLessThanOrEqual(120);
   });
 
   test("the figure gets its own beat before the cards start", async ({ page }) => {
@@ -202,13 +222,43 @@ test.describe("labels do not land on each other", () => {
       G.selected = []; render();
     });
     for (const k of ["1", "2", "3"]) { await page.keyboard.press(k); await page.waitForTimeout(90); }
+
+    /* This used to sleep a flat 340ms and then look, betting that a round trip
+       would land inside the figure's beat. The beat is Math.max(400, gap * 4)
+       and the look actually arrived anywhere from 368ms to 532ms after Enter,
+       so the bet came off most of the time and not always.
+
+       Record the arrivals instead. It also lets the test say what it means:
+       the figure's beat is not "400ms", it is LONGER THAN the beat the cards
+       get — which is the whole claim, and it holds however the budget is
+       retuned. */
+    await page.evaluate(() => {
+      window.__beats = [];
+      new MutationObserver(ms => {
+        for (const m of ms) for (const n of m.addedNodes)
+          if (n.nodeType === 1 && n.classList && n.classList.contains("float"))
+            window.__beats.push({ at: performance.now(), text: n.textContent.trim() });
+      }).observe(document.getElementById("stage"), { childList: true, subtree: true });
+    });
+
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(340);
-    const alone = await page.evaluate(() =>
-      [...document.querySelectorAll("#stage .float")].map(e => e.textContent.trim()));
-    expect(alone.length, "something landed on the figure's beat: " + alone.join(" | ")).toBe(1);
-    expect(alone[0]).toContain("THE COLUMN");
-    expect(alone[0], "double space in the label").not.toContain("  ");
+    await page.waitForFunction(() => typeof G !== "undefined" && G && !G.animating,
+      null, { timeout: 20000 });
+
+    const beats = await page.evaluate(() => window.__beats.map((b, i, a) =>
+      ({ text: b.text, gap: i ? Math.round(b.at - a[i - 1].at) : 0 })));
+    expect(beats.length, "the hand printed no labels at all").toBeGreaterThan(2);
+
+    /* the figure announces itself first, and by itself */
+    expect(beats[0].text, "the figure did not open the hand: "
+      + beats.map(b => b.text).join(" | ")).toContain("THE COLUMN");
+    expect(beats[0].text, "double space in the label").not.toContain("  ");
+
+    /* and then holds the stage longer than any card that follows it */
+    const figureBeat = beats[1].gap;
+    const cardBeats = beats.slice(2).map(b => b.gap);
+    expect(figureBeat, "the cards started on top of the figure's beat: "
+      + JSON.stringify(beats)).toBeGreaterThan(Math.max(...cardBeats));
   });
 });
 

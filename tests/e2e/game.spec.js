@@ -1167,13 +1167,13 @@ test.describe("the opening tutorial", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("sound, vibration and motion", () => {
-  test("four separate switches, and they stick", async ({ page }) => {
+  test("three separate switches, and they stick", async ({ page }) => {
     await open(page);
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
     /* the board's button is sound; everything else is on the title screen */
     await expect(panel).toContainText("Sound & feel");
-    await expect(panel.locator(".switch")).toHaveCount(4);
+    await expect(panel.locator(".switch")).toHaveCount(3);
     /* the iPhone gap is stated rather than quietly shipped */
     await expect(panel).toContainText("Android only");
 
@@ -1193,6 +1193,41 @@ test.describe("sound, vibration and motion", () => {
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.click("#menuBtn");
     await expect(page.locator('.switch[data-pref="music"]')).toHaveText("OFF");
+  });
+
+  test("music and effects get a level, not only a mute", async ({ page }) => {
+    await open(page);
+    await page.click("#menuBtn");
+    const panel = page.locator("#panel");
+    /* two levels under three mutes: vibration has nothing to be loud about */
+    await expect(panel.locator(".vol input")).toHaveCount(2);
+
+    const sfx = panel.locator('.vol input[data-vol="sfxVol"]');
+    /* the default is the level the game was mixed at, so a player who never
+       opens this panel hears exactly what the mix intended */
+    await expect(sfx).toHaveValue("100");
+
+    /* driven from the keyboard, which is the path that has to work anyway */
+    await sfx.focus();
+    for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowLeft");
+    await expect(sfx).toHaveValue("40");
+    await expect(panel.locator('.vol:has(input[data-vol="sfxVol"]) .volv')).toHaveText("40");
+    expect(await page.evaluate(() => prefs.sfxVol)).toBeCloseTo(0.4, 5);
+
+    /* muting takes the level away rather than forgetting it */
+    await panel.locator('.switch[data-pref="sfx"]').click();
+    await expect(sfx).toBeDisabled();
+    await panel.locator('.switch[data-pref="sfx"]').click();
+    await expect(sfx).toBeEnabled();
+    await expect(sfx).toHaveValue("40");
+
+    /* and it is still 40 on the device tomorrow */
+    await page.click("#closeSettings");
+    await reloadKeeping(page, "overtone:sfxVol", "0.4");
+    await enterGame(page);
+    if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+    await page.click("#menuBtn");
+    await expect(page.locator('.vol input[data-vol="sfxVol"]')).toHaveValue("40");
   });
 
   test("the theme starts on the first gesture, and loops", async ({ page }) => {

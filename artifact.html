@@ -41,6 +41,8 @@
   --green-d:   #26795A;
   --lens:      #9B7BE0;
   --lens-d:    #5B3FA3;
+  /* the same purple, lifted until it clears 4.5:1 on the board's own ground */
+  --lens-lit:  #C3AEF2;
 
   --card:      #F6F1E4;
   --card-edge: #BFB49A;
@@ -144,6 +146,7 @@ button{ font-family: inherit; color: inherit; }
     padding: 14px 15px;
   }
   .tut-box.dock-top{ top: 8px !important; bottom: auto !important; }
+  .tut-box{ overflow-y: auto; }
   .tut-text{ font-size: 14px; line-height: 1.55; }
   .tut-text .do{ font-size: 13.5px; padding: 7px 10px; margin-top: 8px; }
   .tut-next{ padding: 11px 18px; }
@@ -313,7 +316,7 @@ button{ font-family: inherit; color: inherit; }
   display:flex; justify-content:space-between; align-items:center;
   font-size: 12px; letter-spacing:.1em; color: var(--text-dim); margin-bottom: 7px;
 }
-.lensbar-head b{ color: var(--lens); font-weight:700; font-size: 14px; }
+.lensbar-head b{ color: var(--lens-lit); font-weight:700; font-size: 14px; }
 .rail{ display:flex; gap:8px; flex-wrap:wrap; min-height: 54px; align-items:stretch; }
 .lens{
   position:relative; border-radius: 7px; padding: 7px 9px;
@@ -392,7 +395,54 @@ button{ font-family: inherit; color: inherit; }
   text-align:center; max-width: 56ch; text-shadow: var(--drop-sm);
 }
 .stage-hint b{ color: var(--gold); }
-.stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens); }
+/* --lens is the Lens purple, and at 13px on the stage it measured 4.36:1 —
+   under AA for body text, on the one line whose whole job is to be noticed. */
+.stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens-lit); }
+.stage-hint .fig-pay{
+  display:inline-block; margin-left:9px; font-size:13.5px; font-weight:700;
+  color: var(--gold); letter-spacing:.02em; vertical-align: middle;
+}
+/* a figure the round is not paying for in full says so, and says why */
+.stage-hint .fig-pay.short{ color: #F0C27A; }
+.stage-hint .fig-pay i{ font-style: normal; font-weight: 600; opacity: .8; font-size: 12px; }
+/* A hand with no figure still gets named, because the absence is information:
+   it is the one thing on the board you can still fix by picking differently. */
+.stage-hint .hand-name.none{ color:#93A6B3; box-shadow: 0 3px 0 var(--edge); }
+.stage-hint .hand-name{ cursor:pointer; }
+.dc-fig{ display:block; margin-top: 4px; }
+/* The portrait board is laid out to the pixel on a 667px screen — the hand's
+   bottom row clears the controls by one. A second line on the idle board is
+   worth more than it costs everywhere there is room for it, and costs more
+   than it is worth here, where the figures are still one tap away on the hand
+   name and in the help card. */
+@media (max-height: 700px){ .dc-fig{ display:none; } }
+.dc-text .figlink{
+  background:none; border:0; font:inherit; color: var(--gold);
+  font-weight:700; text-decoration: underline; text-underline-offset:3px; cursor:pointer;
+  /* It was 78x14: a real link, but not a real target. WCAG 2.5.8 asks 24, and
+     the negative margin that keeps the padding from growing the board also
+     pushes the box under .stage-hint, which then eats the bottom of it. */
+  display:inline-block; padding: 10px 6px; margin: -7px 0;
+  position: relative; z-index: 2;
+}
+.figtab{ width:100%; border-collapse:collapse; margin: 0 0 14px; font-size:13px; }
+.figtab th, .figtab td{ text-align:left; padding: 7px 8px; border-bottom:1px solid var(--edge); }
+.figtab thead th{
+  font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color: var(--text-faint); font-weight:700;
+}
+.figtab tbody th{ font-weight:700; color:#FFF; width: 44%; }
+.figtab tbody th span{
+  display:block; font-weight:400; font-size:12px; color: var(--text-dim);
+  letter-spacing:0; margin-top:2px; line-height:1.45;
+}
+.figtab td{ color: var(--gold); font-weight:700; white-space:nowrap;
+  font-variant-numeric: tabular-nums; vertical-align: top; }
+.figtab td.no{ color: var(--text-faint); font-weight:400; }
+@media (max-width: 560px){
+  .figtab th, .figtab td{ padding: 6px 5px; font-size:12px; }
+  .figtab tbody th{ width: 40%; }
+}
 .stage-hint .hand-name{
   display:inline-block; font-size: 17px; font-weight:700;
   background: var(--inset); color:#FFF;
@@ -469,7 +519,17 @@ button{ font-family: inherit; color: inherit; }
 .stamp{
   position: fixed; inset: 0; z-index: 58; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
+  /* ROUND CLEAR landed on a board still lit up and scoring, so the loudest
+     sentence in the game competed with sixty cards for the eye. Take the board
+     away for the second it is up. */
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(60,74,110,.34), transparent 72%),
+    rgba(5,6,16,.72);
+  backdrop-filter: blur(5px) saturate(.6);
+  -webkit-backdrop-filter: blur(5px) saturate(.6);
+  animation: stampVeil .22s ease-out;
 }
+@keyframes stampVeil{ 0%{ opacity:0 } 100%{ opacity:1 } }
 .stamp[hidden]{ display: none !important; }
 .stamp span{
   font-family: var(--f-display);
@@ -480,6 +540,7 @@ button{ font-family: inherit; color: inherit; }
   animation: stampIn .62s cubic-bezier(.15,1.7,.35,1) forwards;
 }
 .stamp.bad span{ background: var(--blind); box-shadow: 0 7px 0 var(--blind-d); }
+.stamp.going{ opacity: 0; transition: opacity .3s ease-in; }
 @keyframes stampIn{
   0%{ transform: scale(3.2) rotate(-12deg); opacity: 0; }
   38%{ transform: scale(.92) rotate(-3deg); opacity: 1; }
@@ -670,6 +731,28 @@ button{ font-family: inherit; color: inherit; }
   font-variant-numeric: tabular-nums; line-height: 1.1;
   opacity: .8;
 }
+/* Bottom left, opposite the value, in the same strip - so it costs the card
+   no room it was using and cannot land on a tag. Smaller and quieter than the
+   value because it is not a score: it is the one number on the card you read
+   ACROSS cards rather than on one, and what it has to do is make three equal
+   lengths, or a run of them, visible without being read one at a time. */
+.card .len{
+  /* Sits a couple of pixels lower than the value and on a tighter line box.
+     Tags fill from the LEFT, so the last row of them reaches this corner where
+     it never reaches the value's - at the same offset the two boxes touched by
+     a pixel on a phone. Nothing was visible, but the strip is supposed to be
+     clear and now it is. */
+  position: absolute; left: 7px; bottom: 3px; z-index: 3;
+  font-size: 11px; font-weight: 700; color: var(--card-ink);
+  font-variant-numeric: tabular-nums; line-height: 1;
+  opacity: .55;
+}
+/* Sharing a length with something already picked. The same gold a tag wears
+   when it answers the round: both of them mean this one counts. */
+.card .len.same{
+  opacity: 1; background: var(--gold); color: #12181C;
+  left: 5px; bottom: 2px; padding: 1px 4px; border-radius: 3px;
+}
 /* Tags fill the band from the top and stop at its edge. Three rows fit
    exactly; the handful of words carrying a fifth overtone lose their last row
    rather than pushing the plate around, and the plate is still showing every
@@ -704,16 +787,29 @@ button{ font-family: inherit; color: inherit; }
   100%{ transform: translateY(0) rotate(0) scale(1); }
 }
 
+/* --stack is how many labels are already in the air in this host. They live
+   900ms and land 130-210ms apart, so up to five share a card at once — and
+   every one of them used the same spot, which is how a word with two matching
+   overtones printed MATCH +25 exactly on top of MATCH +25. */
 .float{
-  position:absolute; left:50%; top:-8px; transform:translateX(-50%);
+  position:absolute;
+  /* Each label rises 60px over its 850ms life, so a vertical step alone still
+     lets two born 210ms apart cross. They fan sideways as well. */
+  left: calc(50% + (var(--stack, 0) - 1.5) * 34px);
+  top: calc(-8px - var(--stack, 0) * 22px);
+  transform:translateX(-50%);
   font-size: 14px; font-weight:700; white-space:nowrap; pointer-events:none;
   padding: 3px 9px; border-radius: 5px; z-index: 8;
   text-shadow: var(--drop-sm);
-  animation: floatUp .85s ease-out forwards;
+  animation: floatUp var(--flife, .85s) ease-out forwards;
 }
 .float.c{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .float.m{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
 .float.r{ background: var(--gold); color:#12181C; box-shadow: 0 3px 0 var(--gold-d); }
+/* The figure belongs to the whole hand rather than to any one word, so it gets
+   its own lane above the row instead of landing on the first card's labels. */
+.float.fig{ top: calc(-40px - var(--stack, 0) * 20px); font-size: 13px; z-index: 9; }
+@media (max-width: 620px){ .float.fig{ top: calc(-30px - var(--stack, 0) * 18px); font-size: 11.5px; } }
 @keyframes floatUp{
   0%{ opacity:0; transform: translate(-50%,6px) scale(.78); }
   16%{ opacity:1; transform: translate(-50%,-18px) scale(1.1); }
@@ -835,12 +931,53 @@ button{ font-family: inherit; color: inherit; }
 
 /* ---------- overlays ---------- */
 .veil{
-  position: fixed; inset:0; z-index: 40;
+  position: fixed; inset:0; z-index: 80;
   background: rgba(11,11,28,.92);
   display:flex; align-items:center; justify-content:center;
   padding: 18px; overflow-y:auto;
 }
 .veil[hidden]{ display:none !important; }
+
+/* ---------- the two moments that end something ----------
+   A round clearing and a run ending are the only screens a player stops at.
+   Everything else — the shop shelf, the Interpreter, the rules — is somewhere
+   they are passing through. These two get the board taken away properly:
+   darker, blurred back, and a light behind the panel so the eye lands on the
+   number rather than wandering over the cards it can no longer use. */
+.veil.moment{
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(70,84,120,.30), transparent 70%),
+    rgba(5,6,16,.965);
+  backdrop-filter: blur(7px) saturate(.55);
+  -webkit-backdrop-filter: blur(7px) saturate(.55);
+  animation: veilIn .3s ease-out;
+}
+@keyframes veilIn{ 0%{ opacity:0 } 100%{ opacity:1 } }
+.veil.moment .panel{
+  box-shadow: 0 5px 0 var(--edge), 0 26px 70px rgba(0,0,0,.55);
+}
+/* The headline is the sentence the run ended on; give it the room it earns. */
+.veil.moment .panel h2{ font-size: 30px; animation: heroIn .42s cubic-bezier(.2,1.3,.4,1) both; }
+.veil.moment .panel > .sub{ animation: heroIn .42s .06s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes heroIn{ 0%{ opacity:0; transform: translateY(9px) } 100%{ opacity:1; transform:none } }
+
+/* The one number a player is actually here for. */
+.veil.moment .stat.gold{
+  background: linear-gradient(180deg, rgba(239,163,29,.16), rgba(239,163,29,.06));
+  box-shadow: inset 0 0 0 1px rgba(239,163,29,.34);
+  animation: heroIn .42s .12s cubic-bezier(.2,1.3,.4,1) both;
+}
+.veil.moment .stat.gold .v{ font-size: 30px; }
+.veil.moment .unlock{ animation: heroIn .42s .18s cubic-bezier(.2,1.3,.4,1) both; }
+
+@media (max-width: 620px){
+  .veil.moment .panel h2{ font-size: 23px; }
+  .veil.moment .stat.gold .v{ font-size: 25px; }
+}
+@media (max-height: 500px) and (orientation: landscape){
+  .veil.moment .panel h2{ font-size: 20px; }
+  .veil.moment .stat.gold .v{ font-size: 21px; }
+}
 .panel{
   background: var(--panel); border-radius: 9px; padding: 22px;
   max-width: 640px; width:100%;
@@ -899,6 +1036,7 @@ button{ font-family: inherit; color: inherit; }
 }
 
 .rowend{ display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
+.rowend.end{ justify-content: flex-end; }
 .purse{ font-size: 17px; font-weight:700; color: var(--gold); text-shadow: var(--drop); }
 
 .share{
@@ -919,6 +1057,12 @@ button{ font-family: inherit; color: inherit; }
 .unlock .k{ font-size:11.5px; color:#D8CCF5; letter-spacing:.06em; }
 .unlock .v{ font-size:15px; font-weight:700; color:#FFF; margin-top:3px; text-shadow: var(--drop-sm); }
 .unlock .d{ font-size:12.5px; color:#E3DAF8; margin-top:3px; }
+/* the difficulty that just opened is not a Lens, and should not read as one */
+.unlock.open{ background: var(--green); box-shadow: 0 4px 0 var(--green-d); }
+.unlock.open .k{ color:#0A2E21; }
+.unlock.open .v{ color:#08241A; text-shadow:none; }
+.unlock.open .d{ color:#0D3728; }
+.unlock.open .btn{ margin-top: 10px; background: var(--felt-d); box-shadow: 0 4px 0 var(--edge); }
 
 #interpInput{
   width:100%; padding: 13px 14px; font-family: var(--f-display);
@@ -930,11 +1074,39 @@ button{ font-family: inherit; color: inherit; }
 .appraisal{ display:flex; gap:14px; align-items:center; margin:14px 0; min-height: 150px; }
 .appraisal .say{ font-size: 13px; color: var(--text-dim); line-height:1.55; }
 .appraisal .say .src{ display:block; font-size:11px; color: var(--text-faint); margin-top:8px; letter-spacing:.04em; }
+.appraisal:has(.interp-pick){ display:block; }
+.interp-pick .sub{ margin: 10px 0 7px; }
+.pickgrid{
+  display:grid; gap:5px; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+.pickopt{
+  display:flex; align-items:center; gap:6px; min-height:40px; padding:7px 9px;
+  border:0; border-radius:6px; cursor:pointer; text-align:left;
+  background: var(--inset); color: var(--text-dim);
+  font-family: var(--f); font-size:11.5px; font-weight:600; letter-spacing:.03em;
+  box-shadow: 0 2px 0 var(--edge);
+}
+.pickopt .lbl{ flex:1; }
+.pickopt .ms{ font-size:15px; line-height:1; }
+.pickopt:hover{ color:#FFF; }
+.pickopt[aria-pressed="true"]{
+  background: var(--gold); color:#12181C; box-shadow: 0 3px 0 var(--gold-d);
+}
+.pickopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.pickopt:active{ transform: translateY(2px); box-shadow:none; }
 .helplist{ margin:0 0 14px; padding-left:18px; color: var(--text-dim); font-size:14px; line-height:1.65; }
 .helplist li{ margin-bottom:7px; }
 
+.why{
+  background: var(--inset); border-left: 3px solid var(--gold);
+  border-radius: 0 8px 8px 0; padding: 13px 15px; margin: 12px 0 18px;
+}
+.why p{ margin: 0 0 9px; font-size: 13.5px; line-height: 1.6; color: var(--text-dim); }
+.why p:last-child{ margin-bottom: 0; }
+.why b{ color: #FFF; }
 .teach{ display:flex; flex-direction:column; gap:13px; margin: 4px 0 16px; }
 .teach-row{ display:flex; gap:12px; align-items:flex-start; }
+.teach-row > div:not(.teach-n){ flex:1; display:flex; flex-direction:column; gap:9px; }
 .teach-n{
   flex:none; width:28px; height:28px; border-radius:6px;
   background: var(--chips); color:#06233D; font-weight:700; font-size:15px;
@@ -967,6 +1139,43 @@ button{ font-family: inherit; color: inherit; }
 .switch[aria-pressed="true"]{ background: var(--green); color:#08241A; text-shadow:none; box-shadow: 0 3px 0 var(--green-d); }
 .switch:active{ transform: translateY(3px); box-shadow: none; }
 
+/* ---------- how loud ----------
+   Flat track, hard-lipped thumb, same two objects as every other control.
+   The input is 30px tall and invisible; only the track inside it is drawn,
+   so a finger gets a real target and the row still reads as a thin line. */
+.setrow .sinfo{ flex: 1; min-width: 0; }
+.vol{ display: flex; align-items: center; gap: 12px; margin-top: 7px; }
+.vol input[type="range"]{
+  -webkit-appearance: none; appearance: none;
+  flex: 1; min-width: 0; height: 30px; margin: 0;
+  background: transparent; cursor: pointer;
+}
+.vol input[type="range"]::-webkit-slider-runnable-track{
+  height: 6px; border-radius: 3px; background: var(--edge);
+}
+.vol input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none; appearance: none; border: 0;
+  width: 18px; height: 18px; margin-top: -6px; border-radius: 5px;
+  background: var(--panel-2); box-shadow: 0 2px 0 var(--edge);
+}
+.vol input[type="range"]::-moz-range-track{
+  height: 6px; border-radius: 3px; background: var(--edge);
+}
+.vol input[type="range"]::-moz-range-thumb{
+  border: 0; width: 18px; height: 18px; border-radius: 5px;
+  background: var(--panel-2); box-shadow: 0 2px 0 var(--edge);
+}
+.vol input[type="range"]:focus-visible{ outline: 3px solid var(--gold); outline-offset: 3px; }
+.vol .volv{
+  flex: none; width: 30px; text-align: right;
+  font-family: var(--f-display); font-size: 12px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+/* Muted, the level is still true and still there - it is just not the
+   thing you are able to change until the sound is back on. */
+.vol.off{ opacity: .34; }
+.vol.off input[type="range"]{ cursor: not-allowed; }
+
 .kbd{
   display:inline-block; font-size:11.5px; font-weight:700; padding:2px 7px;
   border-radius:4px; background: var(--inset); color:#FFF;
@@ -986,6 +1195,243 @@ button{ font-family: inherit; color: inherit; }
   0%,100%{ filter: brightness(1); }
   50%{ filter: brightness(1.35); }
 }
+/* Announced, never drawn. */
+.sr-only{
+  position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
+}
+/* ---------- the title screen ----------
+   Not a settings page with a PLAY button on it. A short stack of entries you
+   walk with the arrow keys, anchored left the way a game menu is, over a
+   vignette and a scanline. Everything that needed a paragraph to explain
+   itself was the wrong entry. */
+.title{
+  /* Under the veil on purpose: a panel opened FROM the menu has to sit on top
+     of it, or reading the rules shows you a dimmed rectangle behind the menu
+     you were just looking at. Above the tutorial, which must never run here. */
+  position: fixed; inset: 0; z-index: 72;
+  display: flex; align-items: flex-start;
+  padding: 26px clamp(20px, 9vw, 120px);
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse 70% 60% at 22% 26%, rgba(0,147,255,.14), transparent 62%),
+    radial-gradient(ellipse 62% 55% at 88% 88%, rgba(254,95,85,.12), transparent 60%),
+    var(--bg);
+}
+/* Centred only where centring cannot clip: a flex item with auto margins in a
+   scroller loses its own top once the content outgrows the box. */
+@media (min-height: 720px){ .title{ align-items: center; } }
+.title[hidden]{ display:none !important; }
+/* the room the cabinet is standing in */
+.title::before{
+  content:""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background:
+    repeating-linear-gradient(rgba(0,0,0,0) 0 2px, rgba(0,0,0,.17) 2px 4px),
+    radial-gradient(ellipse 72% 66% at 42% 46%, transparent 42%, rgba(0,0,0,.55));
+}
+.title-card{
+  position: relative; z-index: 2;
+  width: 100%; max-width: 430px; margin: auto 0;
+  animation: titleIn .45s cubic-bezier(.2,1,.3,1) both;
+}
+@keyframes titleIn{ 0%{ opacity:0; transform: translateY(14px) } 100%{ opacity:1; transform:none } }
+
+.title-head{ margin: 0 0 20px; }
+.title .title-mark{
+  font-size: clamp(34px, 8.5vw, 56px); margin: 0 0 9px; letter-spacing: .04em;
+  text-shadow: 4px 4px 0 var(--mult), 0 0 36px rgba(254,95,85,.3);
+}
+.tagline{
+  margin: 0; color: var(--text-dim);
+  font-size: 12px; letter-spacing: .13em; text-transform: uppercase;
+}
+.title-rule{
+  height: 2px; margin: 15px 0 12px;
+  background: linear-gradient(90deg, var(--gold), rgba(239,163,29,0) 78%);
+}
+
+/* ---------- the entries ---------- */
+.mlist{ display: flex; flex-direction: column; gap: 5px; }
+.mrow{
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  text-align: left; cursor: pointer; border: 0; border-radius: 0 6px 6px 0;
+  padding: 12px 14px;
+  font-family: var(--f-display); font-size: 14px; letter-spacing: .09em;
+  text-transform: uppercase; text-shadow: var(--drop-sm);
+  color: var(--text-dim);
+  background: linear-gradient(90deg, rgba(44,65,80,.92), rgba(44,65,80,.12));
+  border-left: 3px solid rgba(112,136,154,.4);
+  transition: color .12s ease, background .12s ease, border-color .12s ease,
+              transform .1s ease;
+}
+/* the caret, which is the whole point of a menu you walk rather than read */
+.mrow .mk{
+  flex: none; width: 8px; height: 11px; opacity: 0;
+  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transition: opacity .12s ease;
+}
+.mrow .ml{ flex: 1; }
+.mrow .mx{
+  font-family: var(--f); font-size: 11px; letter-spacing: .08em;
+  text-transform: none; text-shadow: none; color: var(--text-faint);
+}
+.mrow.sel, .mrow:hover{
+  color: #FFF; border-left-color: var(--gold); transform: translateX(5px);
+  background: linear-gradient(90deg, rgba(239,163,29,.3), rgba(44,65,80,.12));
+}
+.mrow.sel .mk, .mrow:hover .mk{ opacity: 1; }
+.mrow.sel .mx, .mrow:hover .mx{ color: var(--text-dim); }
+.mrow:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.mrow:active{ transform: translateX(5px) scale(.992); }
+/* the entry the screen exists for */
+.mrow.go{
+  font-size: 18px; padding: 15px 14px; color: #FFF;
+  background: linear-gradient(90deg, rgba(0,147,255,.6), rgba(0,147,255,.06));
+  border-left-color: var(--chips);
+}
+.mrow.go.sel, .mrow.go:hover{
+  background: linear-gradient(90deg, rgba(0,147,255,.92), rgba(0,147,255,.14));
+  border-left-color: var(--gold);
+}
+
+/* ---------- how hard, as a switch rather than two essays ---------- */
+.mseg{
+  margin: 13px 0 0; padding: 12px 14px; border-radius: 0 6px 6px 0;
+  border-left: 3px solid rgba(112,136,154,.4);
+  background: linear-gradient(90deg, rgba(44,65,80,.55), rgba(44,65,80,.06));
+  transition: border-color .12s ease;
+}
+.mseg.sel{ border-left-color: var(--gold); }
+.msl{
+  font-family: var(--f-display); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px;
+}
+.segs{
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  background: var(--inset); border-radius: 7px; padding: 4px;
+  box-shadow: inset 0 2px 0 rgba(0,0,0,.4);
+}
+.diffopt{
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-wrap: wrap; min-height: 44px; padding: 9px 6px;
+  border: 0; border-radius: 5px; cursor: pointer; background: transparent;
+  font-family: var(--f-display); font-size: 12px; letter-spacing: .07em;
+  color: var(--text-faint); text-shadow: var(--drop-sm);
+  transition: background .12s ease, color .12s ease;
+}
+.diffopt:hover{ color: #FFF; }
+.diffopt[aria-pressed="true"]{
+  background: var(--lens); color: #FFF; box-shadow: 0 3px 0 var(--lens-d);
+}
+.diffopt:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+/* what is not yours yet, marked on the thing it is not */
+.diffopt .tip{
+  font-size: 8.5px; letter-spacing: .1em; text-shadow: none;
+  background: var(--gold); color: #12181C; border-radius: 3px; padding: 2px 5px;
+}
+.diffopt .tip.lock{ background: rgba(112,136,154,.45); color: var(--text-dim); }
+.diffopt:disabled{ cursor: not-allowed; opacity: .75; }
+.diffopt:disabled:hover{ color: var(--text-faint); }
+
+/* the Lens the last finished run handed forward, named before PLAY rather
+   than discovered on the board */
+.carry{
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 9px;
+  margin: 5px 0 0; padding: 9px 14px; border-radius: 0 6px 6px 0;
+  border-left: 3px solid var(--lens);
+  background: linear-gradient(90deg, rgba(155,123,224,.24), rgba(155,123,224,.03));
+}
+.carry .k{
+  font-family: var(--f-display); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--lens-lit);
+}
+.carry .v{
+  font-family: var(--f-display); font-size: 12.5px; letter-spacing: .05em;
+  color: #FFF; text-shadow: var(--drop-sm);
+}
+.carry .d{ flex: 1 0 100%; font-size: 11.5px; line-height: 1.45; color: var(--text-dim); }
+/* Turned off, it is still the same row saying the same thing, so it keeps its
+   shape and loses its colour rather than disappearing. */
+.carry.off{
+  border-left-color: rgba(112,136,154,.45);
+  background: linear-gradient(90deg, rgba(44,65,80,.5), rgba(44,65,80,.05));
+}
+.lens.static{ cursor: default; margin: 12px 0; }
+.carry.off .k{ color: var(--text-faint); }
+.carry.off .v{ color: var(--text-dim); }
+.carrybtn{
+  flex: 1 0 100%; margin-top: 7px; align-self: flex-start;
+  border: 0; border-radius: 6px; cursor: pointer; padding: 8px 12px; min-height: 36px;
+  font-family: var(--f-display); font-size: 10.5px; letter-spacing: .08em;
+  text-transform: uppercase; text-align: left;
+  background: rgba(0,0,0,.28); color: var(--text-dim); text-shadow: var(--drop-sm);
+}
+.carrybtn:hover{ color: #FFF; background: rgba(0,0,0,.42); }
+.carrybtn:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+.setnote{ font-size: 12.5px; color: var(--text-faint); margin: 0 0 15px; }
+.title .setnote{ margin: 9px 0 0; font-size: 12px; line-height: 1.55; }
+
+/* ---------- what the game has been keeping ---------- */
+.title .runstat{
+  display: flex; flex-wrap: wrap; gap: 3px 22px; margin: 0;
+  background: none; padding: 0;
+}
+.runstat > div{ background: none; padding: 0; }
+.runstat .k{
+  font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.runstat .v{
+  font-family: var(--f-display); font-size: 17px; color: #FFF;
+  font-variant-numeric: tabular-nums; line-height: 1.3; text-shadow: var(--drop-sm);
+}
+.runstat .v.none{ color: var(--text-faint); }
+
+/* A title screen with PLAY below the fold is the one layout failure a menu
+   cannot have. A short screen is a wide screen turned on its side, so it gets
+   the name on the left and the entries beside it rather than a squeeze. */
+@media (max-height: 560px){
+  .title{ padding: 14px clamp(14px, 5vw, 60px); }
+  .title-card{
+    max-width: 780px; display: grid; align-items: center; gap: 0 28px;
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  }
+  .title-head{ margin: 0; }
+  .title .title-mark{ font-size: clamp(26px, 5vw, 40px); text-shadow: 3px 3px 0 var(--mult); }
+  .tagline{ font-size: 10.5px; }
+  .title-rule{ margin: 11px 0 9px; }
+  .mrow{ padding: 9px 12px; font-size: 13px; }
+  .mrow.go{ padding: 11px 12px; font-size: 15.5px; }
+  .mseg{ margin-top: 8px; padding: 9px 12px; }
+  .msl{ margin-bottom: 6px; }
+  .diffopt{ min-height: 38px; padding: 7px 5px; }
+  .carry{ padding: 7px 12px; }
+  .carry .d{ display: none; }
+  .title .setnote{ margin-top: 6px; font-size: 11px; }
+  .runstat .v{ font-size: 15px; }
+}
+@media (max-height: 560px) and (max-width: 660px){
+  .title-card{ grid-template-columns: 1fr; }
+}
+
+#menuBtn, #homeBtn{ display:inline-flex; align-items:center; gap:7px; }
+#menuBtn .ham{ font-size: 15px; line-height:1; }
+/* Sound lived on its own button and took its mute state with it when it moved
+   into the menu. The state still has to be visible from the board. */
+#menuBtn .mute{
+  font-size: 9px; line-height:1; letter-spacing:.09em; color: var(--mult);
+  font-weight: 700; margin-left: -2px;
+}
+#menuBtn .mute[hidden]{ display:none; }
+
+/* offered on the result screen to somebody the curve is beating, not to everyone */
+.softer{
+  background: var(--inset); border-radius:8px; padding: 12px 14px; margin: 14px 0;
+  box-shadow: 0 3px 0 var(--edge);
+}
+.softer .k{ font-family: var(--f-display); font-size:11px; letter-spacing:.06em; color: var(--gold); }
+.softer p{ margin: 5px 0 10px; font-size: 13.5px; }
+
 .toast{
   position: fixed; left:50%; bottom:22px; transform:translateX(-50%);
   background: var(--panel); color:#FFF; font-size:14px; font-weight:600;
@@ -1016,7 +1462,10 @@ button{ font-family: inherit; color: inherit; }
   .card .w{ font-size: 16px; }
   .card .tg{ font-size: 11px; }
   .card .base{ font-size: 14px; right: 8px; bottom: 6px; }
-  .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 30px; }
+  /* 28/28 rather than 28/30: at exactly 1280x860 -- the shortest viewport this
+     breakpoint admits -- the board came out 862px tall and PLAY hung two pixels
+     under the fold. */
+  .hand{ min-height: 0; gap: 10px; padding-top: 28px; padding-bottom: 28px; }
   .pos{ width: 26px; height: 26px; font-size: 14px; top: -10px; left: -8px; }
 
   /* the round's rule, at the size it deserves */
@@ -1176,6 +1625,7 @@ button{ font-family: inherit; color: inherit; }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   #app:not(.resolving) #stageCards .card .tags,
+  #app:not(.resolving) #stageCards .card .len,
   #app:not(.resolving) #stageCards .card .base{ display: none; }
   #app:not(.resolving) #stageCards .card .pos{
     width: 14px; height: 14px; font-size: 9px; top: -5px; left: -4px;
@@ -1194,6 +1644,7 @@ button{ font-family: inherit; color: inherit; }
   .pos{ width:19px; height:19px; font-size:11px; top:-7px; left:-5px; }
   .stage-hint{ font-size: 12.5px; }
   .stage-hint .ord{ font-size: 11.5px; margin-top: 3px; }
+  .stage-hint .fig-pay{ font-size: 11.5px; margin-left: 6px; }
   .stage-hint .hand-name{ font-size: 13px; padding: 4px 11px; margin-bottom: 6px; }
   .stage-total{ font-size: 42px; text-shadow: 3px 3px 0 var(--edge); }
   .coach{ font-size: 11.5px; padding: 7px 11px; line-height: 1.3; max-width: none; }
@@ -1268,7 +1719,7 @@ button{ font-family: inherit; color: inherit; }
   .blind-badge{ font-size: 12px; padding: 5px 7px; }
   .blind-wants .w{ font-size: 9px; padding: 2px 5px; }
   .blind-req .k{ font-size: 9px; }
-  .blind-req .v{ font-size: 18px; }
+  .blind-req .v{ font-size: 19.5px; }
   .progress{ height: 5px; }
 
   .tally{ padding: 4px 5px 5px; }
@@ -1389,34 +1840,95 @@ button{ font-family: inherit; color: inherit; }
   .money{ font-size: 21px; }
 }
 
-/* ---------- phone, landscape ----------
+/* ---------- landscape, or any viewport this short ----------
    Short and wide. The sidebar can go back beside the board, and everything
-   vertical has to shrink or PLAY drops off a 380px-tall viewport. */
-@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
-  #app{ padding-block: 5px 0; gap: 5px; }
+   vertical has to shrink or PLAY drops off the bottom.
+
+   The width cap used to be 900px, which was the width of a phone when this was
+   written and is not any more: a 932x430 handset matched none of this and got
+   the portrait layout squeezed into 430px, with PLAY 487px below the fold. A
+   viewport this short needs the compact treatment whatever its width, so the
+   cap is gone and the height is the whole test.
+
+   Seven cards also have to make ONE row. At 72px wide they needed 534px of a
+   530px track, wrapped to two rows, and cost 150px nobody had. */
+@media (max-height: 500px) and (orientation: landscape){
+  #app{ padding-block: 4px 0; gap: 4px; min-height: 0; }
   .masthead{ display: none; }
-  .table{ grid-template-columns: 190px 1fr; gap: 7px; }
-  .sidebar{ grid-template-columns: repeat(2, 1fr); }
+  .table{ grid-template-columns: 168px 1fr; gap: 6px; }
+  /* The sidebar was five slabs stacked in a column -- 421px of a 400px screen,
+     which is what actually pushed PLAY off the bottom, not the board. Only the
+     three that need the width get it; the small ones pair up. */
+  .sidebar{ grid-template-columns: repeat(2, 1fr); gap: 5px; align-content: start; }
   .blind, .tally, .runinfo{ grid-column: 1 / -1; }
-  .stage{ min-height: 84px; }
-  #app.resolving .stage{ min-height: 150px; }
-  .lensbar{ padding: 5px 7px; }
-  .rail{ min-height: 38px; }
-  .card{ width: 72px; height: 141px; padding: 5px 4px; --strip: 13px; }
-  .card .art{ height: 34px; padding: 0 3px; }
-  .card .art .ms{ font-size: 11px; }
-  .card .art .ms.hit{ padding: 3px; }
+  .meters{ display: contents; }
+  .roundscore{ grid-column: 1; }
+  .money{ grid-column: 2; margin: 0; }
+  .blind{ padding: 6px 8px; }
+  .blind-badge{ font-size: 12px; padding: 6px 6px; border-radius: 5px; }
+  .blind-wants{ gap: 3px; }
+  .slab{ padding: 6px 8px; }
+  .meter .k, .roundscore .k, .money .k{ font-size: 9px; }
+  .roundscore .v{ font-size: 15px; }
+  .runinfo{ font-size: 9px; }
+  .blind-req{ margin-top: 5px; }
+  .blind-req .v{ font-size: 21px; }
+  .progress{ margin-top: 5px; height: 5px; }
+  .stage{ min-height: 56px; padding: 4px; }
+  #app.resolving .stage{ min-height: 120px; }
+  .dc-icons .ms{ font-size: 20px; }
+  .dc-icons{ gap: 8px; }
+  .demand-call{ gap: 2px; }
+  .dc-text{ font-size: 10.5px; line-height: 1.25; }
+  .stage-hint{ font-size: 11.5px; }
+  .stage-hint .hand-name{ font-size: 11.5px; padding: 3px 9px; margin-bottom: 3px; }
+  .lensbar{ padding: 4px 7px; }
+  .lensbar-head{ margin-bottom: 3px; font-size: 10px; }
+  .rail{ min-height: 26px; }
+  .hand{ min-height: 0; gap: 5px; padding-top: 8px; padding-bottom: 6px;
+         flex-wrap: nowrap; }
+  /* 62px could not hold INHERITANCE without breaking it in half; 72 can, and
+     seven of them plus their gaps still come to 534px of a 550px track. */
+  .card{ width: 72px; height: 108px; padding: 4px 3px; --strip: 10px; }
+  .card .art{ height: 28px; padding: 0 2px; }
+  .card .art .ms{ font-size: 10px; }
+  .card .art .ms.hit{ padding: 2px; }
   .card .art .icons{ gap: 1px; }
-  .card .base{ font-size: 9.5px; right: 4px; bottom: 3px; }
-  .card .w{ font-size: 12px; }
-  .card .tg{ font-size: 8px; padding: 1px 3px; letter-spacing: 0; }
-  .btn{ min-height: 42px; padding: 9px 6px; }
-  .controls{ padding-block: 6px; }
+  .card .base{ font-size: 9px; right: 3px; bottom: 2px; }
+  /* CORMORANT is the longest word in the deck and it broke as CORMORA/NT at
+     62px wide. The band is two lines high either way; the job is to make the
+     break land between words and never inside one. */
+  .card .w{ font-size: 10px; height: 2.15em; letter-spacing: -.04em; }
+  .card .tg{ font-size: 7.5px; padding: 1px 2px; letter-spacing: 0; }
+  .btn{ min-height: 40px; padding: 8px 6px; font-size: 13px; }
+  .controls{ padding-block: 4px; gap: 7px; margin-top: 2px; position: relative; z-index: 3; }
+  .coach{ display: none; }
+}
+
+/* On a touch screen the header controls came out 25-38px wide and 30 tall:
+   a miss waiting to happen on the three buttons a player reaches for when
+   they are already confused. This sits after the breakpoints that shrink
+   them, and doubles the class so it wins wherever it lands. */
+@media (pointer: coarse){
+  .chip-btn{ position: relative; }
+  /* Growing the buttons themselves cost 14px of a phone’s vertical budget and
+     pushed the bottom row of the hand under the controls. WCAG 2.5.8 measures
+     the TARGET, not the paint, so the chip stays the size the layout can
+     afford and the hit area grows underneath it. */
+  .chip-btn::after{
+    content:""; position:absolute; left:50%; top:50%;
+    width: max(100%, 44px); height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .01ms !important; animation-iteration-count: 1 !important;
      transition-duration: .01ms !important; }
+  /* the dimming stays — it is the point; the movement goes */
+  .veil.moment .panel h2, .veil.moment .panel > .sub,
+  .veil.moment .stat.gold, .veil.moment .unlock{ animation: none; }
+  .stamp{ animation: none; }
 }
 
 </style>
@@ -1426,8 +1938,14 @@ button{ font-family: inherit; color: inherit; }
   <header class="masthead">
     <h1 class="wordmark">OVER<span>TONE</span></h1>
     <div class="mast-actions">
-      <button class="chip-btn icon" id="soundBtn" type="button" aria-pressed="true"
-              aria-label="Sound and music" title="Sound and music">&#9834;</button>
+      <button class="chip-btn" id="homeBtn" type="button" aria-label="Main menu"
+              title="Back to the main menu"
+        ><span class="ham" aria-hidden="true">&#9776;</span
+        ><span class="long">Main menu</span></button>
+      <button class="chip-btn" id="menuBtn" type="button" aria-label="Sound and feel"
+              aria-haspopup="dialog" title="Music, effects and vibration"
+        ><span class="ham" aria-hidden="true">&#9834;</span><span class="long">Sound</span
+        ><span class="mute" id="muteDot" aria-hidden="true" hidden>OFF</span></button>
       <button class="chip-btn" id="helpBtn" type="button" aria-label="How to play"
         ><span class="long">How to play</span><span class="short">?</span></button>
       <button class="chip-btn" id="newRunBtn" type="button" aria-label="New run"
@@ -1491,7 +2009,7 @@ button{ font-family: inherit; color: inherit; }
 
       <section class="stage" id="stage">
         <div class="stage-cards" id="stageCards"></div>
-        <div class="stage-hint" id="stageHint">Tap up to 3 words — they score left to right.</div>
+        <div class="stage-hint" id="stageHint">Tap up to 3 words. They score left to right.</div>
       </section>
 
       <div class="handwrap">
@@ -1507,6 +2025,11 @@ button{ font-family: inherit; color: inherit; }
 
   </div>
 </div>
+
+<!-- Announced, never drawn. Outside every overlay on purpose: parked inside
+     the tutorial it sat in a hidden subtree, where a screen reader will not
+     read it and the whole thing is decoration. -->
+<div id="say" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <div class="veil" id="veil" hidden>
   <div class="panel" id="panel"></div>
@@ -1526,6 +2049,18 @@ button{ font-family: inherit; color: inherit; }
 </div>
 
 <div class="stamp" id="stamp" hidden><span id="stampText"></span></div>
+
+<div class="title" id="title">
+  <div class="title-card">
+    <div class="title-head">
+      <h1 class="wordmark title-mark">OVER<span>TONE</span></h1>
+      <p class="tagline">Meaning is the physics</p>
+      <div class="title-rule" aria-hidden="true"></div>
+      <div class="runstat" id="titleStats"></div>
+    </div>
+    <div class="title-main" id="titleBody"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast" hidden></div>
 
@@ -1842,25 +2377,25 @@ BLAZE HEA,BRI,DAN,LOU
       target itself.                                                        */
 const LENSES = [
   /* ---- chips that grow. The long game: weak now, an engine by round 7. ---- */
-  { id:"doom", n:"DOOMSAYER", d:"Each DANGER word: +30 points, and +40 more for every round you have held this Lens.", cost:5, grows:40,
+  { id:"doom", n:"DOOMSAYER", d:"Each DANGER word: +30 points, +40 more each round you keep it.", cost:5, grows:40,
     onCard:function(c,i,all,ctx){ return c.t.includes("DAN") ? {chips:30+ctx.lv("doom")} : null; } },
-  { id:"chron", n:"CHRONICLER", d:"Each TIME word: +35 points, and +80 more for every round you have held this Lens.", cost:5, grows:80,
+  { id:"chron", n:"CHRONICLER", d:"Each TIME word: +35 points, +80 more each round you keep it.", cost:5, grows:80,
     onCard:function(c,i,all,ctx){ return c.t.includes("TIM") ? {chips:35+ctx.lv("chron")} : null; } },
-  { id:"pyro", n:"PYROMANIAC", d:"Each HEAT word: +25 points, and +110 more for every round you have held this Lens.", cost:5, grows:110,
+  { id:"pyro", n:"PYROMANIAC", d:"Each HEAT word: +25 points, +110 more each round you keep it.", cost:5, grows:110,
     onCard:function(c,i,all,ctx){ return c.t.includes("HEA") ? {chips:25+ctx.lv("pyro")} : null; } },
-  { id:"meta", n:"METAPHYSICIAN", d:"Each ABSTRACT word: +40 points, and +120 more for every round you have held this Lens.", cost:5, grows:120,
+  { id:"meta", n:"METAPHYSICIAN", d:"Each ABSTRACT word: +40 points, +120 more each round you keep it.", cost:5, grows:120,
     onCard:function(c,i,all,ctx){ return c.t.includes("ABS") ? {chips:40+ctx.lv("meta")} : null; } },
-  { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +40 points, and +190 more for every round you have held this Lens.", cost:5, grows:190,
+  { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +40 points, +190 more each round you keep it.", cost:5, grows:190,
     onCard:function(c,i,all,ctx){ return c.t.includes("MON") ? {chips:40+ctx.lv("prosp")} : null; } },
-  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 7 letters or more: +60 points, and +95 more for every round you have held this Lens.", cost:5, grows:95,
+  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 7 letters or more: +60 points, +95 more each round you keep it.", cost:5, grows:95,
     onCard:function(c,i,all,ctx){ return c.w.length>=7 ? {chips:60+ctx.lv("sesq")} : null; } },
 
   /* ---- flat chips: cheap, immediate, and honest about not scaling ---- */
-  { id:"poly", n:"POLYGLOT", d:"Words carrying 4 or more tags: +90 points, and +75 more for every round you have held this Lens.", cost:4, grows:75,
+  { id:"poly", n:"POLYGLOT", d:"Words carrying 4 or more tags: +90 points, +75 more each round you keep it.", cost:4, grows:75,
     onCard:function(c,i,all,ctx){ return c.t.length>=4 ? {chips:90+ctx.lv("poly")} : null; } },
-  { id:"lexi", n:"LEXICOGRAPHER", d:"+22 points for each letter of your LEFTMOST word, and +14 more per letter for every round you have held this Lens.", cost:4, grows:14,
+  { id:"lexi", n:"LEXICOGRAPHER", d:"+22 points for each letter of your LEFTMOST word, +14 more per letter each round you keep it.", cost:4, grows:14,
     onCard:function(c,i,all,ctx){ return i===0 ? {chips:(22+ctx.lv("lexi"))*c.w.length} : null; } },
-  { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 points, and +240 more for every round you have held this Lens.", cost:5, grows:240,
+  { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 points, +240 more each round you keep it.", cost:5, grows:240,
     onPlay:function(all,ctx){
       const n=all.some(function(c){return c.t.includes("NAT");}), t=all.some(function(c){return c.t.includes("TEC");});
       return (n&&t) ? {chips:250+ctx.lv("alch")} : null; } },
@@ -1987,6 +2522,37 @@ const ORDEALS = [
    than on a slightly larger number. */
 const ORDEAL_ROUNDS = [3, 5, 7];
 
+/* APPRENTICE meets one, at the end.
+
+   Round 6 killed 14.4% of APPRENTICE runs against round 5's 2.6%, and rounds
+   4, 6 and 8 are the Ordeals — so what was ending those runs was never the
+   size of the number. An Ordeal does not ask a new player to think harder; it
+   takes away the tool they have just learned to use, and then asks the same
+   question with one hand tied. That is a different game every third round, to
+   somebody still learning the first one.
+
+   The decisions all survive. Which words, in which order, for which figure,
+   against which Lens — every one of those is untouched, and the targets go up
+   to pay for the Ordeals that are gone. It is not a smaller game. It is the
+   same game with nothing taken out of your hands mid-run. */
+const APPRENTICE_ORDEAL_ROUNDS = [7];
+
+/* And the ones it meets are the ones that squeeze rather than disarm.
+   THE DROUGHT takes discards, THE LEAN YEAR takes three cards, THE FOG makes
+   words worth nothing on their own: each deletes something the tutorial spent
+   a step teaching. THE CLOCK, THE VICE, THE TOLL, THE MIRROR, THE FORFEIT and
+   THE HALF-LIGHT all leave the game intact and make it cost more. */
+const APPRENTICE_ORDEAL_BAN = ["drought", "lean", "fog"];
+
+function ordealRoundsFor(diffId){
+  return diffId === "apprentice" ? APPRENTICE_ORDEAL_ROUNDS : ORDEAL_ROUNDS;
+}
+function ordealPoolFor(diffId){
+  return diffId === "apprentice"
+    ? ORDEALS.filter(function(o){ return APPRENTICE_ORDEAL_BAN.indexOf(o.id) < 0; })
+    : ORDEALS.slice();
+}
+
 /* ---------- Demands ---------- */
 const DEMANDS = [
   { n:"THE FURNACE",            tags:["HEA","DAN"] },
@@ -2009,29 +2575,137 @@ const DEMANDS = [
   { n:"THE WILDERNESS",         tags:["NAT","ANI"] }
 ];
 
-/* Tuned against a simulation of a lens-less greedy player (see README).
-   Rounds 1-2 are generous so the first session always lands some wins;
-   round 3 is the first real decision; the late curve outruns any deck
-   that isn't multiplying, which is what makes the Lens engine the game. */
-/* Set from tools/balance.js --curve, which reports what a round can actually
-   PRODUCE at each point in a run. The old curve topped out at 5,200, which the
-   measurement put at the 9th percentile of what round 8 could make: the last
-   round of the game was clearable by nine runs in ten, and the reviews were
-   right that nothing was at stake.
+/* Re-derived from tools/balance.js rather than adjusted by feel, after a
+   playtester said the loop was stagnant. It was, and the simulator said so
+   plainly. Four hundred runs on the old curve died like this:
 
-   These sit at roughly p3 / p5 / p10 / p14 / p18 / p22 / p26 / p45. Early
-   rounds stay generous on purpose — dying in round 2 reads as the game
-   cheating, dying in round 6 reads as your build being wrong, and only one of
-   those makes someone start again. */
-const TARGETS = [250, 700, 2600, 5200, 11500, 15000, 23500, 28000];
+     round    1     2     3     4      5      6     7      8
+     lost   0.0%  0.0%  2.5%  12.3%  15.3%  20.8%  8.5%  18.5%
+
+   Nobody had ever lost round 1 or round 2. Not once in four hundred runs.
+   Round 3 ended one run in forty. So the opening three rounds - the first
+   several minutes, the window where somebody decides whether to play a
+   second run - carried no stakes at all. And the danger did not climb after
+   that so much as wander: round 7 killed less than half what round 6 did,
+   which is a round with no news in it sitting between two that have some.
+   The targets said the same thing out loud, jumping six and a half times
+   from 800 to 5,200 between two rounds nobody could lose.
+
+   The win rate was never the problem - 22.3% is exactly where a roguelite
+   wants to be - so this moves danger rather than adding it, and was scored
+   end to end before it shipped, at the same four hundred runs. It lands at
+   23.5% against 22.3%, which is the same game - with rounds 2, 3 and 7
+   carrying a share of it they did not carry before.
+
+   Rounds 1 and 2 are still set from what a player who has understood nothing
+   can make, which tools/balance.js --floor puts at a 5th percentile of 358
+   and a median of 629. Round 1 sits under that floor because nobody should
+   lose their first round to a rule they have not been shown.
+
+   It was briefly raised to 500 on the theory that a round nobody can lose is
+   a round with nothing in it. That is true of round 2 and false of round 1,
+   and the difference is the tutorial: 500 sits around the 30th percentile of
+   that floor, so it did not add a decision, it just failed one beginner in
+   three on the first screen they ever play. Round 2 is where the argument
+   actually holds, and it is the one that moved - it was not too easy, it was
+   over before it had asked anything, and 2,900 needs more than one hand.
+
+   Rounds 4, 6 and 8 are the Ordeals, and their numbers climb least. That is
+   deliberate and it is the one place the curve looks flat on purpose: an
+   Ordeal takes a tool away rather than asking for more, so the round gets its
+   difficulty from its rule. The Bookseller names it before you spend, which
+   is why the number does not have to. */
+const TARGETS = [350, 2900, 5600, 9600, 20000, 22000, 36000, 40000];
+
+/* ---------- difficulty ----------
+   Eight targets that outrun any deck which is not multiplying is the game, and
+   it loses four runs in five on purpose. That is right for a roguelite and
+   wrong for somebody who has lost six in a row and has not yet seen a Lens do
+   anything — they are not being taught a lesson, they are being shown a wall.
+
+   So: lower targets and one more discard. Nothing else moves. Every Lens, every
+   Ordeal, every figure and the whole deck are identical, because the interesting
+   part of this game is the decision and an easier mode that removes the decision
+   is not an easier version of the same game. The extra discard is deliberate —
+   what actually ends an early run is a dead draw, not a wrong choice. */
+const DIFFICULTIES = [
+  { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
+    d:"A fourth discard, lower targets, and one Ordeal instead of three. Same words, same Lenses." },
+  { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
+    d:"The balanced game. Three discards, and a curve only a multiplying deck keeps up with." }
+];
+const DIFF_BY_ID = {};
+DIFFICULTIES.forEach(function(d){ DIFF_BY_ID[d.id] = d; });
+/* The setting, which is what the NEXT run will use. */
+function difficulty(){ return DIFF_BY_ID[prefs.difficulty] || DIFF_BY_ID.scholar; }
+/* SCHOLAR is the game as balanced, and four runs in five end early on it.
+   Offering that on the first screen somebody ever sees is how a first session
+   becomes their only one — so it is shut until they have finished a run, won
+   or lost. One run is enough: what it buys is knowing what the curve feels
+   like before choosing to stand in front of it. */
+function scholarOpen(){ return store.get("runs", 0) > 0; }
+
+/* Flawed Lenses are the only thing in the shop that can make a run worse while
+   looking like the best thing on the shelf: THE CURSE reads "multiplier x3.5"
+   and doubles every target you have left. A player who has not yet worked out
+   what a multiplier is worth cannot price that, so APPRENTICE keeps them off
+   the shelf until the player has actually met one.
+
+   They meet one in SCHOLAR, where the game is the game. From that moment the
+   drawer is open everywhere, APPRENTICE included: taking a mechanic back off
+   somebody who has already learned it would be the worse of the two mistakes. */
+/* Whether this player has been introduced to the Lenses that cost something.
+   They are on the shelf either way — hiding them was tried and it made the
+   gentler mode harder, not easier, because six of the biggest multipliers in
+   the game are what the curve is built to be climbed with. What a new player
+   needs is the explanation, not the absence. */
+function flawsSeen(){ return store.get("sawFlaw", false); }
+
+/* APPRENTICE pays for its missing Ordeals where they were missing from.
+   A flat raise would have made rounds 1 to 3 harder to buy back rounds 4 and
+   6, which is exactly backwards: the opening is the part a new player is
+   actually struggling with, and by round 5 they have a deck. So the opening
+   stays where it was and the curve closes on SCHOLAR through the middle,
+   easing again at round 8 because that one is still an Ordeal.
+
+   These are per-round fractions of SCHOLAR, so when SCHOLAR moved they all
+   had to be re-derived or APPRENTICE would have inherited the new curve at
+   the old ratios - round 2 went from 800 to 2,900, which at 0.60 would have
+   asked a first-time player for 1,740 against a floor whose 80th percentile
+   is 842. The numbers they produce are held close to what APPRENTICE was
+   already tested at, because the mode was not what the playtester was
+   complaining about and it was not what changed.
+
+   What did change is round 2, which moves from 480 to 900. It is not a round
+   a beginner should lose and it still is not; the problem was that 480 could
+   be cleared with one hand out of four, so the round was over before it had
+   asked anything. 900 needs two or three, which is where the decisions are.
+   Round 1 stays at 210 for the reason SCHOLAR's stays at 350. */
+const APPRENTICE_CURVE = [0.60, 0.31, 0.58, 0.65, 0.72, 0.86, 0.79, 0.87];
+
+/* One place a target is scaled, so the shop and the round can never disagree. */
+function curveScale(round){
+  const d = runDifficulty();
+  if(d.id !== "apprentice") return d.scale;
+  const r = typeof round === "number" ? round : 0;
+  return APPRENTICE_CURVE[r] !== undefined ? APPRENTICE_CURVE[r] : d.scale;
+}
+/* What the run in progress was started under. Switching mid-run would let a
+   player take the hard curve's shop money into the easy curve's round 7. */
+function runDifficulty(){
+  return (G && DIFF_BY_ID[G.diff]) || difficulty();
+}
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
 
-/* ---------- when order actually matters ----------
-   The board told every player from the first second that words "resolve left
-   to right, so the order matters". For a player with no Lenses that is simply
-   false: chips are summed and the multiplier never moves, so any order gives
-   the same number. It only becomes true two ways.
+/* ---------- when order matters BEYOND the figure ----------
+   Order is always live now: a figure reads the words left to right, so THE
+   CHAIN and THE STAIR are made or lost by the order you tap in, on the first
+   hand of a run with nothing bought. The board says so itself, by naming the
+   better figure the same words would make in some other order.
+
+   What follows is the older, quieter order-dependence — the kind a Lens
+   introduces, which no figure readout would ever think to mention.
 
      1. A Lens reads position — CARNIVORE eats the word to its left,
         LEXICOGRAPHER pays for the leftmost word, ANTONYM ENGINE wants HOT
@@ -2057,6 +2731,123 @@ function orderMatters(){
   return add && mul;
 }
 
+/* ---------- Figures: the shape of the hand itself ----------
+   The tags answer the round. A figure answers nothing — it is what your words
+   make when you stand them next to each other and read them as objects rather
+   than as meanings: how long they are, what letter they open on, what letter
+   they close on.
+
+   It is here because of a fair complaint. A player who read only the tag strip
+   could clear this game without once reading a word, and the order they tapped
+   in changed nothing unless they happened to own one of four Lenses. The
+   letters — most of every card — were decoration.
+
+   So a figure is scored FIRST, before a single card is counted, and it moves
+   the multiplier. That is where a poker hand sits in the game this one owes its
+   shape to: the worth of the hand itself, which the engine then multiplies. The
+   round wants HEAT and DANGER; the figure wants three words the same length.
+   You will not always get both, and choosing is the point.
+
+   Only the best figure pays, and every figure but the floor has to bind EVERY
+   word you play — two words that chain stop chaining the moment a third is laid
+   beside them. That is the decision the whole thing exists for: three words for
+   the chips, or two for the figure. */
+const FIGURES = [
+  { id:"mono",   n:"THE MONOGRAM", d:"Every word starts with the same letter" },
+  { id:"chain",  n:"THE CHAIN",    d:"Each word starts with the letter the last one ended on" },
+  { id:"column", n:"THE COLUMN",   d:"Three words of exactly the same length" },
+  { id:"stair",  n:"THE STAIR",    d:"Three words going up or down by the same number of letters" },
+  { id:"pair",   n:"THE PAIR",     d:"Two words of exactly the same length" }
+];
+/* Chips and multiplier by figure and by how many words it binds.
+
+   Priced off measured reachability, not instinct. Instinct said a chain of three
+   was the rare one; a seven-card hand holds 210 ordered triples, so it turns up
+   in a third of them, while three words sharing an initial turns up in one hand
+   in twelve. The ladder follows what the deck actually does: pair ~95% of plays,
+   stair 87%, column 55%, chain-of-three 36%, monogram 8%.
+
+   The multiplier is ADDED, not multiplied, which is the other half of the same
+   note. +2 takes a bare hand from x1 to x3 and a deck already holding three
+   +mult Lenses from x4 to x6 — worth most to the deck that has nothing, least
+   to the runaway engine. Multiplying would have done the opposite. */
+const FIG_PAY = {
+  mono:   { 2:{chips:110, mult:2}, 3:{chips:320, mult:5} },
+  chain:  { 2:{chips: 90, mult:2}, 3:{chips:220, mult:4} },
+  column: {                        3:{chips:150, mult:3} },
+  stair:  {                        3:{chips: 80, mult:2} },
+  pair:   { 2:{chips: 30, mult:1}, 3:{chips: 30, mult:1} }
+};
+const FIG_BY_ID = {};
+FIGURES.forEach(function(f){ FIG_BY_ID[f.id] = f; });
+/* One number to rank figures by, so "best" means the same thing everywhere:
+   in resolve(), in the reorder nudge, and in the reference panel. */
+function figValue(f){ return f ? f.chips + 150 * f.mult : 0; }
+
+/* Every figure these words make IN THIS ORDER, best first. Pure — the board
+   calls it on every click. */
+function figuresIn(cards){
+  const out = [];
+  if(!cards || cards.length < 2) return out;
+  const w = cards.map(function(c){ return String(c.w).toUpperCase(); });
+  const len = w.map(function(s){ return s.length; });
+
+  let chain = true;
+  for(let i=1;i<w.length;i++){
+    const prev = w[i-1];
+    if(w[i].charAt(0) !== prev.charAt(prev.length-1)){ chain = false; break; }
+  }
+  if(chain) out.push("chain");
+
+  let mono = true;
+  for(let i=1;i<w.length;i++) if(w[i].charAt(0) !== w[0].charAt(0)){ mono = false; break; }
+  if(mono) out.push("mono");
+
+  if(w.length >= 3){
+    let level = true;
+    for(let i=1;i<len.length;i++) if(len[i] !== len[0]){ level = false; break; }
+    if(level) out.push("column");
+    else {
+      const step = len[1] - len[0];
+      let even = step !== 0;
+      for(let i=2;i<len.length && even;i++) if(len[i] - len[i-1] !== step) even = false;
+      if(even) out.push("stair");
+    }
+  }
+
+  let pair = false;
+  for(let i=0;i<len.length && !pair;i++)
+    for(let j=i+1;j<len.length;j++) if(len[i] === len[j]){ pair = true; break; }
+  if(pair) out.push("pair");
+
+  const bind = Math.min(w.length, 3);
+  return out.map(function(id){
+    const pay = FIG_PAY[id][bind] || FIG_PAY[id][2];
+    return { id:id, n:FIG_BY_ID[id].n, d:FIG_BY_ID[id].d, chips:pay.chips, mult:pay.mult };
+  }).sort(function(a,b){ return figValue(b) - figValue(a); });
+}
+function figureFor(cards){ const f = figuresIn(cards); return f.length ? f[0] : null; }
+
+/* Would these same words make a better figure in some other order? The board
+   says which one; it never reorders them for you. Choosing the words is the
+   decision — losing points because you did not notice is not. */
+function figureByReorder(cards){
+  if(!cards || cards.length < 2) return null;
+  const have = figValue(figureFor(cards));
+  let best = null;
+  const perm = function(rest, acc){
+    if(!rest.length){
+      const f = figureFor(acc);
+      if(f && figValue(f) > have && figValue(f) > figValue(best)) best = f;
+      return;
+    }
+    for(let i=0;i<rest.length;i++)
+      perm(rest.slice(0,i).concat(rest.slice(i+1)), acc.concat([rest[i]]));
+  };
+  perm(cards, []);
+  return best;
+}
+
 /* ---------- deterministic RNG (mulberry32) ---------- */
 function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -2076,11 +2867,40 @@ const store = {
    people mute in public, sound effects are the one people mute at work, and
    vibration is the one that eats a battery. Lumping them behind a single
    mute button makes at least two of those a worse trade than they need to be. */
+/* Somebody opening this for the first time has no idea that four runs in five
+   end early on purpose, and finding out by losing six of them is not a lesson.
+   They start on APPRENTICE. Written down on the first boot rather than derived
+   every time, or the default would flip to SCHOLAR the moment their run counter
+   ticked past zero and the game would have changed difficulty behind them. */
+if(store.get("difficulty", null) === null){
+  store.set("difficulty", store.get("runs", 0) === 0 ? "apprentice" : "scholar");
+}
+/* Anyone with a run behind them has been playing a game where the flawed
+   Lenses were always on the shelf, so they have met one whether or not anybody
+   introduced it. Written down on the first boot after this change rather than
+   inferred later, for the same reason the difficulty is. */
+if(store.get("sawFlaw", null) === null){
+  store.set("sawFlaw", store.get("runs", 0) > 0);
+}
 const prefs = {
   sfx:     store.get("sfx", true),
   music:   store.get("music", true),
-  haptics: store.get("haptics", true)
+  haptics: store.get("haptics", true),
+  /* How loud, rather than whether: the two switches above are mutes and
+     these are the levels under them. 1 is the level every sound in the
+     game was mixed at, so a player who never opens this hears what the
+     mix intended. */
+  musicVol: store.get("musicVol", 1),
+  sfxVol:   store.get("sfxVol", 1),
+  carryMemory: store.get("carryMemory", true),
+  difficulty: store.get("difficulty", "scholar")
 };
+/* One number, read by every beat in a hand, so no two parts of a hand can
+   disagree about how fast the game is. This was a switch with a slow side
+   on it. Nobody wants the slow side, and an option that changes the rhythm
+   of every hand is an option that makes the game feel inconsistent rather
+   than one that makes it feel yours. */
+function animScale(){ return 0.55; }
 function setPref(k, v){ prefs[k] = v; store.set(k, v); }
 
 /* ---------- haptics ----------
@@ -2118,7 +2938,7 @@ function audio(){
     const AC = window.AudioContext || window.webkitAudioContext;
     actx = new AC();
     bus = actx.createGain();
-    bus.gain.value = 0.9;
+    bus.gain.value = 0.9 * prefs.sfxVol;
 
     /* tanh soft clip: four layers at once should thicken, not clip */
     const shaper = actx.createWaveShaper();
@@ -2308,6 +3128,8 @@ const MUSIC_SRC = "audio/theme.mp3";
 /* The theme is scenery, not the show. It sat at .32 and swallowed the effects
    it is supposed to sit under. */
 const MUSIC_VOL = 0.15;
+/* The mixed level, times what the player asked for. */
+function themeVol(){ return MUSIC_VOL * prefs.musicVol; }
 let music = null, musicFade = null;
 
 function musicFadeTo(target, ms){
@@ -2334,7 +3156,7 @@ function musicStart(){
     /* Autoplay policy, a missing file, a browser with no codec: all of them
        land here, and none of them is worth breaking a hand of cards over. */
     if(p && p.catch) p.catch(function(){});
-    musicFadeTo(MUSIC_VOL, 1600);
+    musicFadeTo(themeVol(), 1600);
   }catch(e){}
 }
 function musicStop(){
@@ -2345,8 +3167,16 @@ function musicStop(){
 /* Drop the theme under a big moment so the moment is audible. */
 function musicDuck(ms){
   if(!music || music.paused) return;
-  musicFadeTo(MUSIC_VOL * 0.25, 70);
-  setTimeout(function(){ if(prefs.music) musicFadeTo(MUSIC_VOL, 800); }, ms || 700);
+  musicFadeTo(themeVol() * 0.25, 70);
+  setTimeout(function(){ if(prefs.music) musicFadeTo(themeVol(), 800); }, ms || 700);
+}
+
+/* A level has to land on the sound that is already playing, not on the next
+   one - a slider you cannot hear while you drag it is a slider you cannot
+   set. */
+function applyVol(){
+  if(bus) bus.gain.value = 0.9 * prefs.sfxVol;
+  if(music && !music.paused) musicFadeTo(themeVol(), 120);
 }
 
 /* Browsers gate audio behind a real gesture, and they do not all agree on
@@ -2385,12 +3215,10 @@ function makeCard(entry, interpreted){
   };
 }
 
-/* `fresh` starts a run with nothing carried in. Memory — the Lens a finished
-   run hands to the next one — is the reason run 2 is not run 1, so it belongs
-   on the path where a run actually ended. Reaching for "New run" in the header
-   is the other thing: abandoning what you are doing and starting clean. Coming
-   back to a board holding a Lens you never bought reads as the game failing to
-   reset, not as a reward. */
+/* `fresh` picks a seed of its own instead of the daily. It used to decide the
+   carried Lens as well, which meant three buttons all saying "New run" behaved
+   three different ways. That is `prefs.carryMemory` now, set by the player on
+   the menu, and it is the only thing that decides. */
 function newRun(seedStr, fresh){
   const daily = todayKey();
   const seed = seedStr || daily;
@@ -2398,9 +3226,20 @@ function newRun(seedStr, fresh){
 
   const demandOrder = shuffle(DEMANDS.slice()).slice(0, ROUNDS);
   /* Seeded like everything else, so a daily deals every player the same three. */
-  const ordealPool = shuffle(ORDEALS.slice());
+  /* Read off the difficulty this run is being dealt under, not the one the
+     menu happens to be showing, so a run keeps the shape it started with. */
+  const dealtDiff = difficulty().id;
+  /* Shuffle the WHOLE list and filter after, never the other way round. The
+     shuffle draws once per element, so shuffling a shorter list consumes fewer
+     numbers from the seeded stream and every draw after it — the deck
+     included — comes out different. APPRENTICE is a different curve, not
+     different words, and the daily is the same words for everybody. */
+  const ordealPool = shuffle(ORDEALS.slice())
+    .filter(function(o){ return ordealPoolFor(dealtDiff).indexOf(o) >= 0; });
   const ordealOrder = {};
-  ORDEAL_ROUNDS.forEach(function(r, i){ ordealOrder[r] = ordealPool[i % ordealPool.length]; });
+  ordealRoundsFor(dealtDiff).forEach(function(r, i){
+    ordealOrder[r] = ordealPool[i % ordealPool.length];
+  });
 
   /* Build the deck knowing what this run will ask for. Some overtones are
      genuinely rare in the lexicon (FOOD sits on 21 of 249 words), so a purely
@@ -2447,6 +3286,8 @@ function newRun(seedStr, fresh){
   G = {
     seed: seed,
     isDaily: seed === daily,
+    /* Pinned for the whole run. The setting is what the NEXT one uses. */
+    diff: difficulty().id,
     round: 0,
     deck: shuffle(deck),
     discard: [],
@@ -2476,8 +3317,10 @@ function newRun(seedStr, fresh){
     shopSeen: []
   };
 
-  /* Memory: a Lens carried in from a run you finished. */
-  const memory = fresh ? null : store.get("memory", null);
+  /* Memory: a Lens carried in from a run you finished, unless the player has
+     said on the menu that they would rather start clean. Never destroyed by
+     the choice — finishing a run is what replaces it. */
+  const memory = prefs.carryMemory ? store.get("memory", null) : null;
   if(memory){
     const l = LENSES.find(function(x){ return x.id===memory; });
     if(l){ G.lenses.push(l); G.memoryLens = l.id; }
@@ -2517,7 +3360,9 @@ function roundRules(){
    you own THE CURSE: it said 11,500 and the round demanded 23,000. You cannot
    ask someone to shop wisely against a number that is not true. */
 function shapeFor(round, rules){
-  const probe = { target: TARGETS[round], plays: 4, discards: 3, round: round };
+  const diff = runDifficulty();
+  const probe = { target: Math.round(TARGETS[round] * curveScale(round)),
+                  plays: 4, discards: 3 + diff.discards, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
   /* The rules take their cut after the Lenses, so a Lens can never hand back
      what the round has taken. */
@@ -2530,7 +3375,9 @@ function shapeFor(round, rules){
   return {
     target: Math.max(1, Math.round(probe.target)),
     plays: Math.max(1, probe.plays),
-    discards: Math.max(0, probe.discards),
+    /* A round that demands a forfeit has to leave a discard to make it with,
+       whatever else took them away and in whatever order. */
+    discards: Math.max(probe.mustForfeit ? 1 : 0, probe.discards),
     hand: Math.max(4, hand),
     maxPlay: cap,
     mustForfeit: !!probe.mustForfeit,
@@ -2579,13 +3426,30 @@ function roundShape(round){
    it is what this is for. */
 const RECKON_AT = 3, RECKON_FROM = 2;
 
+/* Ordeals that cannot both be obeyed. THE FORFEIT makes you spend a discard;
+   THE DROUGHT takes every discard away. Stacked, the round owes a debt it has
+   no currency for. Listed both ways round so the check does not depend on
+   which of the two the round was dealt. */
+const ORDEAL_CLASH = { forfeit:["drought"], drought:["forfeit"] };
+function clashes(a, b){
+  return (ORDEAL_CLASH[a] || []).indexOf(b) >= 0;
+}
+
 function reckonFor(round){
   if(!G || !G.demandOrder || round < RECKON_FROM) return null;
+  /* THE RECKONING answers a player who has broken the round open by stacking a
+     second rule on the first. APPRENTICE meets one rule at all, at the end;
+     doubling it is the thing this mode exists not to do. */
+  if(runDifficulty().id === "apprentice") return null;
   const base = baseShape(round);
   const can = deckCeiling(round, base);
   if(can < base.target * RECKON_AT) return null;
   const own = (G.ordealOrder && G.ordealOrder[round]) || null;
-  const pool = ORDEALS.filter(function(o){ return !own || o.id !== own.id; });
+  const pool = ORDEALS.filter(function(o){
+    if(!own) return true;
+    if(o.id === own.id) return false;
+    return !clashes(own.id, o.id);
+  });
   const pick = mulberry32(hashStr(G.seed + ":reckon:" + round))();
   return pool[Math.floor(pick * pool.length) % pool.length];
 }
@@ -2693,9 +3557,14 @@ function startRound(){
   /* Fixed here and left alone for the round: a Lens that grows mid-round must
      not be able to change the rules under the player who is using it. */
   G.levy = reckoning(G.round);
-  G.target = TARGETS[G.round];
+  /* shapeFor() predicts a round and startRound() deals it, and the two read
+     the same starting numbers from here. They have to: the shop quotes the
+     prediction and the player plays the deal, so a difference between them is
+     the game lying about itself. tests/logic asserts they agree. */
+  const diff = runDifficulty();
+  G.target = Math.round(TARGETS[G.round] * curveScale(G.round));
   G.roundScore = 0;
-  G.plays = 4; G.discards = 3;
+  G.plays = 4; G.discards = 3 + diff.discards;
   G.mustForfeit = false; G.forfeited = false;
   /* Lenses that cost you something take it here, before the round starts, so
      the meters on the board are true from the first frame. And the ones that
@@ -2710,7 +3579,7 @@ function startRound(){
      what the round has taken. */
   roundRules().forEach(function(o){ if(o.round) o.round(G); });
   G.plays = Math.max(1, G.plays);
-  G.discards = Math.max(0, G.discards);
+  G.discards = Math.max(G.mustForfeit ? 1 : 0, G.discards);
   G.target = Math.max(1, Math.round(G.target));
   G.selected = [];
   G.discard = G.discard.concat(G.hand);
@@ -2747,15 +3616,53 @@ function resolve(cards){
     lv: function(id){ return lensState[id] || 0; }
   };
 
+  /* The figure lands before any card is counted, so every Lens that multiplies
+     multiplies it too. It is the worth of the hand, not a bonus on top.
+
+     Its MULTIPLIER, though, is only paid for the words that answer the round.
+
+     This is the correction to a real problem. Measured over every possible play
+     of 951 hands, "take the best figure and ignore the Demand" was the exactly
+     correct play 70% of the time in round 1 and cost nothing at all through
+     round 4, while "take the best tags and ignore the shape" gave up 63-79% of
+     the hand. The two layers ran in parallel and the bigger one simply won —
+     which is the same complaint that started the figures work, pointed the
+     other way. Parallel systems do not make a decision; one of them makes it.
+
+     So they are coupled. Three words the same length, none of which the round
+     wants, is a shape with nothing behind it and pays no multiplier at all. The
+     chips still land — the words are still worth what they are worth — but the
+     thing that multiplies them has to be earned twice. */
+  const fig = figureFor(cards);
+  if(fig){
+    chips += fig.chips;
+    const answering = cards.filter(function(c){
+      return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+    }).length;
+    const paid = Math.round(fig.mult * answering / cards.length);
+    mult += paid;
+    events.push({ k:"card", i:-1, cls:"m", fig:fig.id, answering:answering, paid:paid,
+                  txt: fig.n + " +" + fig.chips
+                     + (paid ? " and +" + paid + " mult" : ", no answer so no multiplier"),
+                  chips:chips, mult:mult });
+  }
+
   for(let i=0;i<cards.length;i++){
     const c = cards[i];
     chips += c.base;
     events.push({ k:"card", i:i, cls:"c", txt:"+"+c.base, chips:chips, mult:mult });
 
+    /* One label per card, not one per tag. A word carrying both of the round’s
+       overtones used to print MATCH +25 and then MATCH +25 again, 210ms apart,
+       in the same spot — so the second was invisible and the player had no way
+       to see that the card had paid twice. */
     const hits = c.t.filter(function(t){ return G.demand.tags.includes(t); });
-    for(let h=0;h<hits.length;h++){
-      chips += 25;
-      events.push({ k:"card", i:i, cls:"r", txt:"MATCH +25", chips:chips, mult:mult });
+    if(hits.length){
+      chips += 25 * hits.length;
+      events.push({ k:"card", i:i, cls:"r",
+                    txt: hits.length > 1 ? hits.length + " MATCHES +" + (25 * hits.length)
+                                         : "MATCH +25",
+                    chips:chips, mult:mult });
     }
 
     /* The Ordeal lands between the word's own worth and the Lenses, so a Lens
@@ -2854,24 +3761,65 @@ async function play(){
   document.getElementById("stageHint").textContent = "";
   setTally(0, 1);
 
-  const gap = res.events.length > 12 ? 130 : 210;
+  /* A hand has one length, whatever is in it. The beat used to be fixed per
+     event, so resolution time grew with the engine and the reward for
+     building something was a longer wait to watch it work. Budget the whole
+     hand and divide: a dense hand plays denser, not longer, and every hand
+     lands on roughly the same beat. That is the difference between a rhythm
+     and a queue.
+
+     The floor is measured, not guessed. Every event makes a label, a flying
+     chip and a counter roll, so the beat sets how much DOM work lands per
+     second, and a beat fast enough to starve the main thread would deliver this
+     same complaint back as dropped frames. Recording every frame interval
+     through a hand says it does not: median 16.7ms and nothing at all over 50ms
+     on both a bare deck and a five-Lens one. The floor exists because below it
+     the labels stop being readable, which is a different limit and a lower one. */
+  const sp = animScale();
+  const gap = Math.max(70, Math.min(190, Math.round((820 * sp) / Math.max(1, res.events.length))));
+  /* The figure is the opening beat and belongs to all three words at once.
+     It held the hand still for 620ms against a 70ms beat, which is the
+     hitch at the front of every hand - eight beats of nothing moving.
+
+     Cutting it to two beats and letting the cards start underneath does
+     not work, and the reason is geometry rather than timing. Labels pick
+     a lane from how many are already in the air, so the figure takes lane
+     zero and the first card takes lane one - ten pixels apart. They also
+     rise at the same rate, so that ten pixels is all they ever get, and
+     the figure is the widest label the game prints. Measured: a card's
+     +20 came out 100% covered by THE MONOGRAM +320 and +5 mult.
+
+     Raising the figure's lane does not fix it either, because the card
+     lanes keep climbing with the stack and pass through wherever it is
+     put. So the figure keeps an exclusive beat, and the beat buys only
+     what it has to: 400ms rather than 620, with the label's life cut to
+     match so it is fading as the first card prints rather than hanging
+     over it. Still the longest beat in the hand, and no longer a stop. */
+  const figStep = Math.max(400, gap * 4);
+  /* Life is figHold + 240 in floatLabel, so this lands at figStep + 150:
+     up for its own beat and a breath after it, never longer. */
+  const figHold = figStep - 90;
+  /* Both beats, so a label can be given a life that ends on the beat it was
+     born on rather than on whichever one happens to be longer. */
+  window.FLOAT_GAP = gap;
+  window.FLOAT_FIG = figHold;
   for(let e=0; e<res.events.length; e++){
     const ev = res.events[e];
     const host = ev.i >= 0 ? stageCards.children[ev.i] : stageCards;
     if(ev.i >= 0 && host){
       host.classList.add("scoring");
-      setTimeout(function(){ host.classList.remove("scoring"); }, 320);
+      setTimeout(function(){ host.classList.remove("scoring"); }, Math.max(140, gap * 2));
     }
-    floatLabel(host || stageCards, ev.txt, ev.cls);
+    floatLabel(host || stageCards, ev.txt, ev.cls + (ev.fig ? " fig" : ""));
     if(ev.k === "lens"){ flashLens(ev.lens); buzz(11); }
     /* the number leaves the word that earned it and lands on the counter */
-    chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, gap - 20);
+    chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, Math.max(120, gap * 2));
     setTally(ev.chips, ev.mult);
     if(ev.k === "lens") SFX.lens(); else SFX.score(e, ev.cls === "m");
-    await sleep(gap);
+    await sleep(ev.fig ? figStep : gap);
   }
 
-  await sleep(240);
+  await sleep(Math.round(180 * sp));
   G.roundScore += res.total;
   G.total += res.total;
   if(res.mult > G.best.mult || (res.mult === G.best.mult && res.total > G.best.score)){
@@ -2906,10 +3854,10 @@ async function play(){
 
   if(G.coachStep === "play") G.coachStep = "score";
   renderDemand();
-  /* Long enough to actually read it. The total rolls up over as much as 620ms
-     now that scores run to five digits, and this hold was 760ms — which left
-     the finished number on screen for about a seventh of a second. */
-  await sleep(1250);
+  /* Long enough to read the number, and not one beat longer. The roll itself
+     scales with the same setting, so this hold is measured against a finished
+     total rather than racing one. */
+  await sleep(Math.round(820 * sp));
   try{ totalEl.remove(); }catch(err){}
   setTally(0, 1);
 
@@ -2954,22 +3902,26 @@ async function play(){
    winRound()/endRun() on purpose: those two are called directly by tests and
    by the shop, and neither should have to sit through a second of confetti. */
 async function celebrate(){
+  const sp = animScale();
   flash(false);
-  stamp("ROUND CLEAR", false, 1150);
+  stamp("ROUND CLEAR", false, Math.round(1150 * sp));
   confetti();
   musicDuck(1200);
   SFX.clear();
   buzz([18,60,24,40,70]);
-  await sleep(980);
+  await sleep(Math.round(980 * sp));
 }
 async function lament(){
+  const sp = animScale();
   flash(true);
-  stamp("OUT OF PLAYS", true, 1150);
+  stamp("OUT OF PLAYS", true, Math.round(1150 * sp));
   quake(3);
   musicDuck(1400);
   SFX.fail();
   buzz([90,70,150]);
-  await sleep(980);
+  /* Losing gets a touch more room than winning: it is the beat the player
+     most wants to understand, and the only one they cannot replay. */
+  await sleep(Math.round(980 * Math.max(0.7, sp)));
 }
 
 function setTally(c, m){
@@ -2986,8 +3938,27 @@ function floatLabel(host, txt, cls){
   f.className = "float " + cls;
   f.textContent = txt;
   if(getComputedStyle(host).position === "static") host.style.position = "relative";
+  /* Step each new label clear of every label still in the air, not just the
+     ones in this host: a wide label on a narrow card overflows both its edges,
+     so two cards side by side printed MATCH +25 across each other. */
+  const stage = document.getElementById("stage");
+  f.style.setProperty("--stack", (stage || host).querySelectorAll(".float").length);
+  /* A label lives as long as the beat it was born on. Fixed at 850ms it was
+     tuned against a 210ms gap and kept about four labels in the air; the beat
+     is budgeted now and can run to a third of that, which stacked labels
+     until the lanes ran out and one ended up behind another.
+
+     The figure is measured against its own hold rather than the gap, and it
+     outlives that hold on purpose: it has a lane and a z-index of its own, so
+     it is free to still be up once the first card prints. Cutting it short to
+     clear a lane it does not share only opened a window where the figure had
+     gone and the cards had not started, and the stage was briefly empty. */
+  const life = cls.indexOf("fig") >= 0
+    ? (window.FLOAT_FIG || 630) + 240
+    : Math.max(400, Math.min(850, (window.FLOAT_GAP || 210) * 5));
+  f.style.setProperty("--flife", life + "ms");
   host.appendChild(f);
-  setTimeout(function(){ try{ f.remove(); }catch(e){} }, 900);
+  setTimeout(function(){ try{ f.remove(); }catch(e){} }, life + 60);
 }
 function flashLens(i){
   const el = document.getElementById("rail").children[i];
@@ -3011,6 +3982,7 @@ function discardSel(){
 
 /* ---------- round win + shop ---------- */
 function winRound(){
+  say("Round cleared. " + G.roundScore.toLocaleString() + " against " + G.target.toLocaleString() + ".");
   let reward = 4 + G.plays + G.discards;
   G.lenses.forEach(function(l){ if(l.onReward) reward = l.onReward(reward); });
   reward = Math.max(0, Math.round(reward));
@@ -3032,6 +4004,33 @@ function deckCount(tag){
   }).length;
 }
 
+/* Shown once, ever. It sets the flag as it opens rather than as it closes: a
+   player who reloads mid-card has still seen it, and showing it twice teaches
+   nothing the second time. */
+function introduceFlaws(lens, reward){
+  store.set("sawFlaw", true);
+  showPanel('<h2>Something new on the shelf</h2>'
+    + '<div class="sub">' + escapeHtml(lens.n) + ' is a flawed Lens</div>'
+    + '<p>Flawed Lenses pay more than anything else in the game, and every one of '
+    + 'them takes something back. A play, a discard, cards in your hand, your '
+    + 'income, or the target itself.</p>'
+    + '<div class="lens flaw static"><div class="n">' + escapeHtml(lens.n) + '</div>'
+    + '<div class="d">' + escapeHtml(lens.d) + '</div></div>'
+    + '<p>Whether that is a bargain or the end of your run depends on how many '
+    + 'rounds you have left and what your deck can already do. Early, with rounds '
+    + 'to pay it off in, they are the best thing in the shop. Late, they are how '
+    + 'a good run ends.</p>'
+    + '<p class="gold">You can leave it. There is always another shelf.</p>'
+    + '<p style="font-size:13px;color:var(--text-faint)">You will not be shown this '
+    + 'again. The full list is under <b>How to play</b>.</p>'
+    + '<div class="rowend end">'
+    + '<button class="btn primary" id="seenFlaw" type="button">Show me the shop</button></div>');
+  document.getElementById("seenFlaw").onclick = function(){
+    hidePanel();
+    openShop(reward);
+  };
+}
+
 function rollOffers(){
   const owned = G.lenses.map(function(l){ return l.id; });
   const avail = LENSES.filter(function(l){ return owned.indexOf(l.id)===-1; });
@@ -3043,59 +4042,49 @@ function rollOffers(){
 
 function openShop(reward){
   if(!G.offers) G.offers = rollOffers();
+  /* The first flawed Lens a player is ever offered is the one moment where the
+     shop can talk them into losing a run. It gets a card of its own, once, on
+     the shelf it is standing on. */
+  if(!flawsSeen()){
+    const first = G.offers.find(function(o){ return o.kind === "lens" && o.lens.flaw; });
+    if(first){ introduceFlaws(first.lens, reward); return; }
+  }
   const nextDemand = G.demandOrder[G.round];
   const nextOrdeal = (G.ordealOrder && G.ordealOrder[G.round]) || null;
   const next = roundShape(G.round);
   const html = ''
     + '<h2>The Bookseller</h2>'
-    + '<div class="sub">Round ' + G.round + ' cleared · earned $' + reward + '</div>'
-    + (coachDone() ? '' : '<p class="gold"><b>Lenses are the engine.</b> Buy one. From here the targets climb faster than any deck can keep up with.</p>')
-    + '<p>Next up is <b>' + nextDemand.n + '</b>. It wants '
+    + '<div class="sub">Round ' + G.round + ' cleared \u00b7 +$' + reward + '</div>'
+    + (coachDone() ? '' : '<p class="gold"><b>Buy a Lens.</b> Nothing else keeps up with the targets.</p>')
+    + '<p class="nextup">Next: <b>' + nextDemand.n + '</b> wants '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
-    + ', and you\'ll need <b>' + next.target.toLocaleString() + '</b> points'
+    + ' \u00b7 <b>' + next.target.toLocaleString() + '</b> points'
     + (next.target !== TARGETS[G.round]
-        ? ' &mdash; <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
-          + '\u00d7 the usual</b>, because of what you are holding' : '')
-    + '.</p>'
-    /* And the shape of it, whenever your Lenses or the Ordeal have bent it.
-       Buying a Lens that costs you a play should show you that cost here,
-       before you commit, not on the board a minute later. */
+        ? ' \u00b7 <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
+          + '\u00d7 the usual</b>, from what you hold' : '')
+    + '</p>'
     + (next.plays !== 4 || next.discards !== 3 || next.hand !== HAND_SIZE || next.maxPlay !== MAX_PLAY
-        ? '<p class="shape">You will have <b>' + next.plays + '</b> play'
-          + (next.plays === 1 ? '' : 's') + ', <b>' + next.discards + '</b> discard'
-          + (next.discards === 1 ? '' : 's') + ', a hand of <b>' + next.hand + '</b>'
-          + (next.maxPlay !== MAX_PLAY ? ', and <b>' + next.maxPlay + '</b> words a play' : '')
-          + '.</p>'
+        ? '<p class="shape"><b>' + next.plays + '</b> play'
+          + (next.plays === 1 ? '' : 's') + ' \u00b7 <b>' + next.discards + '</b> discard'
+          + (next.discards === 1 ? '' : 's') + ' \u00b7 hand of <b>' + next.hand + '</b>'
+          + (next.maxPlay !== MAX_PLAY ? ' \u00b7 <b>' + next.maxPlay + '</b> words a play' : '')
+          + '</p>'
         : '')
-    /* Naming the Ordeal here is the whole point of it being on a fixed round:
-       you get to spend money answering it, rather than discovering it. */
     + (nextOrdeal
-        ? '<div class="ordeal-warn"><div class="on">NEXT ROUND IS AN ORDEAL &mdash; '
+        ? '<div class="ordeal-warn"><div class="on">NEXT ROUND IS AN ORDEAL: '
           + escapeHtml(nextOrdeal.n) + '</div><div class="od">'
           + escapeHtml(nextOrdeal.d) + '</div></div>'
         : '')
-    /* And the one your own deck called down. It is named here, before you
-       spend, for the same reason the Ordeal is: a rule you are told about is
-       a purchase decision, and a rule you discover is a bad beat. Buying the
-       Lens that trips it and seeing the answer appear in the same breath is
-       the trade being made in the open. */
     + (function(){
         const r = reckoning(G.round);
         if(!r) return '';
-        return '<div class="ordeal-warn reckon"><div class="on">THE RECKONING &mdash; '
-          + escapeHtml(r.n) + '</div><div class="od">Your deck has outgrown this round, so it answers with a second rule. '
-          + escapeHtml(r.d) + '</div></div>';
+        return '<div class="ordeal-warn reckon"><div class="on">THE RECKONING: '
+          + escapeHtml(r.n) + '</div><div class="od">Your deck outgrew this round. ' + escapeHtml(r.d) + '</div></div>';
       })()
-    /* The exponential is the whole reason to shop, and it is invisible from
-       inside a single round. Say it out loud, in numbers. */
-    + '<p class="stakes">Round ' + ROUNDS + ' asks for <b>'
-    + roundShape(ROUNDS-1).target.toLocaleString() + '</b> &mdash; <b>'
-    + (function(){ /* rounded, this printed "1x this one" late in a run, where the real
-         ratio is 1.19 — a line whose whole job is to make the climb feel steep,
-         reporting no climb at all. */
-        const r = roundShape(ROUNDS-1).target / next.target;
-        return (r < 3 ? r.toFixed(1) : Math.round(r)); })() + '×</b> this one.<br>'
-    + '<b>Words add points. Lenses multiply them.</b></p>'
+    + '<p class="stakes">Round ' + ROUNDS + ' asks <b>'
+    + roundShape(ROUNDS-1).target.toLocaleString() + '</b> \u00b7 <b>'
+    + (function(){ const r = roundShape(ROUNDS-1).target / next.target;
+        return (r < 3 ? r.toFixed(1) : Math.round(r)); })() + '\u00d7</b> this one. Words add points, Lenses multiply them.</p>'
     + (function(){
         /* Perfect draws and perfect ordering, against what the round will
            really ask.
@@ -3110,24 +4099,36 @@ function openShop(reward){
         const gap = next.target - can;
         if(gap <= 0){
           return '<div class="reality"><div class="rk">YOU CAN MAKE THIS</div><div class="rv">'
-            + 'Played perfectly, your deck makes about <b>' + can.toLocaleString()
-            + '</b> next round. It asks for <b>' + next.target.toLocaleString()
-            + '</b>.</div></div>';
+            + 'Your deck makes about <b>' + can.toLocaleString() + '</b> played perfectly. '
+            + 'It asks <b>' + next.target.toLocaleString() + '</b>.</div></div>';
         }
 
         /* Singles first, then pairs: by the middle of a run one Lens rarely
            closes a gap on its own and two often do, and "nothing here closes
-           this" has to mean it. Six measurements at ~25ms, on a panel that
-           opens once a round. */
+           this" has to mean it. Up to seven measurements, each one a full
+           pass over the deck: ~60ms at round 6 and ~330ms at round 4, on a
+           panel that opens once a round. */
         const buyable = (G.offers || []).filter(function(o){
           return !o.bought && o.kind === "lens" && o.cost <= G.bank
             && !G.lenses.some(function(l){ return l.id === o.lens.id; });
         });
         const reaches = function(lenses){
           lenses.forEach(function(l){ G.lenses.push(l); });
-          const c = deckCeiling(G.round);
+          /* Re-read the SHAPE, not just the ceiling. A Lens can move the round
+             as well as the score — THE CURSE doubles the target, THE WAGER
+             takes a play — and measuring a cursed deck against the target the
+             curse has not applied yet is how the shop ends up promising that a
+             Lens covers a gap it is about to widen.
+
+             shapeFor and not roundShape: re-deriving THE RECKONING here would
+             run a second full deckCeiling per candidate, and the shop is
+             already the most expensive screen in the game. The round's rules
+             were settled above; what this needs from the candidate is what it
+             does to the TARGET. */
+          const shape = shapeFor(G.round, next.rules);
+          const c = deckCeiling(G.round, shape);
           lenses.forEach(function(){ G.lenses.pop(); });
-          return c >= next.target;
+          return c >= shape.target;
         };
         let fix = null;
         const room = LENS_SLOTS - G.lenses.length;
@@ -3147,19 +4148,19 @@ function openShop(reward){
         return '<div class="reality ' + (fix ? 'near' : 'short') + '">'
           + '<div class="rk">' + (fix ? 'YOUR DECK ALONE IS SHORT' : 'NOTHING HERE CLOSES THIS')
           + '</div><div class="rv">'
-          + 'Played perfectly, your deck makes about <b>' + can.toLocaleString()
-          + '</b> next round. It asks for <b>' + next.target.toLocaleString()
-          + '</b> &mdash; you are <b>' + gap.toLocaleString() + '</b> short.'
+          + 'Your deck makes about <b>' + can.toLocaleString()
+          + '</b> played perfectly, against <b>' + next.target.toLocaleString()
+          + '</b>. <b>' + gap.toLocaleString() + '</b> short.'
           + (fix
               ? ' <b>' + escapeHtml(fix.n) + '</b> ($' + fix.cost + ') covers it.'
               : (G.lenses.length >= LENS_SLOTS
-                  ? ' Your slots are full &mdash; sell one and buy a louder one, or reroll.'
-                  : ' Reroll the shelf, or sell a Lens that is costing you more than it pays.'))
+                  ? ' Slots are full. Sell one and buy louder, or reroll.'
+                  : ' Reroll, or sell a Lens costing you more than it pays.'))
           + '</div></div>';
       })()
     + '<div class="offers" id="offers"></div>'
     + (G.lenses.length
-        ? '<div class="sub" style="margin:16px 0 7px">Your Lenses &mdash; '
+        ? '<div class="sub" style="margin:16px 0 7px">Your Lenses \u00b7 '
           + G.lenses.length + ' of ' + LENS_SLOTS
           + (G.lenses.length >= LENS_SLOTS
               ? ' slots full. Sell one to make room.' : ' slots used')
@@ -3171,21 +4172,22 @@ function openShop(reward){
     + '<button class="btn ' + (G.lenses.length ? 'primary' : 'danger') + '" id="leaveShop" type="button">'
     + (G.lenses.length ? 'Back to the table →' : 'Leave with no Lens') + '</button>'
     + '</div>';
-  showPanel(html);
+  /* the round just ended — this is a moment, not a menu */
+  showPanel(html, true);
 
   const box = document.getElementById("offers");
   G.offers.forEach(function(o, idx){
     const b = document.createElement("button");
     b.className = "offer"; b.type = "button";
     b.disabled = o.bought || G.bank < o.cost || (o.kind==="lens" && G.lenses.length>=LENS_SLOTS);
-    if(!o.bought && o.kind === "lens" && G.lenses.length >= LENS_SLOTS) b.title = "No slots left — sell one below";
+    if(!o.bought && o.kind === "lens" && G.lenses.length >= LENS_SLOTS) b.title = "No slots left. Sell one below.";
     else if(!o.bought && G.bank < o.cost) b.title = "You cannot afford this yet";
     if(o.kind === "lens"){
       /* An honest nudge: say when a Lens actually has words to fire on. */
       const lt = LENS_TAG[o.lens.id];
       const n = lt ? deckCount(lt) : 0;
       const fit = (lt && n >= 5)
-        ? '<div class="fit">Good fit &mdash; you hold ' + n + ' ' + TAGS[lt][0] + ' words</div>'
+        ? '<div class="fit">Good fit: you hold ' + n + ' ' + TAGS[lt][0] + ' words</div>'
         : '';
       if(o.lens.flaw) b.classList.add("flawed");
       b.innerHTML = '<div class="on">' + o.lens.n + '</div><div class="od">' + o.lens.d + '</div>'
@@ -3208,7 +4210,7 @@ function openShop(reward){
       row.innerHTML = '<div class="ow"><div class="on">' + escapeHtml(l.n) + '</div>'
         + '<div class="od">' + escapeHtml(l.d) + '</div>'
         + (lv ? '<div class="grown">grown to +' + Math.round(lv).toLocaleString()
-                + ' &mdash; selling loses it</div>' : '')
+                + ', and selling loses it</div>' : '')
         + '</div>';
       /* Selling asks twice. It is the only irreversible thing in the shop —
          it takes the Lens, every round of growth on it, and gives back half
@@ -3306,23 +4308,23 @@ function claude_use(name){
    Deliberately simple and readable — morphology plus a small sense-map. */
 const SENSE = [
   [/fire|burn|flame|blaze|scorch|ember|solar|lava|heat|boil|steam|volcan|thermo|forge/, "HEA"],
-  [/ice|frost|snow|chill|cold|arctic|winter|glaci|freeze|cryo|polar/, "COL"],
-  [/water|rain|sea|ocean|river|wave|flood|tide|liquid|wet|aqua|hydro|marine|lake|mist/, "WET"],
-  [/run|fly|rush|jump|spin|flow|drift|race|swift|dash|surge|orbit|travel|migrat|velo|motor/, "MOT"],
-  [/kill|death|die|poison|toxic|war|blade|knife|gun|bomb|danger|threat|venom|crash|wound|risk|fear/, "DAN"],
+  [/\bice|frost|snow|chill|cold|arctic|winter|glaci|freeze|cryo|polar/, "COL"],
+  [/water|rain|\bsea|ocean|river|wave|flood|tide|liquid|wet|aqua|hydro|marine|lake|mist/, "WET"],
+  [/\brun|fly|rush|jump|spin|flow|drift|race|swift|dash|surge|orbit|travel|migrat|velo|motor/, "MOT"],
+  [/kill|death|\bdie|poison|toxic|\bwar|blade|knife|gun|bomb|danger|threat|venom|crash|wound|risk|fear/, "DAN"],
   [/loud|noise|scream|shout|thunder|roar|bang|siren|drum|song|music|echo|sonic|voice|bell/, "LOU"],
   [/light|bright|glow|shine|star|sun|lamp|flash|gleam|neon|dawn|gold|laser|beam/, "BRI"],
   [/dark|night|shadow|black|gloom|void|abyss|crypt|grave|murk|dusk/, "DAR"],
-  [/dog|cat|bird|fish|wolf|bear|horse|beast|animal|creature|insect|snake|whale|lion|shark|worm|bug|hound|fox|owl|rat/, "ANI"],
+  [/dog|cat|bird|fish|wolf|bear|horse|beast|animal|creature|insect|snake|whale|lion|shark|worm|\bbug|hound|fox|owl|rat/, "ANI"],
   [/tree|flower|leaf|plant|grass|root|seed|forest|moss|vine|herb|bloom|fern|weed/, "PLA"],
   [/mountain|earth|stone|rock|storm|sky|wind|cloud|desert|valley|nature|soil|canyon|island|cave/, "NAT"],
   [/hand|eye|heart|bone|blood|skin|brain|body|lung|flesh|nerve|muscle|tooth|limb|finger/, "BOD"],
   [/eat|food|bread|meat|fruit|sweet|taste|cook|meal|soup|spice|drink|sugar|salt|feast/, "FOO"],
-  [/tool|hammer|blade|wheel|lever|machine|device|key|rope|nail|saw|drill|engine/, "TOO"],
+  [/tool|hammer|blade|wheel|lever|machine|device|\bkey|rope|nail|\bsaw|drill|engine/, "TOO"],
   [/comput|digital|data|robot|cyber|electr|circuit|code|network|silicon|pixel|server|algorith|neural|quantum/, "TEC"],
   [/money|gold|coin|cash|price|debt|bank|trade|wealth|cost|market|wage|tax|profit/, "MON"],
   [/think|mind|dream|memory|idea|thought|know|belief|feel|emotion|soul|logic|reason|fear|hope|doubt/, "MIN"],
-  [/time|year|day|hour|old|ancient|future|past|clock|age|era|history|moment|decade|eternal/, "TIM"]
+  [/time|year|\bday|hour|\bold|ancient|future|past|clock|\bage|\bera|history|moment|decade|eternal/, "TIM"]
 ];
 function houseAppraise(word){
   const w = word.toLowerCase();
@@ -3334,16 +4336,12 @@ function houseAppraise(word){
     if(tags.indexOf("ABS")===-1) tags.push("ABS");
     if(tags.indexOf("MIN")===-1 && tags.length<3) tags.push("MIN");
   }
-  if(tags.length === 0){
-    const r = mulberry32(hashStr(w));
-    const pool = TAG_KEYS.filter(function(t){ return t!=="ABS"; });
-    const n = 2 + Math.floor(r()*2);
-    while(tags.length < n){
-      const t = pool[Math.floor(r()*pool.length)];
-      if(tags.indexOf(t)===-1) tags.push(t);
-    }
-  }
-  return { tags: tags.slice(0,4), note: "No entry on file. Appraised from its shape and its company." };
+  return {
+    tags: tags.slice(0,4),
+    note: tags.length
+      ? "Read from the shape of the word. Change anything that is wrong."
+      : "No entry on file, and the house will not guess. The reading is yours."
+  };
 }
 
 function openInterpreter(){
@@ -3355,8 +4353,8 @@ function openInterpreter(){
     + '<h2>The Interpreter</h2>'
     + '<div class="sub">One word, once per run</div>'
     + '<p>Type in <b>any word you like</b>. Your dog\'s name, your job title, the worst thing that happened to you this week.</p>'
-    + '<p>It gets read for its overtones and shuffled into your deck as a real card, '
-    + 'scoring by exactly the same rules as everything else.</p>'
+    + '<p>Then you say what it <b>rings of</b>. Those are its overtones, and the card '
+    + 'goes into your deck scoring by exactly the same rules as everything else.</p>'
     + '<input id="interpInput" maxlength="20" autocomplete="off" spellcheck="false" placeholder="type a word…">'
     + '<div class="appraisal" id="appraisal"></div>'
     + '<div class="rowend">'
@@ -3413,34 +4411,82 @@ async function runAppraisal(){
     src = "House appraisal · no live valuer available";
   }
 
-  const card = makeCard({ w: word, t: tags }, true);
-  G.interpreterUsed = true;
-  G.interpretedWord = { w: word, t: tags };
-  G.deck.push(card);
-  shuffle(G.deck);
-
-  out.innerHTML = '';
-  out.appendChild(cardEl(card, true));
-  const say = document.createElement("div");
-  say.className = "say";
-  say.innerHTML = escapeHtml(note) + '<span class="src">' + escapeHtml(src) + '</span>';
-  out.appendChild(say);
-
   SFX.reveal();
+  chooseOvertones(word, tags, note, src);
+}
 
-  go.textContent = "Into the deck →";
+/* The last word in it is the player's. An appraisal is a suggestion — Claude's
+   when there is one, the house's shape-reading when there is not, nothing at
+   all when neither can point at anything — and the player accepts it, edits
+   it, or writes their own reading over the top. Which is what interpreting a
+   word means, and what the panel has been called all along. */
+function chooseOvertones(word, suggested, note, src){
+  const out = document.getElementById("appraisal");
+  const go = document.getElementById("interpGo");
+  const picked = suggested.slice(0, 4);
+
+  out.innerHTML = ''
+    + '<div class="interp-pick">'
+    +   '<div class="say">' + escapeHtml(note)
+    +     '<span class="src">' + escapeHtml(src) + '</span></div>'
+    +   '<div class="sub" id="pickCount"></div>'
+    +   '<div class="pickgrid">' + TAG_KEYS.map(function(t){
+          return '<button class="pickopt" type="button" data-tag="' + t + '" aria-pressed="false">'
+            + iconSpan(t) + '<span class="lbl">' + TAGS[t][0] + '</span></button>';
+        }).join("") + '</div>'
+    + '</div>';
+
+  const countEl = document.getElementById("pickCount");
+  function paint(){
+    Array.prototype.forEach.call(out.querySelectorAll(".pickopt"), function(b){
+      b.setAttribute("aria-pressed", picked.indexOf(b.dataset.tag) >= 0 ? "true" : "false");
+    });
+    const n = picked.length;
+    countEl.textContent = n < 2
+      ? "Pick at least two"
+      : n + " of a possible four \u00b7 tap to change";
+    go.disabled = n < 2;
+    go.textContent = n < 2 ? "Pick two" : "Into the deck \u2192";
+  }
+
+  Array.prototype.forEach.call(out.querySelectorAll(".pickopt"), function(b){
+    b.onclick = function(){
+      const t = b.dataset.tag, at = picked.indexOf(t);
+      if(at >= 0) picked.splice(at, 1);
+      else if(picked.length < 4) picked.push(t);
+      else { SFX.deny(); return; }
+      SFX.pick(picked.length);
+      paint();
+    };
+  });
+
   go.disabled = false;
-  go.onclick = function(){ hidePanel(); render(); toast(word + " is in the deck."); };
+  go.onclick = function(){
+    if(picked.length < 2){ SFX.deny(); return; }
+    const card = makeCard({ w: word, t: picked.slice() }, true);
+    G.interpreterUsed = true;
+    G.interpretedWord = { w: word, t: picked.slice() };
+    G.deck.push(card);
+    shuffle(G.deck);
+    hidePanel();
+    render();
+    toast(word + " is in the deck.");
+  };
+  paint();
 }
 
 /* ---------- run end ---------- */
 function endRun(won){
   G.over = true;
+  const rd = runDifficulty();
+  /* Scholar keeps the plain key so nobody's existing best disappears; anything
+     else gets its own, because a total from a lower curve is not a better run. */
+  const bestKey = rd.id === "scholar" ? "best" : "best:" + rd.id;
   const runs = store.get("runs", 0) + 1;
   store.set("runs", runs);
-  const bestEver = store.get("best", 0);
+  const bestEver = store.get(bestKey, 0);
   const isRecord = G.total > bestEver;
-  if(isRecord) store.set("best", G.total);
+  if(isRecord) store.set(bestKey, G.total);
 
   /* Memory unlock: carry one Lens you actually used into the next run.
 
@@ -3473,15 +4519,50 @@ function endRun(won){
     +   '<div class="stat"><div class="k">Best mult</div><div class="v">×' + (G.best.mult||1) + '</div></div>'
     + '</div>'
     + (isRecord ? '<p style="color:var(--gold)"><b>That is a personal best.</b></p>' : '')
-    + (unlocked ? '<div class="unlock"><div class="k">Memory — this one is yours next run</div><div class="v">'
+    /* Three runs in and still falling in the first third: that is the curve
+       winning, not a lesson landing. Offered once it is true, never before,
+       and never to somebody already playing the gentler one. */
+    + (!won && runs >= 3 && G.round < 3 && rd.id === 'scholar'
+        ? '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
+          + '<p>Four runs in five end early, played perfectly. <b>APPRENTICE</b> lowers '
+          + 'every target, hands you a fourth discard, and drops two of the three '
+          + 'Ordeals. Same words, same Lenses.</p>'
+          + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
+        : '')
+    + (unlocked ? '<div class="unlock"><div class="k">Yours next run</div><div class="v">'
         + unlocked.n + '</div><div class="d">' + unlocked.d + '</div></div>' : '')
+    /* Their first finished run, whichever way it went, opens the real curve.
+       Said here because it is the screen they are already reading, and not as
+       a question — they carry on with whatever they were doing. */
+    + (runs === 1
+        ? '<div class="unlock open"><div class="k">Unlocked</div><div class="v">SCHOLAR</div>'
+          + '<div class="d">The game as it is balanced: the targets it was tuned to and one '
+          + 'discard fewer. Four runs in five end early on it.</div>'
+          + '<button class="btn" id="goHard" type="button">Play SCHOLAR \u2192</button></div>'
+        : '')
     + '<div class="share" id="shareBox">' + escapeHtml(share) + '</div>'
     + '<div class="rowend">'
     +   '<button class="btn" id="copyShare" type="button">Copy result</button>'
     +   '<button class="btn" id="againSeed" type="button">Same seed again</button>'
     +   '<button class="btn primary" id="againNew" type="button">New run →</button>'
     + '</div>';
-  showPanel(html);
+  showPanel(html, true);
+
+  const hard = document.getElementById("goHard");
+  if(hard) hard.onclick = function(){
+    setPref("difficulty", "scholar");
+    hidePanel();
+    newRun("free-" + Math.random().toString(36).slice(2,8), true);
+    toast("SCHOLAR. The targets it was tuned to.");
+  };
+
+  const easy = document.getElementById("goEasy");
+  if(easy) easy.onclick = function(){
+    setPref("difficulty", "apprentice");
+    hidePanel();
+    newRun("free-" + Math.random().toString(36).slice(2,8), true);
+    toast("APPRENTICE. Lower targets, one more discard.");
+  };
 
   document.getElementById("copyShare").onclick = function(){
     try{
@@ -3497,12 +4578,14 @@ function endRun(won){
 
 function shareText(won){
   const lines = [];
-  lines.push("OVERTONE — " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed));
+  const rd = runDifficulty();
+  lines.push("OVERTONE  ·  " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed)
+             + (rd.id === "scholar" ? "" : "  ·  " + rd.n));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
   if(G.interpretedWord){
-    lines.push("My word: " + G.interpretedWord.w + " — "
+    lines.push("My word: " + G.interpretedWord.w + "  ·  "
       + G.interpretedWord.t.map(function(t){ return TAGS[t][0]; }).join("·"));
   }
   return lines.join("\n");
@@ -3735,9 +4818,15 @@ function stamp(text, bad, ms){
   if(!el) return;
   document.getElementById("stampText").textContent = text;
   el.classList.toggle("bad", !!bad);
+  el.classList.remove("going");
   el.hidden = false;
   clearTimeout(stamp._t);
-  stamp._t = setTimeout(function(){ el.hidden = true; }, ms || 1000);
+  clearTimeout(stamp._f);
+  /* Let the board come back before the words do, so the screen is not simply
+     switched on again underneath them. */
+  const life = ms || 1000;
+  stamp._f = setTimeout(function(){ el.classList.add("going"); }, Math.max(0, life - 300));
+  stamp._t = setTimeout(function(){ el.hidden = true; }, life);
 }
 
 /* Screen shake, scaled to the hit. */
@@ -3780,8 +4869,11 @@ function countTo(el, to, key){
   if(REDUCED || from === to){ el.textContent = end; return; }
 
   /* Long enough to read as a roll, short enough to be finished before the next
-     scoring beat lands (the gap between events is 130ms at its tightest). */
-  const dur = 125;
+     scoring beat lands. The beat is budgeted now and can run to 38ms inside a
+     big hand, so this rides the same setting rather than a constant it would
+     otherwise outlast - and when it does overlap, the previous frame is
+     cancelled below, which reads as a counter blurring under a fast hand. */
+  const dur = Math.round(125 * animScale());
   const t0 = performance.now();
   cancelAnimationFrame(el._roll);
   el.classList.remove("roll"); void el.offsetWidth; el.classList.add("roll");
@@ -3806,7 +4898,7 @@ function countTo(el, to, key){
 function rollTotal(el, to){
   const end = "+" + to.toLocaleString();
   if(REDUCED){ el.textContent = end; return; }
-  const dur = Math.min(620, 260 + Math.log10(Math.max(10, to)) * 120);
+  const dur = Math.round(Math.min(620, 260 + Math.log10(Math.max(10, to)) * 120) * animScale());
   const t0 = performance.now();
   (function step(now){
     const k = Math.min(1, (now - t0) / dur);
@@ -3842,6 +4934,44 @@ function cardEl(c, staticCard){
 
   const base = document.createElement("div");
   base.className = "base"; base.textContent = c.base;
+
+  /* How many letters, in the corner opposite the value. Three of the five
+     figures - COLUMN, STAIR and PAIR - are defined on the length of a word,
+     so finding one meant counting letters across seven words before you
+     could make a decision. A playtester called it what it is: arithmetic
+     homework in the middle of a card game.
+
+     The number was always on the card. A word is worth 5 + 3 per letter, so
+     the value IS the length, linearly transformed and unreadable as one.
+     Printing the length itself changes nothing about the game and turns
+     spotting a figure from counting into looking. */
+  const len = document.createElement("div");
+  len.className = "len";
+  len.textContent = c.w.length;
+  /* The label already reads the word, and a screen reader counting it out
+     is the one place this number is noise. */
+  len.setAttribute("aria-hidden", "true");
+  /* And the number answers back. Printing the length stops you counting, but
+     it still leaves you comparing seven digits to find three that match, and
+     a figure is a thing you should be able to SEE. So once a word is picked,
+     every word in the hand that shares its length lights up - COLUMN and PAIR
+     stop being a search and become the cards that went gold.
+
+     Nothing about scoring moves. It marks what was already true, and it is
+     the same gold a tag uses when it answers the round, because it means the
+     same thing: this one counts for what you are building. */
+  if(!staticCard && G && G.selected && G.selected.length){
+    /* Every picked card EXCEPT this one. Counting itself would light a lone
+       first pick against its own length, which is a match with nothing and
+       reads as a figure that is not there. */
+    const others = G.selected.filter(function(id){ return id !== c.id; })
+      .map(function(id){
+        const f = G.hand.find(function(x){ return x.id === id; });
+        return f ? f.w.length : -1;
+      });
+    if(others.indexOf(c.w.length) >= 0) len.classList.add("same");
+  }
+  el.appendChild(len);
 
   const w = document.createElement("div");
   w.className = "w";
@@ -3895,6 +5025,16 @@ function cardEl(c, staticCard){
       el.appendChild(p);
     }
     if(pos >= 0) el.classList.add("sel");
+    /* The lift, the gold badge and the number are the whole of "this one is
+       picked, and it is third" — and none of it reaches anyone who is not
+       looking at the screen. A figure is made of ORDER, so the position is
+       not decoration here; it is the state. */
+    el.setAttribute("aria-pressed", pos >= 0 ? "true" : "false");
+    if(pos >= 0){
+      el.setAttribute("aria-label",
+        c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", ")
+        + ". Picked, word " + (pos + 1) + " of " + G.selected.length + ".");
+    }
     const toggle = function(){ toggleSel(c.id); };
     el.onclick = toggle;
     el.onkeydown = function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggle(); } };
@@ -3934,65 +5074,127 @@ function toggleSel(id){
 const TUT = [
   { label: "Overtone",
     text: function(){
-      return "See the little tags along the bottom of each card? Those are its "
-           + "<b>overtones</b>. Every round asks for two of them, and words that "
-           + "carry them are worth points."
-           + '<span class="do">Seven words, four plays. Let\u2019s do one round together.</span>'; } },
+      return "Pluck a guitar string and fainter notes ring under it. Those are its "
+           + "<b>overtones</b>.<br><br>Words have them too: the small tags on every card. "
+           + "Those tags score. What the word means does not."
+           + '<span class="do">Seven words, four plays. One round together.</span>'; } },
 
-  { sel: ".blind", pos: "right", label: "What this round wants",
+  { sel: ".blind", pos: "right", label: "What the round wants",
     text: function(){
-      return "This one is <b>" + G.demand.n + "</b>, and it wants "
+      return "<b>" + G.demand.n + "</b> wants "
            + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-           + ". Every matching tag you play is <b>+25 points</b>, and a word carrying "
-           + "both of them pays twice."
-           + '<span class="do">Get to ' + G.target.toLocaleString()
-           + " and you\u2019ve cleared it.</span>"; } },
+           + ". Every matching tag pays <b>+25</b>."
+           + '<span class="do">Reach ' + G.target.toLocaleString() + '.</span>'; } },
 
   { sel: "#hand", pos: "top", label: "Pick a word",
     text: function(){
-      return "The words that can score here have a <b>gold stripe</b> across the top, "
-           + "and their matching tags are lit up gold."
-           + '<span class="do">Tap one of the gold-striped ones.</span>'; },
+      return "Words that can score here have a <b>gold stripe</b> on top."
+           + '<span class="do">Tap one.</span>'; },
     done: function(){ return G.selected.length >= 1; } },
 
   { sel: "#hand", pos: "top", label: "How many to take",
     text: function(){
-      return "<b>Take three when you can.</b> Each word adds its own points, so three "
-           + "score about three times as much as one. Even a word that matches nothing "
-           + "still adds its value, so a third card is rarely a bad idea.<br><br>"
-           + "And if you clear a round with plays and discards to spare, you get "
-           + "<b>more money</b> for it. Finishing fast buys better Lenses."
-           + '<span class="do">Tap two more, so you are holding three.</span>'; },
+      return "<b>Take three when you can.</b> Three score about three times as much as "
+           + "one, and a word that matches nothing still adds its points.<br><br>Finish a "
+           + "round with plays to spare and you earn <b>more money</b> for Lenses."
+           + '<span class="do">Tap two more.</span>'; },
     done: function(){ return G.selected.length >= 3; } },
+
+  /* Reads the board rather than guessing at it, so it can never tell a player
+     they made a shape they did not. */
+  { sel: "#stageHint", pos: "bottom", label: "The shape of your hand",
+    text: function(){
+      const cards = G.selected.map(function(id){
+        return G.hand.find(function(c){ return c.id === id; });
+      }).filter(Boolean);
+      const f = figureFor(cards);
+      const better = figureByReorder(cards);
+      const answering = cards.filter(function(c){
+        return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+      }).length;
+      const paid = f ? Math.round(f.mult * answering / cards.length) : 0;
+      const found = f
+        ? "Yours make <b>" + f.n + "</b>: <b>+" + f.chips + "</b> and <b>+" + paid
+          + " multiplier</b>"
+          + (paid < f.mult
+              ? ", cut from +" + f.mult + (answering === 1
+                  ? " because only one of them answers the round."
+                  : " because only " + answering + " of them answer the round.")
+              : ".")
+        : (better
+            ? "Yours make <b>nothing</b> in this order, but <b>" + better.n + "</b> in another."
+            : "Yours make <b>nothing</b>. Nothing shares a length, nothing links letters.");
+      return "Now look at the words, not the tags. Their shape is a <b>figure</b>, it "
+           + "scores first, and it sets your multiplier.<br><br>" + found
+           + '<span class="do">Swap a word and watch the name change.</span>'; } },
 
   { sel: "#tally", pos: "right", label: "The score",
     text: function(){
-      return "Your hand is worth <b>points \u00d7 multiplier</b>. Matching tags add points. "
-           + "The multiplier sits at 1 until you own a Lens.<br><br>"
-           + "The board works this out before you commit, so swap a word and watch the "
-           + "number move."; } },
+      return "<b>Points \u00d7 multiplier</b>. Gold tags add the points. Your figure and "
+           + "your Lenses raise the multiplier.<br><br>The board works it out before you "
+           + "commit."; } },
 
   { sel: "#playBtn", pos: "top", label: "Play it",
     text: function(){
-      return "Playing uses one of your four plays. <b>Discard</b> throws words back and "
-           + "deals you new ones instead, three times a round."
+      return "Playing spends one of your four plays. <b>Discard</b> swaps words instead, "
+           + "three times a round."
            + '<span class="do">Hit PLAY.</span>'; },
     done: function(){ return G.plays < 4; } },
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
-      return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>: a rule "
-           + "that bends the scoring. Words <b>add</b> points. Lenses <b>multiply</b> them, "
-           + "and the targets climb faster than any deck can keep up with.<br><br>"
-           + "A few want fewer words &mdash; <b>ASCETIC</b> pays \u00d75 if you play exactly one. "
-           + "And the loudest ones are <b>flawed</b>: they pay more than anything else and take "
-           + "a play, a discard or your income back for it."
+      return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>. Words add "
+           + "points. Lenses multiply them, and the targets climb faster than any deck "
+           + "keeps up with.<br><br>Some want fewer words: <b>ASCETIC</b> pays \u00d75 for one. "
+           + "<b>Flawed</b> ones pay most and take something back."
            + '<span class="do">'
            + (G.roundScore >= G.target
-                ? "You have already cleared " + G.demand.n + ". The Bookseller is next."
-                : "That\u2019s the whole game. Go and clear " + G.demand.n + ".")
+                ? "You have cleared " + G.demand.n + ". The Bookseller is next."
+                : "That is the whole game. Go and clear " + G.demand.n + ".")
            + "</span>"; } }
 ];
+
+/* The tutorial tells the player to tap three cards and then names the FIGURE
+   they made. Dealt at random those three make nothing 43% of the time and THE
+   PAIR — which demonstrates neither length order nor letters — another 44%, so
+   the step that teaches the mechanic mostly taught that the mechanic does not
+   fire. Same seven words, same difficulty, laid out so the lesson is there to
+   be found. */
+let tutHandOrder = null;
+function arrangeForTutorial(){
+  if(!G || !G.hand || G.hand.length < 3) return;
+  const hand = G.hand.slice();
+  tutHandOrder = hand;
+  let best = null, bestValue = -1;
+  for(let i = 0; i < hand.length; i++)
+    for(let j = 0; j < hand.length; j++){
+      if(j === i) continue;
+      for(let k = 0; k < hand.length; k++){
+        if(k === i || k === j) continue;
+        const trio = [hand[i], hand[j], hand[k]];
+        const f = figureFor(trio);
+        if(!f) continue;
+        /* a figure that shows what a figure IS beats the floor */
+        const v = figValue(f) + (f.id === "pair" ? 0 : 500);
+        if(v > bestValue){ bestValue = v; best = trio; }
+      }
+    }
+  if(!best) return;
+  G.hand = best.concat(hand.filter(function(c){ return best.indexOf(c) < 0; }));
+}
+
+/* Put the deal back the way it was dealt. The arrangement is a teaching aid,
+   not a handout: left in place it meant anyone who saw the tutorial had their
+   first three cards pre-sorted into a figure for the rest of the round, which
+   cleared round 1 in a single hand and quietly made the daily seed worth more
+   to them than to somebody who skipped. Same seven words either way — only
+   where they sit while the lesson is running. */
+function restoreHandOrder(){
+  if(!tutHandOrder || !G || !G.hand) { tutHandOrder = null; return; }
+  const want = tutHandOrder.filter(function(c){ return G.hand.indexOf(c) >= 0; });
+  if(want.length === G.hand.length) G.hand = want;
+  tutHandOrder = null;
+}
 
 let tutStep = -1, tutWatch = null;
 
@@ -4002,6 +5204,8 @@ function tutorialSeen(){ return store.get("tutorial", false); }
 function startTutorial(force){
   if(!force && tutorialSeen()) return;
   tutStep = 0;
+  arrangeForTutorial();
+  renderHand();
   /* render() has already drawn the coach by now; stand it down so the two
      guides never talk over each other. */
   coachSet(null);
@@ -4027,6 +5231,8 @@ function endTutorial(completed){
   tutStep = -1;
   document.getElementById("tut").hidden = true;
   store.set("tutorial", true);
+  restoreHandOrder();
+  if(G) renderHand();
   /* Finishing the tutorial makes the coach redundant. SKIPPING it does not —
      a player who dismisses a six-step overlay has not necessarily learned
      anything, and the coach is one unobtrusive line. Leave them the net. */
@@ -4091,9 +5297,24 @@ function pointTut(){
   if(docked){
     box.classList.remove("dock-top");
     if(el){
-      const r = el.getBoundingClientRect();
-      /* sit at whichever end is further from the thing being pointed at */
-      if(r.top + r.height / 2 > window.innerHeight * 0.5) box.classList.add("dock-top");
+      /* Which end is further from the target is the wrong question — a tall
+         card docked at the far end still reaches back across the screen. Ask
+         which end actually clears it. THE SHAPE OF YOUR HAND spent a release
+         sitting on top of the readout it was telling players to watch. */
+      const t = el.getBoundingClientRect();
+      const bh = box.offsetHeight;
+      const topRoom = t.top - 16, bottomRoom = window.innerHeight - t.bottom - 16;
+      const topCovers = 8 + bh > t.top - 8;
+      const bottomCovers = window.innerHeight - 8 - bh < t.bottom + 8;
+      const goTop = (bottomCovers && !topCovers)
+        || (bottomCovers && topCovers && t.top + t.height / 2 > window.innerHeight * 0.5);
+      if(goTop) box.classList.add("dock-top");
+      /* Copy grows; the screen does not. Cap the card to the room on the side
+         it docked to, so no future edit can quietly push it back over the
+         board. It scrolls before it covers anything. */
+      box.style.maxHeight = Math.max(120, goTop ? topRoom : bottomRoom) + "px";
+    } else {
+      box.style.maxHeight = "";
     }
   }
   if(!r){
@@ -4128,17 +5349,40 @@ function pointTut(){
 
   box.style.transform = "none";
   const bw = box.offsetWidth, bh = box.offsetHeight, gap = 14;
-  /* Side placement needs room the phone layout does not have, so narrow
-     screens always get the card above or below the spotlight. */
-  const narrow = window.innerWidth < 960;
-  let left, top;
-  if(s.pos === "right" && !narrow){ left = r.right + gap; top = r.top; }
-  else if(s.pos === "top"){ left = r.left; top = r.top - gap - bh; }
-  else { left = r.left; top = r.bottom + gap; }
-  if(top < 12) top = r.bottom + gap;
-  if(top + bh > window.innerHeight - 12) top = r.top - gap - bh;
-  box.style.left = Math.max(12, Math.min(left, window.innerWidth - bw - 12)) + "px";
-  box.style.top = Math.max(12, Math.min(top, window.innerHeight - bh - 12)) + "px";
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const clamp = function(v, lo, hi){ return Math.max(lo, Math.min(v, hi < lo ? lo : hi)); };
+  const spot = { left: r.left - pad, top: r.top - pad,
+                 right: r.right + pad, bottom: r.bottom + pad };
+
+  /* Four placements, tried in the order the step asked for, scored by how much
+     of the spotlight each one covers. The old version picked a side, clamped it
+     into the viewport, and never looked again — so a tall card pointing at
+     something in the middle of the screen got clamped straight back on top of
+     it. A card in an awkward corner is a smaller failure than a card covering
+     the one thing the step is about. */
+  const side = {
+    below: { left: clamp(r.left, 12, vw - bw - 12), top: spot.bottom + gap },
+    above: { left: clamp(r.left, 12, vw - bw - 12), top: spot.top - gap - bh },
+    right: { left: spot.right + gap, top: clamp(r.top, 12, vh - bh - 12) },
+    left:  { left: spot.left - gap - bw, top: clamp(r.top, 12, vh - bh - 12) }
+  };
+  /* Side placement needs room the phone layout does not have. */
+  const narrow = vw < 960;
+  const order = s.pos === "right" && !narrow ? ["right", "left", "below", "above"]
+              : s.pos === "top" ? ["above", "below", "right", "left"]
+              : ["below", "above", "right", "left"];
+  const cover = function(c){
+    const l = clamp(c.left, 12, vw - bw - 12), t = clamp(c.top, 12, vh - bh - 12);
+    return Math.max(0, Math.min(l + bw, spot.right) - Math.max(l, spot.left))
+         * Math.max(0, Math.min(t + bh, spot.bottom) - Math.max(t, spot.top));
+  };
+  let best = side[order[0]], bestCover = Infinity;
+  order.forEach(function(k){
+    const c = cover(side[k]);
+    if(c < bestCover){ bestCover = c; best = side[k]; }
+  });
+  box.style.left = clamp(best.left, 12, vw - bw - 12) + "px";
+  box.style.top = clamp(best.top, 12, vh - bh - 12) + "px";
 }
 
 /* ---------- first-run coaching ----------
@@ -4153,7 +5397,7 @@ const IDLE_HINT = "Pick up to 3 words, then hit PLAY.";
    the board was still saying it — the game telling you to undo your own build.
    A Lens that wants a particular shape of hand says so instead. */
 const HAND_SHAPE = {
-  asc:     "ASCETIC pays ×5 for a single word — one at a time beats three.",
+  asc:     "ASCETIC pays ×5 for a single word, so one at a time beats three.",
   oracle:  "THE ORACLE only pays your first word, so a lone word loses nothing.",
   glut:    "GLUTTON wants exactly three.",
   entropy: "ENTROPY wants three, each shorter than the last."
@@ -4174,7 +5418,7 @@ function idleHint(){
 const COACH = {
   pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
   play:  "Hit PLAY. The board has already worked out what you'd get.",
-  score: "That's points × multiplier. Tags add the points, Lenses multiply them."
+  score: "That's points × multiplier. Your figure and your tags add the points; Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -4216,10 +5460,14 @@ function renderPreview(){
     txt.className = "dc-text";
     txt.innerHTML = 'Wants '
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-      + '. Every matching tag you play is <b>+25 points</b>.';
+      + '. Every matching tag you play is <b>+25 points</b>.'
+      + '<span class="dc-fig">The shape of your hand pays too. '
+      + '<button class="figlink" type="button">see the figures</button>.</span>';
     call.appendChild(icons);
     call.appendChild(txt);
     sc.appendChild(call);
+    const fl = txt.querySelector(".figlink");
+    if(fl) fl.onclick = function(){ showFigures(); };
     setTally(0, 1);
     hint.textContent = idleHint();
     return;
@@ -4248,10 +5496,83 @@ function renderPreview(){
     return G.selected.indexOf(c.id) < 0
       && c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
   });
-  hint.innerHTML = '<span class="hand-name">' + resonanceName(hits) + '</span><br>'
-    + 'Worth <b>' + res.total.toLocaleString() + '</b> points'
+  /* The figure is the headline. It is the one thing on the board that is still
+     yours to change, and the thing a player reading only the tag strip would
+     never find on their own. The match count drops a line — it is already
+     spelled out in gold on every card. */
+  const fig = figureFor(cards);
+  const better = figureByReorder(cards);
+  const solo = cards.length < 2;
+  /* A figure only pays its multiplier for the words that answer the round, so
+     the board has to show that sum rather than the headline number — otherwise
+     it promises a multiplier the score will not deliver. */
+  const answering = cards.filter(function(c){
+    return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
+  }).length;
+  const paid = fig ? Math.round(fig.mult * answering / cards.length) : 0;
+  const short = fig && paid < fig.mult;
+  hint.innerHTML =
+      '<span class="hand-name' + (solo || fig ? '' : ' none') + '">'
+    +   (solo ? resonanceName(hits) : (fig ? fig.n : "NO FIGURE")) + '</span>'
+    + (fig ? '<span class="fig-pay' + (short ? ' short' : '') + '">+' + fig.chips
+             + ' and +' + paid + ' mult'
+             + (short ? ' <i>(' + answering + ' of ' + cards.length + ' answer)</i>' : '')
+             + '</span>' : '')
+    + '<br>'
+    + (solo ? '' : resonanceName(hits) + ' &middot; ')
+    + 'worth <b>' + res.total.toLocaleString() + '</b> points'
     + (spare ? ' &middot; room for ' + room + ' more' : '')
-    + (orderMatters() ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>' : '');
+    + (better
+        ? '<br><span class="ord">The same words make <b>' + better.n + '</b> in another order.</span>'
+        : (orderMatters()
+            ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>'
+            : ''));
+  const nm = hint.querySelector(".hand-name");
+  if(nm && !solo) nm.onclick = function(){ showFigures(); };
+  say((solo ? resonanceName(hits) : (fig ? fig.n : "No figure"))
+      + (fig ? ", plus " + fig.chips + " and " + fig.mult + " multiplier" : "")
+      + ". Worth " + res.total.toLocaleString() + " points."
+      + (better ? " In another order these make " + better.n + "." : ""));
+}
+
+/* ---------- the figures, written down ----------
+   Balatro shows you its hand rankings from the first second, and the game is
+   better for it: the list is not a spoiler, it is the puzzle. Same here. */
+function showFigures(back){
+  const rows = FIGURES.map(function(f){
+    const pay = FIG_PAY[f.id];
+    const cell = function(n){
+      const q = pay[n];
+      return q ? '<td>+' + q.chips + ' &middot; +' + q.mult + ' mult</td>'
+               : '<td class="no">no</td>';
+    };
+    return '<tr><th>' + f.n + '<span>' + f.d + '</span></th>' + cell(2) + cell(3) + '</tr>';
+  }).join("");
+  showPanel(''
+    + '<h2>The figures</h2>'
+    + '<div class="sub">The shape of your hand</div>'
+    + '<p>Your hand is scored for its <b>shape</b> before any card is counted: how long the words are, and what letters they start and end on.</p>'
+    + '<p class="gold"><b>The round still has to want them.</b> A figure pays its multiplier only for the words that answer the Demand, so the best three for the shape are rarely the best three for the round.</p>'
+    + '<table class="figtab">'
+    +   '<thead><tr><th>Figure</th><th>Two words</th><th>Three words</th></tr></thead>'
+    +   '<tbody>' + rows + '</tbody></table>'
+    + '<p>Only your <b>best</b> figure pays, and every figure but THE PAIR has to bind every word you play. The board names yours while you pick.</p>'
+    + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
+    + (back ? '<button class="btn' + (back === "title" ? ' primary' : '')
+              + '" id="figsBack" type="button">Back to '
+              + (back === "title" ? 'the menu' : 'how it works') + '</button>'
+            : '<span></span>')
+    + (back === "title" ? ''
+        : '<button class="btn primary" id="closeFigs" type="button">Play</button>') + '</div>');
+  const cf = document.getElementById("closeFigs");
+  if(cf) cf.onclick = hidePanel;
+  /* Opened from somewhere, this used to be a door that only went one way: the
+     sole button said Play, so reading the table cost you your place. */
+  const b = document.getElementById("figsBack");
+  /* Bound, not handed over: assigning these straight to onclick passes the
+     CLICK EVENT as the first argument, and every one of them reads its first
+     argument as "where did you come from". */
+  if(b) b.onclick = back === "title" ? function(){ showTitle(); } : function(){ showHelp(); };
 }
 
 function renderDemand(){
@@ -4298,7 +5619,7 @@ function renderRail(){
   if(G.lenses.length === 0){
     const e = document.createElement("div");
     e.className = "rail-empty";
-    e.textContent = "NO LENSES YET. Clear this round and you can buy one — they're what multiplies your score.";
+    e.textContent = "NO LENSES YET. Clear this round and you can buy one. Lenses are what multiply your score.";
     rail.appendChild(e);
     return;
   }
@@ -4372,12 +5693,15 @@ function renderControls(){
   document.getElementById("playBtn").disabled =
     G.animating || G.selected.length===0 || G.plays<=0 || owed;
   document.getElementById("playBtn").title = owed
-    ? "THE FORFEIT — give a word up first" : "";
+    ? "THE FORFEIT: give a word up first" : "";
   document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
   document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";
   document.getElementById("bankLabel").textContent = "$" + G.bank;
-  document.getElementById("seedLabel").textContent = (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase();
+  const rd = runDifficulty();
+  document.getElementById("seedLabel").textContent =
+    (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase()
+    + (rd.id === "scholar" ? "" : " \u00b7 " + rd.n);
 }
 
 function render(){
@@ -4390,14 +5714,29 @@ function render(){
 }
 
 /* ---------- panels ---------- */
-function showPanel(html){
+/* `moment` marks the two panels a player stops at rather than passes through:
+   a round ending and a run ending. They take the board away properly. */
+function showPanel(html, moment){
   /* The round-clear stamp outlives its animation by design; if a panel opens
      underneath it (a skipped celebration, a fast reader) it has to go. */
   document.getElementById("stamp").hidden = true;
   document.getElementById("panel").innerHTML = html;
-  document.getElementById("veil").hidden = false;
+  const veil = document.getElementById("veil");
+  veil.classList.toggle("moment", !!moment);
+  veil.hidden = false;
 }
 function hidePanel(){ document.getElementById("veil").hidden = true; }
+
+/* Everything a sighted player reads off the board as it changes: what the hand
+   is worth, what it made, whether the round is won. Without this the only
+   thing the page ever announced was the tutorial. */
+let sayLast = "";
+function say(msg){
+  const el = document.getElementById("say");
+  if(!el || msg === sayLast) return;
+  sayLast = msg;
+  el.textContent = msg;
+}
 
 let toastTimer = null;
 function toast(msg){
@@ -4408,30 +5747,368 @@ function toast(msg){
 }
 
 function syncSoundBtn(){
-  const b = document.getElementById("soundBtn");
-  if(!b) return;
-  const on = prefs.music || prefs.sfx;
-  b.classList.toggle("off", !on);
-  b.setAttribute("aria-pressed", on ? "true" : "false");
+  /* Whether the game is making any noise has to read off the board without
+     opening anything, so the sound button says OFF when nothing is on. */
+  const dot = document.getElementById("muteDot");
+  if(!dot) return;
+  const on = !!(prefs.music || prefs.sfx);
+  dot.hidden = on;
+  const btn = document.getElementById("menuBtn");
+  if(btn) btn.setAttribute("aria-label", on ? "Sound and feel" : "Sound and feel, currently off");
 }
 
-function showSettings(){
-  function row(key, label, desc){
-    return '<div class="setrow"><div><div class="sl">' + label + '</div>'
-      + '<div class="sd">' + desc + '</div></div>'
+/* ---------- the title screen ----------
+   What a player lands on, and what they come back to. A stack of entries with
+   a caret on the one you are on, walked with the arrow keys or the mouse. The
+   first version of this was a settings page with a PLAY button at the top of
+   it: every entry carried a sentence explaining itself, which is what a form
+   looks like, not a menu. If an entry needs explaining, it is the wrong
+   entry — the only prose left on it is the one line about how hard you want
+   the game, because that is a choice rather than a door. */
+let titleOpen = false, titleSel = 0;
+/* Whether the board behind the menu is a run somebody walked out of. Reaching
+   the menu mid-run must not cost you the run, and PLAY must not quietly mean
+   "throw that away". */
+let titleFromGame = false;
+
+function showTitle(){
+  titleOpen = true;
+  hidePanel();
+  behindTitle(true);
+  const el = document.getElementById("title");
+  const runs = store.get("runs", 0);
+  const now = difficulty(), first = runs === 0;
+  const live = titleFromGame && G && !G.over;
+  const inRun = G ? runDifficulty() : now;
+  const mem = store.get("memory", null);
+  const memLens = mem && LENSES.find(function(l){ return l.id === mem; });
+
+  function row(id, label, cls, acc){
+    return '<button class="mrow' + (cls ? " " + cls : "") + '" type="button" id="' + id + '">'
+      + '<span class="mk" aria-hidden="true"></span>'
+      + '<span class="ml">' + label + '</span>'
+      + (acc ? '<span class="mx">' + acc + '</span>' : '')
+      + '</button>';
+  }
+
+  /* Never lock the one they are standing on, whatever storage says. */
+  const shut = !scholarOpen() && now.id !== "scholar";
+  const pills = DIFFICULTIES.map(function(d){
+    const locked = shut && d.id === "scholar";
+    return '<button class="diffopt" type="button" data-diff="' + d.id + '"'
+      + (locked ? ' disabled aria-disabled="true"' : '')
+      + ' aria-pressed="' + (d.id === now.id ? "true" : "false") + '">' + d.n
+      + (locked ? '<span class="tip lock">Locked</span>' : '')
+      + '</button>';
+  }).join("");
+
+  /* What it means to press the thing you just chose, in one line. A player who
+     has a run on the table is told the run keeps the difficulty it was dealt,
+     because changing it under them would be the game cheating. */
+
+  document.getElementById("titleBody").innerHTML = ''
+    + '<div class="mlist">'
+    +   (live ? row("titleResume", "Resume run", "go", "Round " + (G.round + 1)) : '')
+    +   row("titlePlay", live ? "New run" : (first ? "Play" : "Play the daily"),
+            live ? "" : "go", todayKey())
+    +   (!live && memLens
+          ? '<div class="carry' + (prefs.carryMemory ? '' : ' off') + '">'
+            + '<span class="k">' + (prefs.carryMemory ? 'Carrying in' : 'Starting clean') + '</span>'
+            + '<span class="v">' + escapeHtml(prefs.carryMemory ? memLens.n : 'No Lens') + '</span>'
+            + '<span class="d">' + (prefs.carryMemory
+                ? escapeHtml(memLens.d)
+                : escapeHtml(memLens.n) + ' stays where it is.')
+              + '</span>'
+            + '<button class="carrybtn" id="titleCarry" type="button">'
+            + (prefs.carryMemory
+                ? 'Start clean instead'
+                : 'Carry ' + escapeHtml(memLens.n) + ' in') + '</button></div>'
+          : '')
+    +   '<div class="mseg">'
+    +     '<div class="msl" id="titleDiffLabel">How hard</div>'
+    +     '<div class="segs" role="group" aria-labelledby="titleDiffLabel">' + pills + '</div>'
+    +     '<p class="setnote" id="titleNote"></p>'
+    +   '</div>'
+    +   row("titleHelp", "How to play")
+    +   row("titleFigs", "The figures")
+    +   row("titleTut", "Run the tutorial")
+    +   row("titleSound", "Sound &amp; feel")
+    + '</div>';
+
+  const stat = function(k, v){
+    return '<div><div class="k">' + k + '</div><div class="v' + (v ? '' : ' none') + '">'
+      + (v ? v.toLocaleString() : 'none') + '</div></div>';
+  };
+  /* A roguelite that keeps your record in localStorage and never shows it to
+     you is keeping a secret for no reason. Shown flat, not as three tiles. */
+  document.getElementById("titleStats").innerHTML = runs
+    ? stat("Runs", runs)
+      + stat("Best \u00b7 Scholar", store.get("best", 0))
+      + stat("Best \u00b7 Apprentice", store.get("best:apprentice", 0))
+    : '';
+
+  el.hidden = false;
+
+  const resume = document.getElementById("titleResume");
+  if(resume) resume.onclick = function(){ titleFromGame = false; hideTitle(); };
+  document.getElementById("titlePlay").onclick = function(){
+    if(live && runTouched()) confirmNewRun();
+    else startFromTitle();
+  };
+  document.getElementById("titleHelp").onclick = function(){ showHelp("title"); };
+  document.getElementById("titleFigs").onclick = function(){ showFigures("title"); };
+  document.getElementById("titleSound").onclick = function(){ showMenu("title"); };
+  const carry = document.getElementById("titleCarry");
+  if(carry) carry.onclick = function(){
+    setPref("carryMemory", !prefs.carryMemory);
+    SFX.button();
+    showTitle();
+  };
+  document.getElementById("titleTut").onclick = function(){
+    titleFromGame = false;
+    hideTitle();
+    if(!live) newRun(null);
+    startTutorial(true);
+  };
+  Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(btn){
+    btn.onclick = function(){
+      if(btn.disabled || btn.getAttribute("aria-pressed") === "true") return;
+      setPref("difficulty", btn.dataset.diff);
+      SFX.buy();
+      paintDiff();
+    };
+  });
+  paintDiff();
+
+  /* Hover moves the caret without stealing the keyboard's place in the list. */
+  titleItems().forEach(function(n, i){
+    const stop = n.closest(".mrow") || n.closest(".mseg");
+    if(stop) stop.onmouseenter = function(){ titleMark(i); };
+    n.addEventListener("focus", function(){ titleMark(i); });
+  });
+  titleMark(titleSel);
+}
+
+/* Which pill is lit, which is shut, and the one line under them. Done in place
+   rather than by rebuilding the menu, so the button a player just pressed is
+   still the button under their finger and the keyboard keeps its place. */
+function paintDiff(){
+  const el = document.getElementById("title");
+  const note = document.getElementById("titleNote");
+  if(!el || !note) return;
+  const now = difficulty();
+  const live = titleFromGame && G && !G.over;
+  const inRun = G ? runDifficulty() : now;
+  /* never lock the one they are standing on, whatever storage says */
+  const shut = !scholarOpen() && now.id !== "scholar";
+
+  Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(btn){
+    const on = btn.dataset.diff === now.id;
+    const locked = shut && btn.dataset.diff === "scholar";
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.disabled = locked;
+    if(locked) btn.setAttribute("aria-disabled", "true");
+    else btn.removeAttribute("aria-disabled");
+    const tag = btn.querySelector(".tip");
+    if(locked && !tag){
+      const t = document.createElement("span");
+      t.className = "tip lock";
+      t.textContent = "Locked";
+      btn.appendChild(t);
+    } else if(!locked && tag) tag.remove();
+  });
+
+  note.innerHTML = live && inRun.id !== now.id
+    ? 'The run on the table is still <b>' + inRun.n + '</b>. A new run picks this up.'
+    : now.d + (shut ? ' <b>SCHOLAR</b> opens once you finish a run.' : '');
+}
+
+/* The stops on the list, top to bottom. The difficulty switch is one stop, and
+   the pill you are on is the one that is currently chosen. */
+function titleItems(){
+  const el = document.getElementById("title");
+  if(!el || el.hidden) return [];
+  return Array.prototype.map.call(el.querySelectorAll(".mrow, .segs"), function(n){
+    return n.classList.contains("mrow") ? n
+      : (n.querySelector('.diffopt[aria-pressed="true"]') || n.querySelector(".diffopt"));
+  }).filter(Boolean);
+}
+
+function titleMark(i){
+  const items = titleItems();
+  if(!items.length) return;
+  titleSel = (i + items.length) % items.length;
+  items.forEach(function(n, k){
+    const stop = n.closest(".mrow") || n.closest(".mseg");
+    if(stop) stop.classList.toggle("sel", k === titleSel);
+  });
+}
+
+function titleMove(i, quiet){
+  titleMark(i);
+  const n = titleItems()[titleSel];
+  if(!n) return;
+  try{ n.focus({ preventScroll: true }); }catch(e){ n.focus(); }
+  if(!quiet) SFX.button();
+}
+
+/* Arrows only. Enter and Space belong to the focused button, and handling them
+   here as well would fire every entry twice. */
+function titleKey(e){
+  const k = e.key;
+  if(k !== "ArrowDown" && k !== "ArrowUp" && k !== "ArrowLeft" && k !== "ArrowRight") return;
+  const items = titleItems();
+  if(!items.length) return;
+  e.preventDefault();
+
+  const here = document.activeElement && document.activeElement.closest
+    && document.activeElement.closest("#title");
+  if(!here && (k === "ArrowDown" || k === "ArrowUp")){
+    titleMove(k === "ArrowUp" ? items.length - 1 : 0);
+    return;
+  }
+  if(k === "ArrowDown" || k === "ArrowUp"){
+    titleMove(titleSel + (k === "ArrowDown" ? 1 : -1));
+    return;
+  }
+  /* left and right change the setting you are standing on, the way they do on
+     every console options screen */
+  const cur = items[titleSel];
+  if(!cur || !cur.classList.contains("diffopt")) return;
+  const all = Array.prototype.slice.call(document.querySelectorAll("#title .diffopt"));
+  const at = all.indexOf(cur);
+  const next = all[(at + (k === "ArrowRight" ? 1 : all.length - 1)) % all.length];
+  if(next && next !== cur){ next.click(); titleMove(titleSel, true); }
+}
+
+function hideTitle(){
+  titleOpen = false;
+  document.getElementById("title").hidden = true;
+  behindTitle(false);
+}
+
+/* Everything the menu is standing in front of. One attribute takes it out of
+   the tab order and out of the accessibility tree at the same time;
+   aria-hidden is the fallback for a browser that has not got inert yet. */
+function behindTitle(shut){
+  const app = document.getElementById("app");
+  if(!app) return;
+  if(shut){ app.setAttribute("inert", ""); app.setAttribute("aria-hidden", "true"); }
+  else { app.removeAttribute("inert"); app.removeAttribute("aria-hidden"); }
+}
+
+/* What a run is about to start holding, said in one line for the paths that
+   do not go past the menu. */
+function carriedNote(){
+  const m = prefs.carryMemory && store.get("memory", null);
+  const l = m && LENSES.find(function(x){ return x.id === m; });
+  return l ? "Fresh run, carrying " + l.n + "." : "Fresh run. No Lenses.";
+}
+
+/* Has anything happened on this board that a player would miss? */
+function runTouched(){
+  if(!G) return false;
+  const d = runDifficulty();
+  return G.round > 0 || G.total > 0 || G.plays < 4 || G.discards < 3 + d.discards;
+}
+
+/* Asked in the game's own voice, with the thing being thrown away named. */
+function confirmNewRun(after){
+  hideTitle();
+  showPanel('<h2>Leave this run?</h2>'
+    + '<div class="sub">Round ' + (G.round + 1) + ' of ' + ROUNDS
+      + ' &middot; ' + G.total.toLocaleString() + ' points so far</div>'
+    + '<p>Starting again deals a new board. This one does not come back.</p>'
+    + (function(){
+        const m = store.get("memory", null);
+        const l = m && LENSES.find(function(x){ return x.id === m; });
+        if(!l) return '';
+        return '<div class="setrow"><div><div class="sl">'
+          + (prefs.carryMemory ? 'Carrying in ' + escapeHtml(l.n)
+                               : 'Starting clean')
+          + '</div><div class="sd">'
+          + (prefs.carryMemory
+              ? 'Your Memory Lens comes with you into the new run.'
+              : escapeHtml(l.n) + ' stays where it is.')
+          + '</div></div>'
+          + '<button class="switch" type="button" id="confirmCarry" aria-pressed="'
+          + (prefs.carryMemory ? 'true' : 'false') + '">'
+          + (prefs.carryMemory ? 'ON' : 'OFF') + '</button></div>';
+      })()
+    + '<div class="rowend">'
+    +   '<button class="btn danger" id="dropRun" type="button">Start a new run</button>'
+    +   '<button class="btn primary" id="keepRun" type="button">Keep playing</button>'
+    + '</div>');
+  const cc = document.getElementById("confirmCarry");
+  if(cc) cc.onclick = function(){
+    setPref("carryMemory", !prefs.carryMemory);
+    SFX.button();
+    confirmNewRun(after);          /* redraw so the row and the switch agree */
+  };
+  document.getElementById("keepRun").onclick = function(){
+    hidePanel();
+    if(after === "board"){ titleFromGame = false; }
+    else showTitle();
+  };
+  document.getElementById("dropRun").onclick = function(){
+    hidePanel();
+    if(after === "board"){
+      titleFromGame = false;
+      newRun("free-" + Math.random().toString(36).slice(2,8), true);
+      toast(carriedNote());
+    } else startFromTitle();
+  };
+}
+
+/* PLAY. A first-timer gets the tutorial on the board they are about to play. */
+function startFromTitle(){
+  titleFromGame = false;
+  hideTitle();
+  /* The click that got here IS the gesture, and the window-level hook has
+     already seen it — calling firstGesture() again starts a second theme over
+     the first. */
+  newRun(null);
+  if(!tutorialSeen()) startTutorial(false);
+}
+
+/* ---------- sound and feel ----------
+   The only thing you reach for without leaving the table. Difficulty, the
+   rules and your record are on the title screen, which is where somebody
+   looks for them — a second copy of all of it behind a button on the board
+   was two menus disagreeing about which one was the menu. */
+function showMenu(back){
+  /* The switch mutes, the slider sets the level, and they share a row -
+     because a second row that also says "music" is a second row. */
+  function row(key, label, desc, vol){
+    return '<div class="setrow"><div class="sinfo"><div class="sl">' + label + '</div>'
+      + '<div class="sd">' + desc + '</div>'
+      + (vol ? slider(key, vol, label) : '')
+      + '</div>'
       + '<button class="switch" type="button" data-pref="' + key + '" aria-pressed="'
       + (prefs[key] ? "true" : "false") + '">' + (prefs[key] ? "ON" : "OFF") + '</button></div>';
   }
+  function slider(key, vol, label){
+    const pc = Math.round(prefs[vol] * 100);
+    return '<div class="vol' + (prefs[key] ? '' : ' off') + '">'
+      + '<input type="range" min="0" max="100" step="5" value="' + pc + '"'
+      +   ' data-vol="' + vol + '" aria-label="' + label + ' volume"'
+      +   (prefs[key] ? '' : ' disabled') + '>'
+      + '<span class="volv">' + pc + '</span></div>';
+  }
+
   showPanel('<h2>Sound &amp; feel</h2>'
     + '<div class="sub">Saved on this device</div>'
-    + row("music", "Music", "The track that loops under the game.")
-    + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.")
-    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry \u2014 "
-        + "browsers on iPhone don\u2019t allow it.")
-    + '<div class="rowend"><span></span>'
-    + '<button class="btn primary" id="closeSettings" type="button">Back to the game</button></div>');
+    + row("music", "Music", "The track that loops under the game.", "musicVol")
+    + row("sfx", "Sound effects", "Clicks, scoring, and the racket a big hand makes.",
+        "sfxVol")
+    + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry. "
+        + "Browsers on iPhone do not allow it.")
+    + '<div class="rowend end">'
+    + '<button class="btn primary" id="closeSettings" type="button">'
+    +   (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
 
-  document.getElementById("closeSettings").onclick = hidePanel;
+  document.getElementById("closeSettings").onclick = back === "title"
+    ? function(){ showTitle(); } : hidePanel;
   Array.prototype.forEach.call(document.querySelectorAll(".switch"), function(b){
     b.onclick = function(){
       const k = b.dataset.pref, v = !prefs[k];
@@ -4441,12 +6118,34 @@ function showSettings(){
       if(k === "music"){ v ? musicStart() : musicStop(); }
       if(k === "sfx" && v) SFX.buy();
       if(k === "haptics" && v) buzz(18);
+      /* A level you cannot reach is a level that should not look reachable. */
+      const vr = b.parentNode.querySelector(".vol");
+      if(vr){
+        vr.classList.toggle("off", !v);
+        const sl = vr.querySelector("input");
+        if(sl) sl.disabled = !v;
+      }
       syncSoundBtn();
     };
   });
+  Array.prototype.forEach.call(document.querySelectorAll(".vol input"), function(sl){
+    const out = sl.parentNode.querySelector(".volv");
+    sl.oninput = function(){
+      const n = parseInt(sl.value, 10) || 0;
+      out.textContent = n;
+      setPref(sl.dataset.vol, n / 100);
+      applyVol();
+    };
+    /* One sound at the level they landed on, not sixty on the way there. */
+    sl.onchange = function(){
+      if(sl.dataset.vol === "sfxVol" && prefs.sfx) SFX.score(0, false);
+    };
+  });
 }
+/* The old name, because the sound button used to be the only way in. */
+function showSettings(){ showMenu(); }
 
-function showHelp(){
+function showHelp(back){
   /* A worked example beats a rule list: the same card the player is about to
      see, with the arithmetic spelled out on it. */
   const ex = { w:"FURNACE", t:["HEA","TOO","DAN"], base: 5 + 3*7, interpreted:false };
@@ -4467,43 +6166,43 @@ function showHelp(){
 
   showPanel(''
     + '<h2>How Overtone works</h2>'
-    + '<div class="sub">Six things and you are fine</div>'
-
+    + '<div class="sub">Five rules</div>'
+    + '<div class="why">'
+    +   '<p>Pluck a guitar string and fainter notes ring under the one you played. '
+    +   'Those are its <b>overtones</b>.</p>'
+    +   '<p>Words have them too. <b>FURNACE</b> rings of <b class="gold">HEAT</b>, '
+    +   '<b class="gold">TOOL</b>, <b class="gold">DANGER</b>. Those rings are the tags '
+    +   'on the card, and they are what you play with. What a word means never scores a '
+    +   'point.</p>'
+    + '</div>'
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p><b>Match what the round wants.</b> Every round names two overtones. They are the '
-    +     'small tags along the bottom of each word. The ones that match light up '
-    +     '<b class="gold">gold</b>, and every gold tag you play is worth <b>+25 points</b>. '
-    +     'A word carrying both pays twice.</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">2</div>'
-    +     '<p><b>Take three words, nearly always.</b> Each one adds its own points, and even a '
-    +     'word that matches nothing still adds its value, so a third card is rarely a mistake. '
-    +     'Clear a round with plays and discards to spare and you get paid <b>more money</b> for '
-    +     'it, which is how you afford better Lenses. Play fewer only when a Lens pays you to: '
-    +     '<b>ASCETIC</b> gives &times;5 for exactly one word, <b>ANTONYM ENGINE</b> wants a '
-    +     'specific pair side by side.</p></div>'
+    +     '<p>Every round wants two overtones. Tags that match turn '
+    +     '<b class="gold">gold</b> and pay <b>+25</b> each.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">2</div><div>'
+    +     '<p>Your words also make a shape: same length, climbing by a step, or each one '
+    +     'starting where the last ended. That is a <b>figure</b>, and it is what lifts '
+    +     'your multiplier off 1. It reads left to right, so tap order counts. '
+    +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p>'
+    +     '</div></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>Your score is points &times; multiplier.</b> Words add points. The multiplier sits '
-    +     'at 1 and stays there until a Lens moves it. That is the whole reason round 1 asks for '
-    +     TARGETS[0] + ' and round 8 asks for ' + TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
+    +     '<p><b>Take three words.</b> Even one that matches nothing still adds its '
+    +     'points.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
-    +     '<p><b>Lenses rewrite the rules.</b> Clear a round and the Bookseller sells you one. '
-    +     'You can hold five. Some <b>grow</b> every round you keep them, so buying one early '
-    +     'and holding it beats buying a bigger one late. Some are <b class="gold">flawed</b>: '
-    +     'the biggest numbers in the game, and every one of them takes something back &mdash; '
-    +     'a play, a discard, cards in hand, your income, or the target itself.</p></div>'
+    +     '<p>Your score is <b>points &times; multiplier</b>. Round 1 wants '
+    +     TARGETS[0].toLocaleString() + ', round 8 wants '
+    +     TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">5</div>'
-    +     '<p><b>You can sell.</b> Every Lens you own has a price at the Bookseller, half what '
-    +     'you paid. Selling frees the slot, but a Lens that has been growing loses everything '
-    +     'it grew &mdash; so the question is never just "is this one better", it is "is it '
-    +     'better than what mine has already become".</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">6</div>'
-    +     '<p><b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of just '
-    +     'raising the number: no discards, two words at a time, a four-card hand, words worth '
-    +     'nothing on their own. The Bookseller tells you which one is coming before you spend, '
-    +     'so an Ordeal is something you buy against rather than something that happens to '
-    +     'you.</p></div>'
+    +     '<p>Clear a round and the Bookseller sells you a <b>Lens</b>. Hold five. Some '
+    +     'grow every round you keep them. <b class="gold">Flawed</b> ones pay most and '
+    +     'take something back.</p></div>'
     + '</div>'
+    + '<p>' + (difficulty().id === "apprentice"
+        ? '<b>The last round is an Ordeal.</b> Round 8 changes a rule instead of raising '
+          + 'the number. Rounds 1 to 7 leave your hands alone.'
+        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of '
+          + 'raising the number.')
+    + ' The Bookseller names the next one before you spend.</p>'
 
     + '<div class="worked">'
     +   '<div class="card static"><div class="card-inner">'
@@ -4512,50 +6211,52 @@ function showHelp(){
     +     '<div class="tags">' + exTags + '</div></div>'
     +   '</div>'
     +   '<div class="worked-sum">'
-    +     'Say this round wants <b>HEAT</b>.<br>'
-    +     'FURNACE is worth <b>' + ex.base + '</b> on its own, and its gold HEAT tag adds '
-    +     'another <b>25</b>.<br>'
-    +     'Now hold <b>PYROMANIAC</b>. It pays +25 on every HEAT word when you buy it, and '
-    +     '+110 more for every round you keep it &mdash; so by round two the same card is '
-    +     '<b>' + withLens + '</b>, and it is still climbing.'
+    +     'The round wants <b>HEAT</b>. FURNACE is worth <b>' + ex.base + '</b>, and its '
+    +     'gold HEAT tag adds <b>25</b>. Hold <b>PYROMANIAC</b> and it adds <b>135</b> '
+    +     'more by round two.'
     +     '<span class="worked-tot">' + withLens + ' \u00d7 1 = ' + withLens + ' points</span>'
     +   '</div>'
     + '</div>'
 
-    + '<div class="sub" style="margin:0 0 7px">Does the order I tap them in matter?</div>'
-    + '<p>Not at first. With no Lenses the points just get added up, so any order gives you the '
-    + 'same number.</p>'
-    + '<p>It starts to matter once you own a Lens that <b>reads position</b>. CARNIVORE eats the '
-    + 'word to its left. LEXICOGRAPHER pays for whichever word you put first. It also matters if '
-    + 'you hold one Lens that <b>adds</b> to the multiplier and another that <b>multiplies</b> it, '
-    + 'because (1+2)&times;3 is 9 and (1&times;3)+2 is 5 from the very same three cards. Put the '
-    + 'adders first. The board will tell you when any of this is live.</p>'
-
     + '<div class="sub" style="margin:0 0 7px">The nineteen overtones</div>'
     + '<div class="legend">' + legend + '</div>'
-    + '<p style="font-size:13px"><span class="kbd">1</span>&ndash;<span class="kbd">7</span> pick &middot; '
+    + '<p style="font-size:13px"><span class="kbd">1</span> to <span class="kbd">7</span> pick &middot; '
     + '<span class="kbd">Enter</span> play &middot; <span class="kbd">D</span> discard &middot; '
     + '<span class="kbd">Space</span> hurry the scoring &middot; <span class="kbd">Esc</span> close</p>'
-    + '<div class="rowend">'
-    + '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
-    + '<button class="btn primary" id="closeHelp" type="button">Play</button></div>');
-  document.getElementById("closeHelp").onclick = hidePanel;
-  document.getElementById("replayTut").onclick = function(){
-    hidePanel();
-    startTutorial(true);
-  };
+    + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
+    + (back === "title"
+        ? '<button class="btn primary" id="helpBack" type="button">Back to the menu</button>'
+        : '<button class="btn" id="replayTut" type="button">Run the tutorial</button>'
+          + '<button class="btn primary" id="closeHelp" type="button">Play</button>')
+    + '</div>');
+  const ch = document.getElementById("closeHelp");
+  if(ch) ch.onclick = hidePanel;
+  document.getElementById("helpFigs").onclick = function(){ showFigures("help"); };
+  const rt = document.getElementById("replayTut");
+  if(rt) rt.onclick = function(){ hidePanel(); startTutorial(true); };
+  const hb = document.getElementById("helpBack");
+  if(hb) hb.onclick = function(){ showTitle(); };
 }
 
 /* ---------- input ---------- */
 document.getElementById("playBtn").onclick = play;
 document.getElementById("discardBtn").onclick = discardSel;
 document.getElementById("interpBtn").onclick = openInterpreter;
-document.getElementById("helpBtn").onclick = showHelp;
-document.getElementById("soundBtn").onclick = showSettings;
+document.getElementById("helpBtn").onclick = function(){ showHelp(); };
+document.getElementById("menuBtn").onclick = function(){ showMenu(); };
+document.getElementById("homeBtn").onclick = function(){
+  /* the spotlight has no board to point at once the menu is over it, and the
+     hand it rearranged has to go back the way it was */
+  if(tutActive()) endTutorial(false);
+  titleFromGame = true;
+  titleSel = 0;
+  showTitle();
+};
 document.getElementById("newRunBtn").onclick = function(){
   hidePanel();
+  if(runTouched()){ confirmNewRun("board"); return; }
   newRun("free-" + Math.random().toString(36).slice(2,8), true);
-  toast("Fresh run. No Lenses, no Memory.");
+  toast(carriedNote());
 };
 document.getElementById("tutNext").onclick = tutAdvance;
 document.getElementById("tutSkip").onclick = function(){ endTutorial(false); };
@@ -4581,6 +6282,7 @@ document.addEventListener("keydown", function(e){
   if(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
   if(e.key === "Escape"){ if(tutActive()) endTutorial(false); hidePanel(); return; }
   if(!document.getElementById("veil").hidden) return;
+  if(titleOpen){ titleKey(e); return; }
   if(e.key === " "){ if(G && G.animating){ e.preventDefault(); skipAnim = true; } return; }
   if(G && G.animating) return;
   if(e.key >= "1" && e.key <= "7"){
@@ -4594,11 +6296,11 @@ document.addEventListener("keydown", function(e){
 function start(restored){
   initIcons();
   syncSoundBtn();
+  /* The board is dealt behind the menu so PLAY is instant and the title has a
+     real run to show the daily for, but nothing is shown until they press it. */
   newRun(null);
-  /* A rules modal shown before the game has been seen is the worst moment to
-     explain anything. First-timers get the spotlight tutorial on the real
-     board instead; the modal stays one click away under "How to play". */
-  if(!tutorialSeen()) startTutorial(false);
+  titleSel = 0;
+  showTitle();
 }
 try{
   if(window.claude && window.claude.hot){
