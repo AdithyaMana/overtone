@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Figure Ledger — Overtone core-loop session, 17 September 2026</title>
+<style>
+:root{
+  --bg:#06080B;
+  --bg-soft:#0A0E14;
+  --panel:#0D121A;
+  --panel-2:#111925;
+  --line:rgba(255,255,255,.10);
+  --hair:rgba(255,255,255,.055);
+  --tx:#E7EBF1;
+  --dim:#8C97A6;
+  --dimmer:#5C6674;
+  --blue:#0093FF;
+  --gold:#EFA31D;
+  --coral:#FE5F55;
+  --acc:var(--blue);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--tx);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(900px 520px at 78% -8%, rgba(0,147,255,.11), transparent 62%),
+    radial-gradient(760px 560px at 6% 22%, rgba(239,163,29,.05), transparent 60%),
+    radial-gradient(900px 700px at 50% 104%, rgba(239,163,29,.09), transparent 62%);
+  background-attachment:fixed;
+}
+img,svg{max-width:100%}
+p{margin:0 0 1em}
+h1,h2,h3,h4{margin:0;line-height:1.08;letter-spacing:-.02em;font-weight:800}
+a{color:var(--blue)}
+b,strong{font-weight:700;color:#fff}
+
+/* ---------- shell ---------- */
+.wrap{width:min(1080px,100% - 32px);margin-inline:auto}
+@media(min-width:760px){.wrap{width:min(1080px,100% - 64px)}}
+.sec{padding:clamp(44px,8vw,86px) 0}
+.band{background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0));border-block:1px solid var(--hair)}
+.rail{position:fixed;inset:0 0 auto 0;height:2px;background:rgba(255,255,255,.06);z-index:60}
+.rail i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),#6ea8d8 46%,var(--gold));box-shadow:0 0 12px rgba(239,163,29,.35)}
+
+/* ---------- type ---------- */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.20em;text-transform:uppercase;color:var(--dimmer);margin:0 0 14px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc)}
+.lede{font-size:clamp(16px,2.3vw,20px);color:#C3CBD6;max-width:62ch}
+.small{font-size:13.5px;color:var(--dim)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.quiet{color:var(--dim)}
+.up{text-transform:uppercase;letter-spacing:.09em}
+
+/* ---------- hero ---------- */
+.hero{padding:clamp(52px,11vw,124px) 0 clamp(30px,6vw,60px);position:relative}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,var(--line) 12%,var(--line) 88%,transparent)}
+.stamp{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+.stamp span{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);border:1px solid var(--line);border-radius:2px;padding:5px 9px}
+.stamp span.ok{color:var(--gold);border-color:rgba(239,163,29,.42)}
+h1{font-size:clamp(44px,12.5vw,118px);letter-spacing:-.045em;line-height:.92;margin:0 0 6px}
+h1 .thin{display:block;font-size:clamp(15px,3.2vw,23px);font-weight:600;letter-spacing:.02em;color:var(--dim);margin-bottom:14px;line-height:1.3}
+.hero-topic{margin-top:26px;border-left:2px solid var(--coral);padding-left:16px;max-width:66ch}
+.hero-topic .t{font-size:clamp(16px,2.6vw,21px);color:#D6DCE5;font-weight:600;line-height:1.38}
+.hero-goal{margin-top:20px;max-width:62ch;color:var(--dim);font-size:15px}
+.hero-goal .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dimmer);display:block;margin-bottom:5px}
+
+.arc{margin-top:40px;display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:680px){.arc{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}}
+.arcstep{border-top:2px solid var(--st,var(--line));padding-top:12px}
+.arcstep .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--st,var(--dim));text-transform:uppercase}
+.arcstep .d{font-size:14px;color:var(--dim);margin-top:3px;line-height:1.45}
+
+.counts{margin-top:44px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--hair);border:1px solid var(--hair)}
+@media(min-width:680px){.counts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.counts div{background:var(--bg);padding:16px 14px}
+.counts .v{font-family:var(--mono);font-size:clamp(24px,5vw,32px);font-weight:700;letter-spacing:-.02em;line-height:1}
+.counts .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer);margin-top:8px}
+
+/* ---------- generic blocks ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:820px){.grid2{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}
+.grid3{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:760px){.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pull{border-left:3px solid var(--acc);padding:4px 0 4px 18px;margin:30px 0;font-size:clamp(18px,3.4vw,27px);font-weight:700;line-height:1.3;letter-spacing:-.02em;max-width:34ch}
+.pull.wide{max-width:46ch}
+.note{font-size:13px;color:var(--dimmer);font-family:var(--mono);line-height:1.6}
+
+/* ideas list with the convergence thread */
+ul.ideas{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.ideas li{position:relative;padding:11px 14px 11px 34px;background:var(--panel);border:1px solid var(--hair);border-radius:3px;font-size:14.5px;line-height:1.52;color:#C9D1DB}
+ul.ideas li::before{content:"";position:absolute;left:15px;top:19px;width:5px;height:5px;background:var(--dimmer);transform:rotate(45deg)}
+ul.ideas li.t{border-color:rgba(239,163,29,.30);background:linear-gradient(90deg,rgba(239,163,29,.07),rgba(239,163,29,.012));color:#E4E9F0;border-left:2px solid var(--gold)}
+ul.ideas li.t::before{background:var(--gold);box-shadow:0 0 9px rgba(239,163,29,.8)}
+ul.ideas li em{font-style:normal;color:#fff;font-weight:600}
+.legend{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);border:1px solid rgba(239,163,29,.3);border-radius:2px;padding:7px 11px}
+.legend i{width:6px;height:6px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 9px rgba(239,163,29,.8);flex:none}
+
+.insight{background:linear-gradient(180deg,rgba(0,147,255,.055),rgba(0,147,255,.012));border:1px solid rgba(0,147,255,.22);border-radius:4px;padding:16px 18px;font-size:15px;line-height:1.55;color:#D2D9E3}
+.insight .lab{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:8px}
+.insight.g{background:linear-gradient(180deg,rgba(239,163,29,.06),rgba(239,163,29,.012));border-color:rgba(239,163,29,.24)}
+.insight.g .lab{color:var(--gold)}
+.insight.c{background:linear-gradient(180deg,rgba(254,95,85,.055),rgba(254,95,85,.012));border-color:rgba(254,95,85,.24)}
+.insight.c .lab{color:var(--coral)}
+
+/* ---------- technique head ---------- */
+.thead{display:flex;gap:14px;align-items:flex-start;border-top:1px solid var(--line);padding-top:16px;margin-bottom:26px}
+.tno{font-family:var(--mono);font-weight:800;font-size:clamp(30px,8vw,56px);line-height:.85;letter-spacing:-.04em;color:var(--acc);flex:none;opacity:.95}
+@supports(-webkit-text-stroke:1px red){.tno{color:transparent;-webkit-text-stroke:1.4px var(--acc)}}
+.thead h2{font-size:clamp(24px,5.4vw,42px)}
+.tsub{margin:9px 0 0;color:var(--dim);font-size:clamp(14px,2.2vw,17px);max-width:52ch;line-height:1.45}
+
+/* ---------- ground truth ---------- */
+.specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--hair);border:1px solid var(--hair)}
+@media(min-width:680px){.specs{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.specs div{background:var(--bg-soft);padding:15px 14px}
+.specs .v{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1.1;color:#fff}
+.specs .v small{font-size:12px;color:var(--dim);font-weight:400}
+.specs .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);margin-top:7px}
+
+.plays{margin:34px 0 0;display:flex;flex-wrap:wrap;gap:12px}
+.pgrp{display:flex;gap:4px;padding:9px 9px 7px;border:1px solid var(--hair);border-radius:3px;background:rgba(255,255,255,.015)}
+.pgrp i{display:block;width:9px;height:30px;background:linear-gradient(180deg,rgba(0,147,255,.42),rgba(0,147,255,.12));border-top:2px solid rgba(0,147,255,.75)}
+.plabs{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer)}
+.verbline{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.verbline b{color:#fff;font-weight:600;letter-spacing:.02em}
+.verbline .eq{color:var(--coral);letter-spacing:.14em;font-size:11px}
+
+/* ---------- 01 loop ---------- */
+.looplay{display:grid;grid-template-columns:1fr;gap:26px;align-items:center}
+@media(min-width:900px){.looplay{grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:40px}}
+.loopfig{margin:0;max-width:440px;width:100%}
+.loopfig svg{display:block;width:100%;height:auto}
+.loopfig figcaption{font-family:var(--mono);font-size:11.5px;color:var(--dimmer);line-height:1.6;margin-top:12px;letter-spacing:.02em}
+.nodebox{fill:#0E141D;stroke:rgba(0,147,255,.45)}
+.nodetx{font-family:var(--mono);font-size:15px;font-weight:700;fill:#E7EBF1;letter-spacing:.06em}
+.deadbox{fill:#12100E;stroke:rgba(254,95,85,.45)}
+.deadtx{fill:#F0D6D3}
+.arcpath{fill:none;stroke:var(--blue);stroke-width:2}
+.plusc{fill:#0B1019;stroke:rgba(0,147,255,.5)}
+.plustx{font-family:var(--mono);font-size:14px;font-weight:700;fill:var(--blue)}
+.ctrtx{font-family:var(--mono);font-size:18px;font-weight:800;fill:var(--blue);letter-spacing:.1em}
+.blocktx{font-family:var(--mono);font-size:12px;fill:var(--coral);letter-spacing:.11em}
+
+.cands{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:680px){.cands{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cand{border:1px dashed rgba(0,147,255,.3);border-radius:3px;padding:13px 14px;background:rgba(0,147,255,.03);font-size:13.5px;line-height:1.5;color:#C0C9D4}
+.cand .h{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:7px}
+
+/* ---------- 02 reversal ---------- */
+.rev{display:grid;gap:1px;background:var(--hair);border:1px solid var(--hair)}
+.revrow{background:var(--bg-soft);display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:780px){.revrow{grid-template-columns:minmax(0,38%) 44px minmax(0,1fr);align-items:center}}
+.revA{padding:13px 16px;color:var(--dimmer);font-size:14px;line-height:1.45;font-family:var(--mono);position:relative}
+.revA s{text-decoration:none;position:relative;display:inline}
+.revA s::after{content:"";position:absolute;left:0;right:0;top:52%;height:1px;background:var(--coral);opacity:.65}
+.revMark{display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:var(--mono);font-size:15px;padding:0 0 8px}
+@media(min-width:780px){.revMark{padding:0;border-inline:1px solid var(--hair);align-self:stretch}}
+.revB{padding:13px 16px;font-size:14.5px;line-height:1.5;color:#DBE2EA;border-top:1px solid var(--hair)}
+@media(min-width:780px){.revB{border-top:0}}
+.revB b{color:var(--gold);font-weight:700}
+
+/* ---------- 03 trait transfer ---------- */
+.grafts{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:700px){.grafts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1000px){.grafts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.graft{position:relative;border:1px solid var(--line);border-radius:5px;padding:16px 15px 15px;background:linear-gradient(170deg,var(--panel-2),var(--panel));display:flex;flex-direction:column;gap:9px;min-height:100%}
+.graft::before{content:"";position:absolute;inset:5px 5px auto 5px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)}
+.graft .donor{font-family:var(--mono);font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--blue)}
+.graft .trait{font-size:15.5px;font-weight:700;letter-spacing:-.01em;line-height:1.25;color:#fff}
+.graft .body{font-size:13.5px;line-height:1.55;color:#AFB9C6}
+.graft .onto{margin-top:auto;padding-top:11px;border-top:1px dashed var(--hair);font-size:12.5px;line-height:1.5;color:var(--dim)}
+.graft .onto span{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer);display:block;margin-bottom:5px}
+.graft.gold{border-color:rgba(239,163,29,.34);background:linear-gradient(170deg,rgba(239,163,29,.1),rgba(239,163,29,.02))}
+.graft.gold .donor{color:var(--gold)}
+.verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
+.verbs span{font-family:var(--mono);font-size:11.5px;color:#C7D0DB;border:1px solid var(--line);border-radius:2px;padding:5px 8px;background:rgba(255,255,255,.02)}
+
+/* ---------- data band ---------- */
+.datalay{display:grid;grid-template-columns:1fr;gap:28px}
+@media(min-width:900px){.datalay{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px}}
+.chart{border:1px solid var(--hair);border-radius:4px;padding:18px 14px 12px;background:rgba(255,255,255,.015)}
+.cbars{display:flex;align-items:flex-end;gap:5px}
+@media(min-width:520px){.cbars{gap:10px}}
+.cb{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:stretch}
+.cbcol{height:150px;display:flex;flex-direction:column;justify-content:flex-end}
+@media(min-width:520px){.cbcol{height:190px}}
+.cb b{font-family:var(--mono);font-size:10.5px;font-weight:600;color:#D6DDE6;text-align:center;margin-bottom:5px;font-variant-numeric:tabular-nums}
+.cb i{display:block;width:100%;min-height:2px;background:linear-gradient(180deg,rgba(254,95,85,.85),rgba(254,95,85,.22));border-top:2px solid var(--coral)}
+.cb.zero i{background:rgba(255,255,255,.07);border-top-color:rgba(255,255,255,.2)}
+.cb.flag i{border-top-color:var(--gold);background:linear-gradient(180deg,rgba(239,163,29,.7),rgba(239,163,29,.16))}
+.cb em{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--dimmer);text-align:center;margin-top:8px;padding-top:7px;border-top:1px solid var(--hair);display:block}
+.cb.flag em{color:var(--gold)}
+.chartlab{display:flex;justify-content:space-between;gap:10px;margin-bottom:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
+
+.scale{margin-top:34px}
+.srail{position:relative;height:2px;background:linear-gradient(90deg,rgba(0,147,255,.25),rgba(0,147,255,.9));margin:52px 0 46px}
+.smark{position:absolute;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--blue)}
+.smark.max{border-color:var(--gold);box-shadow:0 0 12px rgba(239,163,29,.55)}
+.smark .v{position:absolute;left:50%;transform:translateX(-50%);bottom:15px;font-family:var(--mono);font-size:13px;font-weight:700;color:#E7EBF1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.smark .k{position:absolute;left:50%;transform:translateX(-50%);top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dimmer);white-space:nowrap}
+.smark.max .v{color:var(--gold)}
+.smark.edgeL .v,.smark.edgeL .k{left:0;transform:none}
+.smark.edgeR .v,.smark.edgeR .k{left:auto;right:0;transform:none}
+
+/* ---------- 04 kill ---------- */
+.kills{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:700px){.kills{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1000px){.kills{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kill{position:relative;border:1px solid var(--line);border-radius:4px;padding:16px 15px;background:var(--panel);overflow:hidden}
+.kill::after{content:"";position:absolute;inset:0;background:
+  linear-gradient(to bottom right,transparent calc(50% - .7px),rgba(254,95,85,.30) 50%,transparent calc(50% + .7px)),
+  linear-gradient(to bottom left,transparent calc(50% - .7px),rgba(254,95,85,.30) 50%,transparent calc(50% + .7px));
+  pointer-events:none}
+.kill h4{font-family:var(--mono);font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:#fff;margin-bottom:10px}
+.kill p{font-size:13.5px;line-height:1.5;color:#AEB8C5;margin:0 0 12px;position:relative;z-index:1}
+.kill .verdict{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;border:1px solid currentColor;border-radius:2px;padding:4px 7px;display:inline-block;color:var(--coral);position:relative;z-index:1}
+.kill.survives{border-color:rgba(0,147,255,.3)}
+.kill.survives::after{background:
+  linear-gradient(to bottom right,transparent calc(50% - .7px),rgba(0,147,255,.18) 50%,transparent calc(50% + .7px)),
+  linear-gradient(to bottom left,transparent calc(50% - .7px),rgba(0,147,255,.18) 50%,transparent calc(50% + .7px))}
+.kill.survives .verdict{color:var(--blue)}
+.jewel{margin-top:20px;border:1px solid rgba(239,163,29,.35);border-radius:4px;background:linear-gradient(160deg,rgba(239,163,29,.11),rgba(239,163,29,.02));padding:20px 18px}
+.jewel .lab{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:10px}
+.jewel p{font-size:clamp(15px,2.5vw,19px);line-height:1.45;color:#EDEFF3;margin:0;max-width:56ch;font-weight:600;letter-spacing:-.01em}
+.flatrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.flatrow span{font-family:var(--mono);font-size:11.5px;color:var(--dim);border:1px solid var(--hair);border-radius:2px;padding:5px 9px;background:rgba(0,0,0,.25)}
+.flatrow span b{color:#C9D1DB;font-weight:600}
+
+/* ---------- 05 dials ---------- */
+.dial{display:grid;grid-template-columns:1fr;gap:10px;padding:16px 0;border-bottom:1px solid var(--hair)}
+@media(min-width:780px){.dial{grid-template-columns:minmax(0,150px) minmax(0,190px) minmax(0,1fr);gap:20px;align-items:center}}
+.dial .name{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#fff}
+.dial .name em{font-style:normal;display:block;color:var(--dimmer);letter-spacing:.1em;font-size:10px;margin-top:4px}
+.pips{display:flex;gap:3px;align-items:flex-end;height:26px}
+.pips i{flex:1 1 0;background:rgba(255,255,255,.09);border-radius:1px}
+.pips i:nth-child(1){height:30%}.pips i:nth-child(2){height:37%}.pips i:nth-child(3){height:44%}
+.pips i:nth-child(4){height:51%}.pips i:nth-child(5){height:58%}.pips i:nth-child(6){height:65%}
+.pips i:nth-child(7){height:72%}.pips i:nth-child(8){height:79%}.pips i:nth-child(9){height:86%}
+.pips i:nth-child(10){height:93%}.pips i:nth-child(11){height:100%}
+.pips.up i{background:linear-gradient(180deg,var(--gold),rgba(239,163,29,.28))}
+.pips.up i:nth-child(11){box-shadow:0 0 10px rgba(239,163,29,.55)}
+.pips.down i{background:rgba(255,255,255,.07)}
+.pips.down i:nth-child(1){background:var(--blue);box-shadow:0 0 10px rgba(0,147,255,.5)}
+.dial .txt{font-size:14px;line-height:1.5;color:#C3CBD6}
+.dial.pick .name{color:var(--gold)}
+.dial .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(239,163,29,.4);border-radius:2px;padding:2px 6px;margin-left:8px;white-space:nowrap;display:inline-block;vertical-align:1px}
+
+/* ---------- 06 job ---------- */
+.ticket{border:1px solid var(--line);border-radius:4px;background:
+  repeating-linear-gradient(180deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),var(--panel);
+  padding:22px 20px}
+.ticket .hd{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);border-bottom:1px dashed var(--line);padding-bottom:12px;margin-bottom:16px}
+.ticket .no{color:var(--dimmer);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px}
+.ticket .no s{text-decoration:line-through;text-decoration-color:var(--coral)}
+.ticket .yes{font-size:clamp(19px,3.8vw,32px);font-weight:800;letter-spacing:-.025em;line-height:1.18;color:#fff}
+.ticket .yes u{text-decoration:none;color:var(--gold)}
+.ticket .ft{margin-top:16px;padding-top:13px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--dim);line-height:1.5}
+
+/* ---------- 07 worst ---------- */
+.wpi{display:grid;gap:12px}
+.wrow{display:grid;grid-template-columns:1fr;gap:0;border:1px solid var(--hair);border-radius:4px;overflow:hidden}
+@media(min-width:800px){.wrow{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr);align-items:stretch}}
+.bad{background:rgba(254,95,85,.055);padding:14px 16px;font-size:14px;line-height:1.5;color:#D7B7B4}
+.bad .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);display:block;margin-bottom:7px}
+.flip{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.02);color:var(--gold);font-family:var(--mono);font-size:14px;padding:7px 0;border-block:1px solid var(--hair)}
+@media(min-width:800px){.flip{border-block:0;border-inline:1px solid var(--hair);padding:0}}
+.good{background:rgba(239,163,29,.055);padding:14px 16px;font-size:14.5px;line-height:1.5;color:#EBDFC9}
+.good .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:7px}
+.good b{color:#fff}
+
+/* ---------- 08 personas ---------- */
+.lanes{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:860px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}}
+.lane{border-top:2px solid var(--gold);padding-top:16px}
+.lane .who{font-family:var(--mono);font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:var(--gold)}
+.lane .what{font-size:15px;color:var(--dim);margin:7px 0 18px;line-height:1.45}
+.beats{position:relative;padding-left:22px}
+.beats::before{content:"";position:absolute;left:4px;top:5px;bottom:5px;width:1px;background:linear-gradient(180deg,rgba(239,163,29,.5),rgba(239,163,29,.06))}
+.beat{position:relative;margin-bottom:18px}
+.beat::before{content:"";position:absolute;left:-22px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--gold)}
+.beat .rd{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer);margin-bottom:5px}
+.beat .ev{font-size:14px;line-height:1.5;color:#D4DBE4}
+.beat .ins{font-size:13.5px;line-height:1.5;color:var(--dim);margin-top:7px;border-left:2px solid rgba(0,147,255,.4);padding-left:11px}
+.beat .fix{font-size:13.5px;line-height:1.5;color:#E5D8BD;margin-top:7px;border-left:2px solid var(--gold);padding-left:11px}
+
+/* ---------- clusters ---------- */
+.field{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:560px){.field{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1000px){.field{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.clu{border:1px solid var(--hair);border-radius:4px;padding:15px 14px;background:rgba(255,255,255,.012);display:flex;flex-direction:column;gap:10px;opacity:.62;transition:opacity .4s ease}
+.clu .ltr{font-family:var(--mono);font-size:26px;font-weight:800;line-height:1;color:var(--dimmer)}
+.clu h4{font-family:var(--mono);font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:#C7D0DB;line-height:1.35}
+.clu .mem{font-size:12.5px;line-height:1.55;color:var(--dimmer);margin:0}
+.clu .st{margin-top:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;border:1px solid var(--hair);border-radius:2px;padding:4px 7px;color:var(--dimmer);align-self:flex-start}
+.clu.lit{opacity:1;border-color:rgba(239,163,29,.5);background:linear-gradient(170deg,rgba(239,163,29,.13),rgba(239,163,29,.02));box-shadow:0 0 0 1px rgba(239,163,29,.12),0 16px 40px -22px rgba(239,163,29,.6)}
+.clu.lit .ltr{color:var(--gold)}
+.clu.lit h4{color:#fff}
+.clu.lit .mem{color:#CFD6E0}
+.clu.lit .st{color:var(--gold);border-color:rgba(239,163,29,.5)}
+.clu.defer{opacity:.82}
+.clu.defer .st{color:var(--blue);border-color:rgba(0,147,255,.38)}
+.clu.rej h4{text-decoration:line-through;text-decoration-color:rgba(254,95,85,.7)}
+.clu.rej .st{color:var(--coral);border-color:rgba(254,95,85,.35)}
+.decs{display:grid;gap:10px;margin-top:26px}
+.dec{display:grid;grid-template-columns:1fr;gap:6px;border-left:2px solid var(--dimmer);padding:10px 0 10px 15px}
+@media(min-width:760px){.dec{grid-template-columns:118px minmax(0,1fr);gap:18px;align-items:baseline}}
+.dec .v{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer)}
+.dec .b{font-size:14px;line-height:1.55;color:#C3CBD6}
+.dec.yes{border-color:var(--gold)}.dec.yes .v{color:var(--gold)}
+.dec.no{border-color:var(--coral)}.dec.no .v{color:var(--coral)}
+.dec.later{border-color:var(--blue)}.dec.later .v{color:var(--blue)}
+
+/* ---------- synthesis ---------- */
+.synth{background:
+  radial-gradient(1000px 520px at 50% -10%, rgba(239,163,29,.12), transparent 62%),
+  linear-gradient(180deg,#07090D,#0A0C10);
+  border-top:1px solid rgba(239,163,29,.25);border-bottom:1px solid rgba(239,163,29,.25)}
+.synhead{text-align:center;max-width:44ch;margin:0 auto clamp(30px,6vw,56px)}
+.synhead h2{font-size:clamp(30px,7.2vw,62px);letter-spacing:-.035em}
+.synhead p{margin-top:14px;color:var(--dim);font-size:clamp(14px,2.3vw,17px)}
+.sgrid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:880px){.sgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}
+.scard{border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:22px 20px;background:linear-gradient(170deg,rgba(255,255,255,.035),rgba(255,255,255,.008));display:flex;flex-direction:column;gap:12px}
+.scard .n{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--gold)}
+.scard h3{font-size:clamp(18px,3.1vw,25px);letter-spacing:-.02em;line-height:1.22;color:#fff}
+.scard p{font-size:14.5px;line-height:1.6;color:#B9C2CE;margin:0}
+.scard p+p{margin-top:-2px}
+.scard .hats{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.scard .hats span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border:1px solid var(--hair);border-radius:2px;padding:4px 7px}
+
+.guard{margin-top:26px;border:1px solid rgba(254,95,85,.28);border-radius:5px;background:linear-gradient(170deg,rgba(254,95,85,.07),rgba(254,95,85,.01));padding:22px 20px}
+.guard .n{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--coral);display:block;margin-bottom:12px}
+.guard h3{font-size:clamp(18px,3.1vw,25px);margin-bottom:10px}
+.guard ul{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px;grid-template-columns:1fr}
+@media(min-width:760px){.guard ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.guard li{font-family:var(--mono);font-size:12.5px;line-height:1.5;color:#D9DEE6;padding-left:20px;position:relative}
+.guard li::before{content:"\2713";position:absolute;left:0;top:0;color:var(--gold)}
+
+/* ---------- chosen direction / ledger ---------- */
+.chosen{border:1px solid rgba(239,163,29,.45);border-radius:6px;background:linear-gradient(165deg,rgba(239,163,29,.12),rgba(239,163,29,.02) 60%);padding:clamp(22px,4.5vw,38px)}
+.chosen .cap{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.chosen h2{font-size:clamp(30px,7.5vw,60px);letter-spacing:-.04em;margin:12px 0 14px}
+.chosen .spec{font-size:clamp(15px,2.5vw,19px);line-height:1.5;color:#E7EBF1;max-width:58ch}
+
+.before{margin:30px 0 0;border:1px solid var(--hair);border-radius:4px;padding:15px;background:rgba(0,0,0,.28)}
+.before .lab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dimmer);display:block;margin-bottom:11px}
+.flatline{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.flatline span{font-family:var(--mono);font-size:11.5px;color:var(--dimmer);border:1px solid var(--hair);border-radius:2px;padding:5px 8px;position:relative}
+.flatline span::after{content:"";position:absolute;left:6px;right:6px;top:52%;height:1px;background:rgba(254,95,85,.55)}
+.flatline em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--coral);letter-spacing:.1em}
+
+.ledger{margin-top:20px;border:1px solid rgba(239,163,29,.3);border-radius:4px;background:rgba(0,0,0,.3);padding:16px 15px}
+.ledger .lab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ledger .lab button{background:none;border:1px solid var(--hair);border-radius:2px;color:var(--dimmer);font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;cursor:pointer}
+.ledger .lab button:hover{color:var(--gold);border-color:rgba(239,163,29,.4)}
+.figs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+@media(min-width:620px){.figs{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.fig{appearance:none;-webkit-appearance:none;text-align:left;font:inherit;cursor:pointer;background:rgba(255,255,255,.025);border:1px solid var(--hair);border-radius:3px;padding:12px 11px;display:flex;flex-direction:column;gap:10px;transition:border-color .25s,background .25s,transform .12s}
+.fig:hover{border-color:rgba(239,163,29,.45);background:rgba(239,163,29,.06)}
+.fig:active{transform:translateY(1px)}
+.fig:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.fig .fn{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#C7D0DB}
+.fig .lv{display:flex;gap:3px}
+.fig .lv i{flex:1 1 0;height:6px;background:rgba(255,255,255,.08);border-radius:1px;transition:background .3s,box-shadow .3s}
+.fig .lv i.on{background:var(--gold)}
+.fig .lv i.on:last-child{box-shadow:0 0 9px rgba(239,163,29,.75)}
+.fig .st{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dimmer);font-variant-numeric:tabular-nums}
+.fig[data-level="0"] .st{color:var(--dimmer)}
+.fig:not([data-level="0"]) .fn{color:#fff}
+.fig:not([data-level="0"]) .st{color:var(--gold)}
+.ledgercap{margin-top:14px;font-size:13.5px;line-height:1.55;color:var(--dim);min-height:2.9em}
+.ledgercap b{color:var(--gold);font-weight:600}
+.rules{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.rules span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:#D6DDE6;border:1px solid rgba(239,163,29,.3);border-radius:2px;padding:6px 10px;background:rgba(239,163,29,.05)}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line);padding:clamp(32px,6vw,62px) 0 clamp(40px,7vw,80px);color:var(--dimmer)}
+.colo{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:760px){.colo{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.colo div{font-family:var(--mono);font-size:11.5px;line-height:1.8;letter-spacing:.04em}
+.colo b{display:block;color:var(--dim);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:8px;font-weight:600}
+.sig{margin-top:34px;padding-top:20px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#3E4652;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between}
+
+/* ---------- reveal ---------- */
+.js .r{opacity:0;transform:translateY(16px)}
+.js .r.in{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .js .r{opacity:1!important;transform:none!important;transition:none!important}
+  *{transition-duration:.001ms!important;animation-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+
+<div class="rail" aria-hidden="true"><i id="railfill"></i></div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="stamp">
+      <span>Brainstorming session</span>
+      <span>2026&#8209;09&#8209;17</span>
+      <span>Mode: autonomous</span>
+      <span class="ok">Status: complete</span>
+    </div>
+    <h1><span class="thin">Overtone &mdash; core loop</span>The Figure<br>Ledger</h1>
+
+    <div class="hero-topic">
+      <p class="t" style="margin:0">Overtone's core loop is stagnant &mdash; 32 repetitions of &ldquo;pick 3 of 7&rdquo; with no escalating decision.</p>
+    </div>
+
+    <div class="hero-goal">
+      <span class="lab">Goal</span>
+      Shippable structural changes to the loop that create escalation, variety and decisions the player cares about. Not new game concepts.
+    </div>
+
+    <div class="arc">
+      <div class="arcstep" style="--st:var(--coral)">
+        <div class="n">01 &middot; Diagnose</div>
+        <div class="d">One feedback loop, and nothing the player learns feeds back into it.</div>
+      </div>
+      <div class="arcstep" style="--st:var(--blue)">
+        <div class="n">02 &middot; Range wide</div>
+        <div class="d">Eight techniques, 85 ideas, measured against 400 simulated runs.</div>
+      </div>
+      <div class="arcstep" style="--st:var(--gold)">
+        <div class="n">03 &middot; Converge</div>
+        <div class="d">Five clusters, one change chosen, two deferred, two rejected.</div>
+      </div>
+    </div>
+
+    <div class="counts">
+      <div><div class="v">8</div><div class="k">Techniques</div></div>
+      <div><div class="v">85</div><div class="k">Ideas</div></div>
+      <div><div class="v">5</div><div class="k">Clusters</div></div>
+      <div><div class="v" style="color:var(--gold)">1</div><div class="k">Change chosen</div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ GROUND TRUTH ============ -->
+<section class="sec">
+  <div class="wrap">
+    <p class="eyebrow r">Measured ground truth &mdash; before any idea</p>
+    <h2 class="r" style="font-size:clamp(26px,5.6vw,44px);max-width:20ch">The loop, counted rather than remembered.</h2>
+
+    <div class="specs r" style="margin-top:30px">
+      <div><div class="v">8</div><div class="k">Rounds</div></div>
+      <div><div class="v">7</div><div class="k">Hand size</div></div>
+      <div><div class="v">3</div><div class="k">Max play</div></div>
+      <div><div class="v">32</div><div class="k">Plays per run</div></div>
+      <div><div class="v">5</div><div class="k">Figures</div></div>
+      <div><div class="v">9 <small>/ 3 fire</small></div><div class="k">Ordeals (Scholar)</div></div>
+      <div><div class="v">5</div><div class="k">Lens slots</div></div>
+      <div><div class="v" style="color:var(--coral)">49.3<small>%</small></div><div class="k">Apprentice win rate</div></div>
+    </div>
+
+    <div class="plays r" aria-hidden="true">
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+      <div class="pgrp"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="plabs r"><span>Round 1</span><span>32 plays</span><span>Round 8</span></div>
+    <div class="verbline r">
+      <b>pick up to 3 of 7, order them, press Play</b>
+      <span class="eq">&mdash;&mdash; identical in round 8 and round 1 &mdash;&mdash;</span>
+      <b>pick up to 3 of 7, order them, press Play</b>
+    </div>
+
+    <div class="grid2 r" style="margin-top:34px">
+      <div class="insight c">
+        <span class="lab">Insight</span>
+        <b>Every escalating quantity in Overtone is a number the player does not touch</b> &mdash; the target, the multiplier. Every quantity the player <em>does</em> touch &mdash; which three, in which order, for which figure &mdash; is the same in round 8 as in round 1. That is the stagnancy, stated exactly.
+      </div>
+      <div class="insight">
+        <span class="lab">Insight</span>
+        6 of 9 Ordeals are never seen in a given run, and APPRENTICE sees exactly one. <b>The game already owns its structural variety and spends almost none of it.</b>
+      </div>
+    </div>
+
+    <p class="note r" style="margin-top:22px">
+      FIG_PAY is a flat lookup by (figure, words bound). A fifth COLUMN pays exactly what the first paid:
+      chips&nbsp;150, mult&nbsp;3. No mastery curve anywhere in the file.
+    </p>
+
+    <div style="margin-top:34px" class="r">
+      <span class="legend"><i></i> A gold mark means this idea fed the final decision</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 01 CAUSAL LOOP MAPPING ============ -->
+<section class="sec band" style="--acc:var(--blue)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">01</span>
+      <div>
+        <h2>Causal Loop Mapping</h2>
+        <p class="tsub">The run has exactly one feedback loop.</p>
+      </div>
+    </div>
+
+    <div class="looplay">
+      <figure class="loopfig r">
+        <svg viewBox="0 0 420 500" role="img" aria-label="Diagram: a single reinforcing loop from clear round to buy Lens to bigger multiplier and back. A separate node, what the player learns, has no return path into the loop.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#0093FF"></path>
+            </marker>
+          </defs>
+
+          <circle cx="210" cy="200" r="54" fill="none" stroke="rgba(0,147,255,.22)" stroke-width="1" stroke-dasharray="3 5"></circle>
+          <text class="ctrtx" x="210" y="196" text-anchor="middle">ONE</text>
+          <text class="ctrtx" x="210" y="218" text-anchor="middle">LOOP</text>
+
+          <path class="arcpath" marker-end="url(#ah)" d="M288.3,83.9 A140,140 0 0 1 349.7,190.2"></path>
+          <path class="arcpath" marker-end="url(#ah)" d="M271.4,325.8 A140,140 0 0 1 148.6,325.8"></path>
+          <path class="arcpath" marker-end="url(#ah)" d="M70.3,190.2 A140,140 0 0 1 131.7,83.9"></path>
+
+          <g>
+            <circle class="plusc" cx="331" cy="130" r="10"></circle>
+            <text class="plustx" x="331" y="135" text-anchor="middle">+</text>
+            <circle class="plusc" cx="210" cy="340" r="10"></circle>
+            <text class="plustx" x="210" y="345" text-anchor="middle">+</text>
+            <circle class="plusc" cx="89" cy="130" r="10"></circle>
+            <text class="plustx" x="89" y="135" text-anchor="middle">+</text>
+          </g>
+
+          <g>
+            <rect class="nodebox" x="146" y="33" width="128" height="54" rx="3"></rect>
+            <text class="nodetx" x="210" y="55" text-anchor="middle">CLEAR</text>
+            <text class="nodetx" x="210" y="75" text-anchor="middle">ROUND</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="267" y="243" width="128" height="54" rx="3"></rect>
+            <text class="nodetx" x="331" y="265" text-anchor="middle">BUY</text>
+            <text class="nodetx" x="331" y="285" text-anchor="middle">LENS</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="25" y="243" width="128" height="54" rx="3"></rect>
+            <text class="nodetx" x="89" y="265" text-anchor="middle">BIGGER</text>
+            <text class="nodetx" x="89" y="285" text-anchor="middle">MULT</text>
+          </g>
+
+          <g>
+            <rect class="deadbox" x="75" y="402" width="270" height="56" rx="3"></rect>
+            <text class="nodetx deadtx" x="210" y="425" text-anchor="middle">WHAT THE PLAYER</text>
+            <text class="nodetx deadtx" x="210" y="445" text-anchor="middle">LEARNS</text>
+          </g>
+          <path d="M210,402 V372" fill="none" stroke="rgba(254,95,85,.7)" stroke-width="2" stroke-dasharray="5 5"></path>
+          <path d="M203,369 L217,355 M203,355 L217,369" stroke="#FE5F55" stroke-width="2.4" stroke-linecap="round"></path>
+          <text class="blocktx" x="228" y="366">NO RETURN PATH</text>
+        </svg>
+        <figcaption>clear round &rarr; buy Lens &rarr; bigger multiplier &rarr; clear round.<br>A pure positive loop with no second input.</figcaption>
+      </figure>
+
+      <div class="r">
+        <div class="insight" style="margin-bottom:16px">
+          <span class="lab">Insight</span>
+          It is a pure positive loop with no second input, so <b>once it is running the player is a spectator, and when it is not they are dead.</b>
+        </div>
+        <div class="insight" style="margin-bottom:20px">
+          <span class="lab">Insight</span>
+          Nothing the player <em>learns</em> feeds back into the run. Skill has no accumulator. <b>A player who has spotted four CHAINs is in the identical mechanical position to one who has spotted none.</b>
+        </div>
+        <ul class="ideas">
+          <li class="t">Add a second accumulator the player drives with <em>play</em> rather than money &mdash; <em>a figure ledger</em>. Every figure you complete is remembered for the run, and the next one of that shape pays more.</li>
+          <li class="t">Make the ledger visible as a row of five figure marks that fill in. A progress bar the player writes with their own hands.</li>
+          <li class="t">Give the ledger a cost as well as a gain so it is a decision: repeating a figure levels it, but a NEW figure pays a one-off bonus. <em>Breadth vs depth, every single hand.</em></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="kicker r" style="margin:36px 0 12px">Other second-loop candidates</p>
+    <div class="cands r">
+      <div class="cand"><span class="h">Discards</span>The discard pile feeds something. Discards are currently a pure sink, information destroyed.</div>
+      <div class="cand"><span class="h">Deck thinning</span>Words you have played become unavailable, so the deck thins toward your worst cards and forces new shapes late.</div>
+      <div class="cand"><span class="h">Reactive demand</span>The round's Demand reacts to what you played last hand, so repeating yourself pays less.</div>
+    </div>
+
+    <div class="grid2 r" style="margin-top:30px">
+      <div class="insight c">
+        <span class="lab">Insight</span>
+        A roguelite loop needs a <b>threat</b> that also escalates from player action. Overtone's only threat is the target, and the target is on rails.
+      </div>
+      <ul class="ideas">
+        <li>The Bookseller could raise the next target if you overshoot this one &mdash; greed is punished, so overshooting becomes a decision instead of a freebie.</li>
+        <li>Overshoot could instead bank into money, making the size of the clear matter.</li>
+      </ul>
+    </div>
+
+    <p class="pull r" style="border-color:var(--coral)">Clearing by 40,000 and clearing by 1 being identical is the single largest dead signal in the game. Every hand after the target is met is ceremony.</p>
+  </div>
+</section>
+
+<!-- ============ 02 ASSUMPTION REVERSAL ============ -->
+<section class="sec" style="--acc:var(--gold)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">02</span>
+      <div>
+        <h2>Assumption Reversal</h2>
+        <p class="tsub">Twelve rules of the loop, each held up and turned over.</p>
+      </div>
+    </div>
+
+    <div class="rev r">
+      <div class="revrow">
+        <div class="revA"><s>the hand refills to 7 every play</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">The hand only refills at the <b>end of a round</b>. A round is one hand of 7+ managed across 4 plays, and every card spent is a card gone. Instant escalation inside a round.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>you play up to 3</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">Round 1 lets you play 1, and the cap <b>rises as the run goes</b> &mdash; 1, 2, 3, then 4. The verb itself grows.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>more cards is better</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">A rising cap means early rounds are tight and readable and late rounds are combinatorially rich. <b>The learning curve and the difficulty curve finally point the same way.</b></div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>the target is fixed when the round starts</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">A target that <b>climbs while you play</b> &mdash; every hand raises the bar for the next &mdash; turns four plays into a race rather than four withdrawals from the same bank.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>figures are found</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">The round <b>names a figure it wants</b> and pays double for it. Now you hunt a specific shape rather than accepting whatever falls out.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>ordeals are scheduled</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">The player <b>chooses their Ordeal</b> at the shop in exchange for money or a Lens. Voluntary difficulty is the oldest roguelite engine there is.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>the Bookseller sells</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">The Bookseller <b>buys</b>. Sell him a Lens you outgrew for money, so the five slots become a live decision instead of a filling queue.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>you keep your deck</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">A round takes three random words out of your deck <b>permanently</b>, making the deck a resource that depletes.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>all 8 rounds are played</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">A big overshoot <b>skips the next round</b> and takes its reward &mdash; a risk/greed lever with real teeth.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>words are neutral</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">Words the player has already played this run get <b>tired</b> and pay less, forcing rotation through the deck.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>the player picks order</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">A figure that requires a specific order the round dictates &mdash; <b>descending only, this round</b> &mdash; is an Ordeal that changes the <em>decision</em> rather than removing a tool.</div>
+      </div>
+      <div class="revrow">
+        <div class="revA"><s>discards are free information loss</s></div>
+        <div class="revMark">&#8644;</div>
+        <div class="revB">Discarding <b>banks a small charge</b> that buys a re-deal or a peek later.</div>
+      </div>
+    </div>
+
+    <p class="pull r">The strongest reversals all do the same thing: they make a resource that is currently infinite &mdash; cards, order freedom, target stability &mdash; finite. <span style="color:var(--gold)">Stagnancy is what an infinite resource feels like.</span></p>
+  </div>
+</section>
+
+<!-- ============ 03 TRAIT TRANSFER ============ -->
+<section class="sec band" style="--acc:var(--blue)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">03</span>
+      <div>
+        <h2>Trait Transfer</h2>
+        <p class="tsub">Graft from games that solved this exact problem.</p>
+      </div>
+    </div>
+
+    <div class="insight r" style="margin-bottom:24px;max-width:72ch">
+      <span class="lab">The donor worth naming precisely</span>
+      Balatro has the identical skeleton &mdash; pick 5 of 8, 3 hands per blind, jokers multiply. <b>It does not feel stagnant.</b> The difference is worth naming precisely rather than admiring.
+    </div>
+
+    <div class="grafts r">
+      <div class="graft gold">
+        <span class="donor">Balatro &middot; trait 1</span>
+        <span class="trait">Hand levels</span>
+        <span class="body">Every poker hand type has a level; playing a Flush levels Flush, permanently, for the run.</span>
+        <span class="onto"><span>Graft</span>This is exactly figure levelling, and it is the single most-cited reason Balatro's loop has a spine.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Balatro &middot; trait 2</span>
+        <span class="trait">The blind is chosen</span>
+        <span class="body">Small / Big / Boss &mdash; and you may skip Small or Big for a tag reward.</span>
+        <span class="onto"><span>Graft</span>Choice before the round, not just after it.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Balatro &middot; trait 3</span>
+        <span class="trait">The Boss is revealed first</span>
+        <span class="body">The Boss Blind is shown before you shop, so the shop is a decision about the specific wall ahead.</span>
+        <span class="onto"><span>Graft</span>Overtone names its Ordeal already; it does not let you buy against it.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Slay the Spire</span>
+        <span class="trait">The map</span>
+        <span class="body">You choose your route and therefore your risk.</span>
+        <span class="onto"><span>Graft</span>Overtone's 8 rounds are a corridor. After each round, two doors: a harder target for a better Lens, or an easier one for money. Eight binary choices is a run you authored.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Into the Breach</span>
+        <span class="trait">Perfect information</span>
+        <span class="body">A short puzzle with no randomness to hide behind.</span>
+        <span class="onto"><span>Graft</span>Overtone could show the next hand's top card, making a play a plan rather than a reaction.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Luck be a Landlord</span>
+        <span class="trait">The deck shrinks as a choice</span>
+        <span class="body">Removal is a reward.</span>
+        <span class="onto"><span>Graft</span>Overtone has no removal at all, so the deck only ever gets noisier. The Bookseller offers to burn a word &mdash; in a game about finding shapes, cutting your worst word is the most legible upgrade there is.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Dicey Dungeons</span>
+        <span class="trait">Same tools, different rules</span>
+        <span class="body">Every episode radically re-rules the same kit.</span>
+        <span class="onto"><span>Graft</span>Overtone's 9 Ordeals are exactly this, and it fires 3 of them.</span>
+      </div>
+      <div class="graft">
+        <span class="donor">Slay the Spire</span>
+        <span class="trait">The card that changes how you play</span>
+        <span class="body">Not how much you score. Overtone's Lenses are almost all multipliers; none of them changes the verb.</span>
+        <span class="onto"><span>Verb-changing Lens candidates</span>
+          <span class="verbs">
+            <span>play 4 words</span><span>see 9 cards</span><span>reorder after seeing the score</span><span>play the same word twice</span><span>lock one card across hands</span>
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <p class="pull wide r" style="border-color:var(--gold)">Every game named here escalates the <span style="color:var(--gold)">decision</span>, not just the number. Balatro levels the hand, Spire branches the route, Dicey changes the rule. Overtone escalates only the number. That is the whole diagnosis in one line.</p>
+  </div>
+</section>
+
+<!-- ============ MEASURED BASELINE ============ -->
+<section class="sec" style="--acc:var(--coral)">
+  <div class="wrap">
+    <p class="eyebrow r">Measured baseline &mdash; 400 runs, SCHOLAR, optimal play, buy=value</p>
+    <h2 class="r" style="font-size:clamp(26px,5.6vw,44px);max-width:22ch">The number whose job was to stop the session doing the obvious thing.</h2>
+
+    <div class="datalay" style="margin-top:32px">
+      <div class="r">
+        <div class="chart">
+          <div class="chartlab"><span>Deaths by round (%)</span><span>peak 17.0</span></div>
+          <div class="cbars">
+            <div class="cb zero"><div class="cbcol"><b>0.0</b><i style="height:0%"></i></div><em>r1</em></div>
+            <div class="cb"><div class="cbcol"><b>1.8</b><i style="height:10.6%"></i></div><em>r2</em></div>
+            <div class="cb"><div class="cbcol"><b>4.8</b><i style="height:28.2%"></i></div><em>r3</em></div>
+            <div class="cb"><div class="cbcol"><b>13.8</b><i style="height:81.2%"></i></div><em>r4</em></div>
+            <div class="cb"><div class="cbcol"><b>12.3</b><i style="height:72.4%"></i></div><em>r5</em></div>
+            <div class="cb"><div class="cbcol"><b>17.0</b><i style="height:100%"></i></div><em>r6</em></div>
+            <div class="cb"><div class="cbcol"><b>11.3</b><i style="height:66.5%"></i></div><em>r7</em></div>
+            <div class="cb flag"><div class="cbcol"><b>15.8</b><i style="height:92.9%"></i></div><em>r8&#42;</em></div>
+          </div>
+        </div>
+        <p class="note" style="margin-top:14px">
+          &#42; The round&#8209;8 row reads 39.3%, but that row counts <b>wins</b> as well as deaths.
+          Round 8 actually kills 39.3 &minus; 23.5 = <b>15.8%</b>. This exact misread cost two wasted
+          candidate curves in the previous session.
+        </p>
+      </div>
+
+      <div class="r">
+        <div class="specs" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <div><div class="v">23.5<small>%</small></div><div class="k">Win rate</div></div>
+          <div><div class="v">15&ndash;30<small>%</small></div><div class="k">Healthy band</div></div>
+        </div>
+
+        <div class="scale">
+          <p class="kicker" style="margin:0">Best multiplier reached</p>
+          <div class="srail">
+            <div class="smark edgeL" style="left:0%"><span class="v">&times;5</span><span class="k">p10</span></div>
+            <div class="smark" style="left:22.7%"><span class="v">&times;15</span><span class="k">p50</span></div>
+            <div class="smark" style="left:51.4%"><span class="v">&times;60</span><span class="k">p90</span></div>
+            <div class="smark" style="left:81%"><span class="v">&times;252</span><span class="k">p99</span></div>
+            <div class="smark max edgeR" style="left:100%"><span class="v">&times;630</span><span class="k">max</span></div>
+          </div>
+        </div>
+
+        <div class="insight c" style="margin-top:26px">
+          <span class="lab">Insight</span>
+          The curve is <b>fine</b>. 23.5% is in band and deaths are spread across rounds 4&ndash;8. The game is not too easy and not too hard on SCHOLAR. So the &ldquo;not fun&rdquo; complaint is <b>not a balance problem</b>, and rebalancing numbers would have been the wrong fix. It is a decision&#8209;variety problem.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 KILL THE CROWN JEWEL ============ -->
+<section class="sec band" style="--acc:var(--coral)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">04</span>
+      <div>
+        <h2>Kill the Crown Jewel</h2>
+        <p class="tsub">Take each load-bearing piece away and see what falls over.</p>
+      </div>
+    </div>
+
+    <div class="kills r">
+      <div class="kill">
+        <h4>Kill &mdash; Lenses</h4>
+        <p>Remove them for a round. What carries the hand? Only figures and tags.</p>
+        <span class="verdict">Proves the base is thin</span>
+      </div>
+      <div class="kill">
+        <h4>Kill &mdash; the target</h4>
+        <p>A round with no number that asks for a specific shape instead. The game becomes a puzzle.</p>
+        <span class="verdict">Ordeal candidate, not a redesign</span>
+      </div>
+      <div class="kill survives">
+        <h4>Kill &mdash; the hand refill</h4>
+        <p>A round as one managed hand. It survives this test: still recognisably Overtone.</p>
+        <span class="verdict">Survives</span>
+      </div>
+      <div class="kill">
+        <h4>Kill &mdash; the multiplier</h4>
+        <p>A game of pure addition would collapse. The multiplier is load-bearing and must not be touched.</p>
+        <span class="verdict">Collapses</span>
+      </div>
+    </div>
+
+    <div class="jewel r">
+      <span class="lab">Verdict &mdash; the only killable jewel</span>
+      <p>The only crown jewel that can survive being killed is <b>the flat figure payout</b>. Nothing in the game depends on a COLUMN paying 150 forever. That is the safest place to put an escalating decision.</p>
+      <div class="flatrow">
+        <span>1st COLUMN <b>150 / &times;3</b></span>
+        <span>2nd <b>150 / &times;3</b></span>
+        <span>3rd <b>150 / &times;3</b></span>
+        <span>4th <b>150 / &times;3</b></span>
+        <span>5th <b>150 / &times;3</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 CRANK THE DIAL ============ -->
+<section class="sec" style="--acc:var(--gold)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">05</span>
+      <div>
+        <h2>Crank the Dial to 11</h2>
+        <p class="tsub">Not +10%. Far enough that the player reorganises around it.</p>
+      </div>
+    </div>
+
+    <div class="r">
+      <div class="dial pick">
+        <div class="name">Figures <em>1 &rarr; 11</em></div>
+        <div class="pips up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">Not +10% per repeat &mdash; make the fifth MONOGRAM pay <b>double</b> the first. Big enough that the player reorganises their whole run around it. <span class="tag">adds a decision</span></div>
+      </div>
+      <div class="dial pick">
+        <div class="name">Ordeals <em>1 &rarr; 11</em></div>
+        <div class="pips up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">Fire one <b>every round</b> instead of three per run. 8 of 9 Ordeals per run, a different rule every round. <span class="tag">adds a decision</span></div>
+      </div>
+      <div class="dial">
+        <div class="name">Ordeal visibility <em>1 &rarr; 11</em></div>
+        <div class="pips up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">Show all remaining Ordeals at the shop so the player buys against a known future.</div>
+      </div>
+      <div class="dial">
+        <div class="name">Ordeals, cranked <span style="color:var(--blue)">down</span> <em>11 &rarr; 1</em></div>
+        <div class="pips down" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">One Ordeal &mdash; but it lasts the whole second half of the run.</div>
+      </div>
+      <div class="dial">
+        <div class="name">Hand size <em>7 &rarr; 8 &rarr; 9</em></div>
+        <div class="pips up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">Grow it over the run. More combinations later, so late rounds are richer rather than merely bigger.</div>
+      </div>
+      <div class="dial">
+        <div class="name">The shop <em>1 &rarr; 11</em></div>
+        <div class="pips up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="txt">Three Lenses offered becomes one Lens, one word-burn, one figure-level. Three different <b>kinds</b> of upgrade, not three of the same.</div>
+      </div>
+    </div>
+
+    <p class="pull r" style="border-color:var(--gold)">Cranking figures and cranking Ordeal frequency are the two cranks that add a decision. Everything else adds a number.</p>
+  </div>
+</section>
+
+<!-- ============ 06 JOB TO BE DONE ============ -->
+<section class="sec band" style="--acc:var(--blue)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">06</span>
+      <div>
+        <h2>Job to Be Done</h2>
+        <p class="tsub">The pleasure is recognition, not arithmetic.</p>
+      </div>
+    </div>
+
+    <div class="grid2 r">
+      <div class="ticket">
+        <div class="hd">Hired for &mdash; one hand</div>
+        <span class="no">not: <s>score points</s></span>
+        <div class="yes">Find a shape <u>nobody handed them</u>.</div>
+        <div class="ft">The pleasure is recognition, not arithmetic.</div>
+      </div>
+      <div class="ticket">
+        <div class="hd">Hired for &mdash; one run</div>
+        <span class="no">the run records: <s>money, multiplier</s></span>
+        <div class="yes">Get better at <u>seeing shapes</u>.</div>
+        <div class="ft">It records nothing about seeing.</div>
+      </div>
+    </div>
+
+    <ul class="ideas r" style="margin-top:26px">
+      <li class="t">If the job is recognition, the game must <em>pay for recognition</em> and pay MORE as recognition gets sharper. Figure levelling is the literal mechanical statement of the job to be done.</li>
+      <li class="t">Name the levels so the ledger reads as mastery: a COLUMN at level 3 is not &ldquo;COLUMN &times;3&rdquo;, it is <em>the player's COLUMN, sharpened</em>.</li>
+      <li class="t">Show the ledger during selection, not only in a menu, so the player sees which shape is worth most to THEM while choosing.</li>
+      <li>The Demand already names tags it wants. It could also name the figure the round rewards, so recognition has a target.</li>
+      <li class="t">A first-time figure in a run pays a <em>discovery bonus</em>, so the job &ldquo;learn to see all five&rdquo; has its own reward line.</li>
+    </ul>
+
+    <div class="insight r" style="margin-top:26px;max-width:74ch">
+      <span class="lab">Insight</span>
+      The 49.3% APPRENTICE win rate is not the problem to fix directly. <b>A player who wins half their runs and feels nothing is worse off than one who loses and feels they got sharper.</b> Fix the mastery signal, then re-measure.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 WORST POSSIBLE IDEA ============ -->
+<section class="sec" style="--acc:var(--coral)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">07</span>
+      <div>
+        <h2>Worst Possible Idea</h2>
+        <p class="tsub">Then flip. Every guardrail in the final design came from here.</p>
+      </div>
+    </div>
+
+    <div class="wpi r">
+      <div class="wrow">
+        <div class="bad"><span class="lab">Worst</span>Make every round randomly change every rule with no warning.</div>
+        <div class="flip">&#8635;</div>
+        <div class="good"><span class="lab">Flip</span>Change <b>one</b> rule per round, announced one round ahead. That is Ordeals every round with the Bookseller naming the next &mdash; already half built.</div>
+      </div>
+      <div class="wrow">
+        <div class="bad"><span class="lab">Worst</span>Make the player grind the same figure 50 times for a tiny bonus.</div>
+        <div class="flip">&#8635;</div>
+        <div class="good"><span class="lab">Flip</span>A short ladder with a hard cap &mdash; <b>3 or 4 levels, big steps, visible end</b>.</div>
+      </div>
+      <div class="wrow">
+        <div class="bad"><span class="lab">Worst</span>Let the player level every figure at once for free.</div>
+        <div class="flip">&#8635;</div>
+        <div class="good"><span class="lab">Flip</span>Level only what you <b>play</b>, so the ledger is a record of choices, and breadth costs depth.</div>
+      </div>
+      <div class="wrow">
+        <div class="bad"><span class="lab">Worst</span>Hide the ledger so the player cannot plan around it.</div>
+        <div class="flip">&#8635;</div>
+        <div class="good"><span class="lab">Flip</span>Put it <b>on the board permanently</b>, on the figure line that already exists.</div>
+      </div>
+      <div class="wrow">
+        <div class="bad"><span class="lab">Worst</span>Make levelling reset every round.</div>
+        <div class="flip">&#8635;</div>
+        <div class="good"><span class="lab">Flip</span>It <b>persists for the run</b> and resets between runs &mdash; which is exactly what makes a roguelite run feel like a story.</div>
+      </div>
+      <div class="wrow">
+        <div class="bad"><span class="lab">Worst</span>Level the figure's multiplier without limit.</div>
+        <div class="flip">&#8635;</div>
+        <div class="good"><span class="lab">Flip</span>Level the <b>chips generously</b> and the <b>multiplier stingily</b>, because mult is the runaway term the previous session already priced carefully.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 PERSONA JOURNEY ============ -->
+<section class="sec band" style="--acc:var(--gold)">
+  <div class="wrap">
+    <div class="thead r">
+      <span class="tno">08</span>
+      <div>
+        <h2>Persona Journey</h2>
+        <p class="tsub">Three players, one run each.</p>
+      </div>
+    </div>
+
+    <div class="lanes r">
+      <div class="lane">
+        <div class="who">First run</div>
+        <div class="what">Learning what the game is.</div>
+        <div class="beats">
+          <div class="beat">
+            <div class="rd">Round 1</div>
+            <div class="ev">Clears with one play, then watches 3 more plays they did not need.</div>
+            <div class="ins">Rounds 1&ndash;2 kill 0&ndash;1.8% of runs. The opening is a cutscene.</div>
+            <div class="fix">Let a big overshoot end the round early and bank the surplus. The reward for playing well becomes <b>time</b> &mdash; which is the thing the complaint is about.</div>
+          </div>
+          <div class="beat">
+            <div class="rd">Round 4</div>
+            <div class="ev">Meets THE DROUGHT, and loses a tool they had just learned.</div>
+            <div class="ins">Their first structural variety is a subtraction. Their first impression of &ldquo;the game changes&rdquo; is &ldquo;the game takes things away&rdquo;.</div>
+            <div class="fix">Give the first structural change as an <b>addition</b> &mdash; the first figure level &mdash; so &ldquo;the game changes&rdquo; reads as growth before it reads as loss.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lane">
+        <div class="who">Tenth run</div>
+        <div class="what">Knows the furniture.</div>
+        <div class="beats">
+          <div class="beat">
+            <div class="rd">Round 3</div>
+            <div class="ev">Already knows the shop. Already knows the tags.</div>
+            <div class="ins">Nothing in the game is different on run 10 than on run 1 except their own knowledge &mdash; which the game never acknowledges.</div>
+            <div class="fix">The ledger acknowledges it <b>inside a run</b>. Between runs, the carried Lens already does a little of this, and it is the one feature players notice.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lane">
+        <div class="who">Fiftieth run</div>
+        <div class="what">Hunting a high score.</div>
+        <div class="beats">
+          <div class="beat">
+            <div class="rd">Whole run</div>
+            <div class="ev">Plays for the number, not the surprise.</div>
+            <div class="ins">There is no reason to play a COLUMN over a MONOGRAM beyond raw payout, so optimal play converges to one line and the game is solved.</div>
+            <div class="fix">Levelling makes the optimal line <b>diverge</b>. Committing to a shape early is a strategy, and different runs commit differently. Replay value from one mechanic.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="pull r" style="border-color:var(--gold)">All three personas are helped by the same change, for three different reasons. That is the signature of a load-bearing fix rather than a patch.</p>
+  </div>
+</section>
+
+<!-- ============ CONVERGING ============ -->
+<section class="sec" style="--acc:var(--gold)">
+  <div class="wrap">
+    <p class="eyebrow r">Converging &mdash; affinity clustering, then impact / effort</p>
+    <h2 class="r" style="font-size:clamp(26px,5.6vw,44px);max-width:20ch">Five clusters came out of the 85. One lights up.</h2>
+
+    <div class="field r" style="margin-top:32px">
+      <div class="clu lit">
+        <div class="ltr">A</div>
+        <h4>Mastery ledger</h4>
+        <p class="mem">Figure levelling, the discovery bonus, naming levels, showing the ledger on the board, breadth&#8209;vs&#8209;depth.</p>
+        <span class="st">Chosen</span>
+      </div>
+      <div class="clu rej">
+        <div class="ltr">B</div>
+        <h4>Finite resources</h4>
+        <p class="mem">Hand does not refill mid&#8209;round, words tire, deck depletes, discards bank a charge.</p>
+        <span class="st">Rejected</span>
+      </div>
+      <div class="clu rej">
+        <div class="ltr">C</div>
+        <h4>Route and choice</h4>
+        <p class="mem">Choose the blind, branch the round, skip for a reward, buy your own Ordeal, sell a Lens back, burn a word.</p>
+        <span class="st">Rejected</span>
+      </div>
+      <div class="clu defer">
+        <div class="ltr">D</div>
+        <h4>Ordeal density</h4>
+        <p class="mem">Fire more of the 9, show them earlier, one per round.</p>
+        <span class="st">Deferred &mdash; 1st follow-up</span>
+      </div>
+      <div class="clu defer">
+        <div class="ltr">E</div>
+        <h4>Overshoot matters</h4>
+        <p class="mem">Bank the surplus, end the round early, greed raises the next target.</p>
+        <span class="st">Deferred &mdash; 2nd follow-up</span>
+      </div>
+    </div>
+
+    <div class="decs r">
+      <div class="dec yes">
+        <div class="v">Cluster A</div>
+        <div class="b">The pick. Highest impact &mdash; it is the one change all three personas need, for three different reasons. Lowest effort &mdash; FIG_PAY is a flat lookup table, so levelling is a multiplier on a lookup plus a per-run counter. And it is the only cluster that escalates the <b>decision</b> rather than a number.</div>
+      </div>
+      <div class="dec later">
+        <div class="v">Cluster D</div>
+        <div class="b">The cheap second. 9 Ordeals exist and 3 fire. Raising APPRENTICE from 1 to 2 and SCHOLAR from 3 to 4 spends content already written and tested. Deferred to a follow-up, not this change.</div>
+      </div>
+      <div class="dec later">
+        <div class="v">Cluster E</div>
+        <div class="b">The cheap third, and it pairs naturally with A. Deferred.</div>
+      </div>
+      <div class="dec no">
+        <div class="v">Clusters B &amp; C</div>
+        <div class="b">Rejected for this pass. Both are large rewrites of round structure with real risk to a 336&#8209;test suite and a curve that currently measures healthy at 23.5%. Revisit only if A does not move the complaint.</div>
+      </div>
+      <div class="dec no">
+        <div class="v">Target curve</div>
+        <div class="b">Rebalancing is explicitly rejected. The simulator says 23.5% and deaths spread across rounds 4&ndash;8. The numbers are not the problem; touching them would be <b>motion without progress</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SYNTHESIS ============ -->
+<section class="sec synth">
+  <div class="wrap">
+    <div class="synhead r">
+      <p class="kicker" style="color:var(--gold)">Synthesis</p>
+      <h2>One idea wearing three hats.</h2>
+      <p>The connections across techniques &mdash; what the session actually found once the eight lines of attack were laid on top of one another.</p>
+    </div>
+
+    <div class="sgrid">
+      <div class="scard r">
+        <span class="n">Convergence 01</span>
+        <h3>Three techniques arrived at the same place and did not know it.</h3>
+        <p><b>Causal Loop Mapping</b> found that the run has one feedback loop and nothing the player learns feeds back into it. <b>Job to Be Done</b> found that the thing a player is really hiring a hand for is recognition of a shape. <b>Trait Transfer</b> found that every comparable game escalates the decision rather than the number, and that Balatro's hand levels are the most-cited reason its loop has a spine.</p>
+        <p>Those are one idea wearing three hats: <b>the game must pay for recognition, and pay more as recognition sharpens.</b></p>
+        <div class="hats"><span>Causal Loop Mapping</span><span>Job to Be Done</span><span>Trait Transfer</span></div>
+      </div>
+
+      <div class="scard r">
+        <span class="n">Convergence 02</span>
+        <h3>The quiet result that matters most.</h3>
+        <p>The same change helps the <b>first-time player</b> (their first structural change becomes an addition instead of a subtraction), the <b>tenth-run player</b> (the game finally acknowledges what they have learned) and the <b>fiftieth-run player</b> (the optimal line diverges, so runs stop converging on one solved strategy).</p>
+        <p>A change that helps three personas for three different reasons is <b>load-bearing, not a patch.</b></p>
+        <div class="hats"><span>Persona Journey</span></div>
+      </div>
+
+      <div class="scard r">
+        <span class="n">Convergence 03</span>
+        <h3>The de-risking happened quietly.</h3>
+        <p>Kill the Crown Jewel established that Lenses, the target and the multiplier are all load-bearing and must not be touched. The flat figure payout is the <b>only</b> crown jewel that can be killed without anything else collapsing &mdash; nothing in the file depends on a COLUMN paying 150 forever.</p>
+        <div class="hats"><span>Kill the Crown Jewel</span></div>
+      </div>
+
+      <div class="scard r">
+        <span class="n">Convergence 04</span>
+        <h3>The most useful number said: do not do the obvious thing.</h3>
+        <p>23.5% win rate, deaths spread over rounds 4&ndash;8 &mdash; the curve is healthy. <b>&ldquo;Not fun&rdquo; was never a balance complaint</b>, and a session that started by retuning targets would have shipped motion instead of progress.</p>
+        <div class="hats"><span>Measured baseline &middot; 400 runs</span></div>
+      </div>
+    </div>
+
+    <div class="guard r">
+      <span class="n">Convergence 05 &mdash; the guardrails</span>
+      <h3>Worst Possible Idea produced the design, by flipping.</h3>
+      <p style="color:#C6CEDA;font-size:14.5px;line-height:1.6;margin:0;max-width:66ch">Every constraint below is a flipped bad idea. Together they <em>are</em> the design.</p>
+      <ul>
+        <li>Level the CHIPS generously</li>
+        <li>Level the MULTIPLIER stingily</li>
+        <li>Cap the ladder short and visible</li>
+        <li>Level only what you actually play</li>
+        <li>Persist for the run only</li>
+        <li>Keep it on the board, never in a menu</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHOSEN DIRECTION ============ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="chosen r">
+      <span class="cap">Chosen direction</span>
+      <h2>The figure ledger</h2>
+      <p class="spec">Every figure you complete is remembered for the run. The next one of that shape pays more. The ledger is visible on the board while choosing. A short capped ladder: chips scale generously, multiplier scales slowly. It resets between runs.</p>
+
+      <div class="before">
+        <span class="lab">Before &mdash; FIG_PAY, a flat lookup</span>
+        <div class="flatline">
+          <span>COLUMN 1 &middot; 150 / &times;3</span>
+          <span>COLUMN 2 &middot; 150 / &times;3</span>
+          <span>COLUMN 3 &middot; 150 / &times;3</span>
+          <span>COLUMN 4 &middot; 150 / &times;3</span>
+          <span>COLUMN 5 &middot; 150 / &times;3</span>
+          <em>no mastery curve anywhere in the file</em>
+        </div>
+      </div>
+
+      <div class="ledger">
+        <div class="lab"><span>After &mdash; the ledger, on the board, while choosing</span><button type="button" id="ledreset">Reset run</button></div>
+        <div class="figs">
+          <button class="fig" type="button" data-level="0" data-name="MONOGRAM">
+            <span class="fn">MONOGRAM</span>
+            <span class="lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="st">not yet seen</span>
+          </button>
+          <button class="fig" type="button" data-level="0" data-name="CHAIN">
+            <span class="fn">CHAIN</span>
+            <span class="lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="st">not yet seen</span>
+          </button>
+          <button class="fig" type="button" data-level="0" data-name="COLUMN">
+            <span class="fn">COLUMN</span>
+            <span class="lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="st">not yet seen</span>
+          </button>
+          <button class="fig" type="button" data-level="0" data-name="STAIR">
+            <span class="fn">STAIR</span>
+            <span class="lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="st">not yet seen</span>
+          </button>
+          <button class="fig" type="button" data-level="0" data-name="PAIR">
+            <span class="fn">PAIR</span>
+            <span class="lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="st">not yet seen</span>
+          </button>
+        </div>
+        <p class="ledgercap" id="ledcap" aria-live="polite">Complete a figure to level it. A new figure pays a one-off discovery bonus; a repeat deepens the one you already know. Breadth vs depth, every single hand.</p>
+      </div>
+
+      <div class="rules">
+        <span>chips: generous</span>
+        <span>multiplier: stingy</span>
+        <span>ladder: short, capped, visible</span>
+        <span>levels only what you play</span>
+        <span>persists for the run</span>
+        <span>resets between runs</span>
+      </div>
+    </div>
+
+    <div class="grid2 r" style="margin-top:26px">
+      <div class="insight">
+        <span class="lab">Deferred, in order</span>
+        <b>1. Ordeal density (cluster D)</b> &mdash; spend the 6 of 9 Ordeals the game already owns.<br>
+        <b>2. Overshoot banking (cluster E)</b> &mdash; make the size of the clear matter.
+      </div>
+      <div class="insight c">
+        <span class="lab">Rejected for this pass</span>
+        <b>Finite resources (B)</b> and <b>route / choice (C)</b> &mdash; both round-structure rewrites, both risky against a 336-test suite and a curve measuring healthy at 23.5%. And rebalancing the target curve, explicitly.
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="colo">
+      <div>
+        <b>Session</b>
+        Topic &mdash; Overtone core loop is stagnant<br>
+        Date &mdash; 2026&#8209;09&#8209;17<br>
+        Mode &mdash; autonomous<br>
+        Status &mdash; complete
+      </div>
+      <div>
+        <b>Techniques run</b>
+        01 Causal Loop Mapping<br>
+        02 Assumption Reversal<br>
+        03 Trait Transfer<br>
+        04 Kill the Crown Jewel<br>
+        05 Crank the Dial to 11<br>
+        06 Job to Be Done<br>
+        07 Worst Possible Idea<br>
+        08 Persona Journey
+      </div>
+      <div>
+        <b>Outcome</b>
+        85 ideas &rarr; 5 clusters<br>
+        1 chosen &mdash; the figure ledger<br>
+        2 deferred &mdash; D, then E<br>
+        2 rejected &mdash; B and C<br>
+        Rebalancing &mdash; rejected
+      </div>
+    </div>
+    <div class="sig">
+      <span>Overtone &mdash; brainstorming keepsake</span>
+      <span>Escalate the decision, not the number</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var d=document, root=d.documentElement;
+  root.classList.add('js');
+
+  /* reveal on scroll */
+  var items=[].slice.call(d.querySelectorAll('.r'));
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -6% 0px',threshold:0.05});
+    items.forEach(function(el){io.observe(el);});
+  } else {
+    items.forEach(function(el){el.classList.add('in');});
+  }
+
+  /* scroll rail: blue at the diagnosis end, gold at the convergence end */
+  var fill=d.getElementById('railfill');
+  function onScroll(){
+    var h=d.documentElement.scrollHeight-window.innerHeight;
+    var p=h>0?Math.min(1,Math.max(0,(window.pageYOffset||d.documentElement.scrollTop)/h)):0;
+    fill.style.width=(p*100).toFixed(2)+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  onScroll();
+
+  /* the ledger: click a figure to complete it */
+  var CAP=4;
+  var cap=d.getElementById('ledcap');
+  var base='Complete a figure to level it. A new figure pays a one-off discovery bonus; a repeat deepens the one you already know. Breadth vs depth, every single hand.';
+  var figs=[].slice.call(d.querySelectorAll('.fig'));
+
+  function paint(f){
+    var lv=parseInt(f.getAttribute('data-level'),10)||0;
+    var pips=f.querySelectorAll('.lv i');
+    for(var i=0;i<pips.length;i++){
+      if(i<lv){pips[i].classList.add('on');}else{pips[i].classList.remove('on');}
+    }
+    var st=f.querySelector('.st');
+    if(lv===0){st.textContent='not yet seen';}
+    else if(lv>=CAP){st.textContent='level '+lv+' · capped';}
+    else {st.textContent='level '+lv;}
+  }
+
+  figs.forEach(function(f){
+    paint(f);
+    f.addEventListener('click',function(){
+      var lv=parseInt(f.getAttribute('data-level'),10)||0;
+      var name=f.getAttribute('data-name');
+      if(lv>=CAP){
+        cap.innerHTML='<b>'+name+'</b> is at the cap. A short ladder with a hard cap &mdash; 3 or 4 levels, big steps, visible end.';
+        return;
+      }
+      lv++;
+      f.setAttribute('data-level',String(lv));
+      paint(f);
+      if(lv===1){
+        cap.innerHTML='First <b>'+name+'</b> of the run &mdash; a discovery bonus. The job &ldquo;learn to see all five&rdquo; has its own reward line.';
+      } else if(lv===3){
+        cap.innerHTML='<b>'+name+'</b> at level 3 is not &ldquo;'+name+' ×3&rdquo;. It is <b>the player’s '+name+', sharpened.</b>';
+      } else if(lv>=CAP){
+        cap.innerHTML='<b>'+name+'</b> hits the cap. Chips scaled generously, multiplier stingily &mdash; mult is the runaway term.';
+      } else {
+        cap.innerHTML='<b>'+name+'</b> levels to '+lv+'. Repeating a figure deepens it; a new figure pays the one-off bonus instead.';
+      }
+    });
+  });
+
+  var reset=d.getElementById('ledreset');
+  if(reset){
+    reset.addEventListener('click',function(){
+      figs.forEach(function(f){f.setAttribute('data-level','0');paint(f);});
+      cap.textContent=base;
+    });
+  }
+})();
+</script>
+</body>
+</html>
