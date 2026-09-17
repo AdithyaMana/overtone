@@ -8,10 +8,9 @@
  * them down here.
  */
 const { test, expect } = require("@playwright/test");
-const path = require("path");
-const { pathToFileURL } = require("url");
 
-const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
+/* resolved against baseURL in playwright.config.js */
+const GAME = "/index.html";
 
 /* The game opens on a main menu now. Every spec starts on the board, so this
    is the one place that knows how to get there. */

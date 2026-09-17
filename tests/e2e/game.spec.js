@@ -3,10 +3,9 @@
  *   npm run test:e2e
  */
 const { test, expect } = require("@playwright/test");
-const path = require("path");
-const { pathToFileURL } = require("url");
 
-const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
+/* resolved against baseURL in playwright.config.js */
+const GAME = "/index.html";
 
 /* The game opens on a main menu now. Every spec starts on the board, so this
    is the one place that knows how to get there. */
@@ -38,21 +37,22 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-/* Chromium flushes localStorage to the browser process asynchronously, so a
-   reload fired in the same breath as a write can lose it — which is a flake in
-   a test and, for a player who closes the tab the instant they change a
-   setting, a real if rare loss. Read the key back before reloading: that
-   round-trip is the beat a hand moving to the reload button gives it. */
+/* Read the key back before reloading, so a spec that meant to test persistence
+   fails on the write rather than three lines later on the read.
+
+   This used to carry a 150ms sleep as well, on the theory that Chromium was
+   losing the write on its way to the browser process. It was not. The specs
+   were loading the game over file://, where Chromium keeps its own odd corner
+   of localStorage: under load, five to eight reloads in thirty came up with
+   the WHOLE area empty, not just the last key, and the suite's own beforeEach
+   then wrote its defaults over the top. Over http the same measurement was
+   thirty for thirty. The specs serve the game now (playwright.config.js), so
+   there is nothing left to sleep for. */
 async function reloadKeeping(page, key, value) {
   /* First that the page really wrote what the test thinks it wrote. */
   await expect.poll(async () =>
     page.evaluate(k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, key),
     { timeout: 3000 }).toContain(value);
-  /* Then a beat. Chromium hands localStorage to the browser process over an
-     async channel with no event to wait on, and a reload fired in the same
-     breath as the write can tear the renderer down before it lands. Under
-     eight parallel workers that is a real race and this test caught it. */
-  await page.waitForTimeout(150);
   await page.reload();
 }
 
@@ -127,6 +127,32 @@ async function recordTotal(page) {
         requestAnimationFrame(sample);
       })();
     }).observe(stage, { childList: true, subtree: true });
+  });
+}
+
+/* The stage grows only while #app is .resolving, which is on for about a
+   second and a half — so measuring the growth with boundingBox() round trips
+   is the same race recordTotal describes, with a wider window. Sample it in
+   the page instead: start this after the words are picked and before Play,
+   then read window.__stage once the hand has settled. */
+async function recordStageGrowth(page) {
+  await page.evaluate(() => {
+    const app = document.getElementById("app");
+    const stage = document.getElementById("stage");
+    window.__stage = {
+      base: stage.getBoundingClientRect().height, max: 0, sawResolving: false
+    };
+    (function sample() {
+      const resolving = app.classList.contains("resolving");
+      if (resolving) {
+        window.__stage.sawResolving = true;
+        const h = stage.getBoundingClientRect().height;
+        if (h > window.__stage.max) window.__stage.max = h;
+      } else if (window.__stage.sawResolving) {
+        return;                       /* the hand is done; stop sampling */
+      }
+      requestAnimationFrame(sample);
+    })();
   });
 }
 
@@ -1931,16 +1957,13 @@ test.describe("the scoring readout", () => {
   test("the board takes the room while a hand resolves", async ({ page }) => {
     await open(page);
     for (const k of ["1", "2"]) await page.keyboard.press(k);
-    const before = await page.locator("#stage").boundingBox();
+    await recordStageGrowth(page);
     await page.click("#playBtn");
-
-    await expect(page.locator("#app")).toHaveClass(/resolving/);
-    await expect.poll(async () => {
-      const b = await page.locator("#stage").boundingBox();
-      return b.height > before.height;
-    }, { timeout: 2000, message: "the stage never grew for the scoring" }).toBe(true);
-
     await settle(page);
+
+    const s = await page.evaluate(() => window.__stage);
+    expect(s.sawResolving, "the board never took the room for the scoring").toBe(true);
+    expect(s.max, "the stage never grew for the scoring").toBeGreaterThan(s.base);
     await expect(page.locator("#app")).not.toHaveClass(/resolving/);
   });
 

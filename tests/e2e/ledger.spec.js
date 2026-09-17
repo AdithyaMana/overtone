@@ -8,10 +8,9 @@
  * worse than no ladder at all.
  */
 const { test, expect } = require("@playwright/test");
-const path = require("path");
-const { pathToFileURL } = require("url");
 
-const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
+/* resolved against baseURL in playwright.config.js */
+const GAME = "/index.html";
 
 async function enterGame(page){
   const title = page.locator("#title");

@@ -3,10 +3,9 @@
  * ones that cost something.
  */
 const { test, expect } = require("@playwright/test");
-const path = require("path");
-const { pathToFileURL } = require("url");
 
-const GAME = pathToFileURL(path.resolve(__dirname, "..", "..", "index.html")).href;
+/* resolved against baseURL in playwright.config.js */
+const GAME = "/index.html";
 
 async function enterGame(page) {
   const title = page.locator("#title");
@@ -15,13 +14,14 @@ async function enterGame(page) {
   await expect(title).toBeHidden();
 }
 
-/* Chromium flushes localStorage to the browser process asynchronously, so a
-   reload fired in the same breath as a write can lose it. */
+/* Read the key back before reloading, so a spec that meant to test persistence
+   fails on the write rather than later on the read. The sleep that used to sit
+   here was for a file:// storage quirk the specs no longer run into — see the
+   note on reloadKeeping in game.spec.js. */
 async function reloadKeeping(page, key, value) {
   await expect.poll(async () =>
     page.evaluate(k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, key),
     { timeout: 3000 }).toContain(value);
-  await page.waitForTimeout(150);
   await page.reload();
 }
 
