@@ -13,6 +13,19 @@ const GAME = "/index.html";
 
 /* The game opens on a main menu now. Every spec starts on the board, so this
    is the one place that knows how to get there. */
+/* The overtones are hidden on SCHOLAR until a word has been played, and nearly
+   every spec here runs on SCHOLAR while testing something else entirely. Teach
+   the profile the lexicon so the cards read the way these tests assume. The
+   specs about hiding do their own thing and never call this. */
+async function learnEverything(page) {
+  await page.evaluate(() => {
+    if (typeof LEXICON === "undefined") return;
+    LEXICON.forEach(e => { LEARNED[e.w] = 1; });
+    store.set("learned", LEARNED);
+    if (typeof render === "function" && typeof G !== "undefined" && G) render();
+  });
+}
+
 async function enterGame(page){
   const title = page.locator("#title");
   /* The menu is drawn by start(), which may be deferred a tick by the artifact
@@ -21,6 +34,7 @@ async function enterGame(page){
   await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await title.isVisible()) await page.click("#titlePlay");
   await expect(title).toBeHidden();
+  await learnEverything(page);
 }
 
 test.beforeEach(async ({ page }) => {

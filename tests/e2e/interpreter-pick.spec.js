@@ -27,6 +27,12 @@ async function atTheBoard(page) {
   await page.locator("#title").waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await page.locator("#title").isVisible()) await page.click("#titlePlay");
   await expect(page.locator("#title")).toBeHidden();
+  await page.evaluate(() => {
+    if (typeof LEXICON === "undefined") return;
+    LEXICON.forEach(e => { LEARNED[e.w] = 1; });
+    store.set("learned", LEARNED);
+    if (typeof render === "function" && typeof G !== "undefined" && G) render();
+  });
 }
 
 async function appraise(page, word) {

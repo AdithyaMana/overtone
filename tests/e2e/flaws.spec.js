@@ -7,11 +7,25 @@ const { test, expect } = require("@playwright/test");
 /* resolved against baseURL in playwright.config.js */
 const GAME = "/index.html";
 
+/* The overtones are hidden on SCHOLAR until a word has been played, and nearly
+   every spec here runs on SCHOLAR while testing something else entirely. Teach
+   the profile the lexicon so the cards read the way these tests assume. The
+   specs about hiding do their own thing and never call this. */
+async function learnEverything(page) {
+  await page.evaluate(() => {
+    if (typeof LEXICON === "undefined") return;
+    LEXICON.forEach(e => { LEARNED[e.w] = 1; });
+    store.set("learned", LEARNED);
+    if (typeof render === "function" && typeof G !== "undefined" && G) render();
+  });
+}
+
 async function enterGame(page) {
   const title = page.locator("#title");
   await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await title.isVisible()) await page.click("#titlePlay");
   await expect(title).toBeHidden();
+  await learnEverything(page);
 }
 
 /* Read the key back before reloading, so a spec that meant to test persistence

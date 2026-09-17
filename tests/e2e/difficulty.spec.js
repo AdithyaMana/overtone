@@ -11,6 +11,19 @@ const GAME = "/index.html";
 
 /* The game opens on a main menu now. Every spec starts on the board, so this
    is the one place that knows how to get there. */
+/* The overtones are hidden on SCHOLAR until a word has been played, and nearly
+   every spec here runs on SCHOLAR while testing something else entirely. Teach
+   the profile the lexicon so the cards read the way these tests assume. The
+   specs about hiding do their own thing and never call this. */
+async function learnEverything(page) {
+  await page.evaluate(() => {
+    if (typeof LEXICON === "undefined") return;
+    LEXICON.forEach(e => { LEARNED[e.w] = 1; });
+    store.set("learned", LEARNED);
+    if (typeof render === "function" && typeof G !== "undefined" && G) render();
+  });
+}
+
 async function enterGame(page){
   const title = page.locator("#title");
   /* The menu is drawn by start(), which may be deferred a tick by the artifact
@@ -19,6 +32,7 @@ async function enterGame(page){
   await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await title.isVisible()) await page.click("#titlePlay");
   await expect(title).toBeHidden();
+  await learnEverything(page);
 }
 
 async function open(page) {
@@ -316,14 +330,15 @@ test.describe("the rules describe the game you are in", () => {
     await expect(page.locator("#panel")).toContainText("Three rounds are Ordeals");
   });
 
-  test("and APPRENTICE actually is dealt one, at round 8", async ({ page }) => {
+  test("and APPRENTICE actually is dealt one, at the last round", async ({ page }) => {
     await onDiff("apprentice")(page);
     const met = await page.evaluate(() => {
       const out = [];
       for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) out.push(r);
       return out;
     });
-    expect(met).toEqual([7]);
+    /* the last round of six, so a run ends on a wall rather than a bigger number */
+    expect(met).toEqual([5]);
   });
 
   test("and SCHOLAR three", async ({ page }) => {
@@ -333,7 +348,7 @@ test.describe("the rules describe the game you are in", () => {
       for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) out.push(r);
       return out;
     });
-    expect(met).toEqual([3, 5, 7]);
+    expect(met).toEqual([1, 3, 5]);
   });
 });
 

@@ -9,6 +9,19 @@ const GAME = "/index.html";
 
 /* The game opens on a main menu now. Every spec starts on the board, so this
    is the one place that knows how to get there. */
+/* The overtones are hidden on SCHOLAR until a word has been played, and nearly
+   every spec here runs on SCHOLAR while testing something else entirely. Teach
+   the profile the lexicon so the cards read the way these tests assume. The
+   specs about hiding do their own thing and never call this. */
+async function learnEverything(page) {
+  await page.evaluate(() => {
+    if (typeof LEXICON === "undefined") return;
+    LEXICON.forEach(e => { LEARNED[e.w] = 1; });
+    store.set("learned", LEARNED);
+    if (typeof render === "function" && typeof G !== "undefined" && G) render();
+  });
+}
+
 async function enterGame(page){
   const title = page.locator("#title");
   /* The menu is drawn by start(), which may be deferred a tick by the artifact
@@ -17,6 +30,7 @@ async function enterGame(page){
   await title.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await title.isVisible()) await page.click("#titlePlay");
   await expect(title).toBeHidden();
+  await learnEverything(page);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -255,13 +269,15 @@ test.describe("playing a hand", () => {
     await expect(badges.nth(2)).toHaveText("3");
   });
 
-  test("names the shape of the hand", async ({ page }) => {
+  test("says what a lone word is, and asks for another", async ({ page }) => {
     await open(page);
     await page.locator("#hand .card.live").first().click();
-    /* One word can never make a figure, so a lone card still gets named for
-       what it matches. */
+    /* One word is not a line. There is nothing beside it yet, so there is
+       nothing for the board to read - and it says so rather than printing a
+       score, because it no longer prints scores at all. */
     await expect(page.locator(".hand-name")).toContainText("MATCH");
-    await expect(page.locator("#stageHint")).toContainText("worth");
+    await expect(page.locator("#stageHint")).toContainText("Lay another beside it");
+    await expect(page.locator("#stageHint")).not.toContainText("worth");
   });
 
   test("does not blame the Lenses for an order no Lens is reading", async ({ page }) => {
@@ -317,11 +333,14 @@ test.describe("playing a hand", () => {
     expect(matters.mixed).toBe(true);
   });
 
-  test("refuses a fourth card and says why", async ({ page }) => {
+  test("refuses a sixth word and says why", async ({ page }) => {
+    /* A line is two to five words now. The cap moved with the verb, and the
+       message that names it is generated from MAX_PLAY rather than spelled
+       out, so it cannot drift again. */
     await open(page);
-    for (const key of ["1", "2", "3", "4"]) await page.keyboard.press(key);
-    await expect(page.locator("#hand .card.sel")).toHaveCount(3);
-    await expect(page.locator("#toast")).toContainText("Three at a time");
+    for (const key of ["1", "2", "3", "4", "5", "6"]) await page.keyboard.press(key);
+    await expect(page.locator("#hand .card.sel")).toHaveCount(5);
+    await expect(page.locator("#toast")).toContainText("five words at most");
   });
 
   test("deselecting clears the stage and the tally", async ({ page }) => {
@@ -364,73 +383,107 @@ test.describe("playing a hand", () => {
 test.describe("the figure on the board", () => {
   /* Deal a known hand: the shape of three words is the whole subject here, so
      it cannot be left to the shuffle. */
-  /* Cards that ANSWER the round: a figure is only paid its multiplier for the
-     words the Demand wants, so a hand of words it does not want is a shape with
-     nothing behind it and proves nothing about the figure moving the score. */
+  /* Their REAL overtones, out of the lexicon. This used to stamp every card
+     with the round's Demand tags, which was right when a figure read spelling
+     and became wrong the moment it read meaning: two words given identical
+     tags always ring and can never pull, so every join test would have been
+     measuring the fixture rather than the game. */
   async function deal(page, words){
     await page.evaluate((ws) => {
-      G.hand = ws.map(w => makeCard({ w: w, t: G.demand.tags.slice() }, false));
+      G.hand = ws.map(w => {
+        const e = LEXICON.find(x => x.w === w);
+        if (!e) throw new Error(w + " is not in the lexicon");
+        return makeCard(e, false);
+      });
       G.selected = [];
       render();
     }, words);
   }
   const pick = async (page, keys) => { for(const k of keys) await page.keyboard.press(k); };
 
-  test("names the figure and says what it pays", async ({ page }) => {
+  test("names what two words are doing to each other", async ({ page }) => {
     await open(page);
-    await deal(page, ["MOSS", "TIDE", "WOLF"]);      // three fours
-    await pick(page, ["1", "2", "3"]);
-    await expect(page.locator(".hand-name")).toHaveText("THE COLUMN");
-    await expect(page.locator(".stage-hint .fig-pay")).toContainText("mult");
+    await deal(page, ["WOLF", "BEAR"]);            // share two overtones
+    await pick(page, ["1", "2"]);
+    await expect(page.locator("#stageHint .jn.resonance")).toHaveCount(1);
   });
 
-  test("says NO FIGURE out loud rather than going quiet", async ({ page }) => {
+  test("tells a pull from a ring, because they pay differently", async ({ page }) => {
     await open(page);
-    await deal(page, ["OAK", "KILN", "FURNACE"]);    // 3, 4, 7 and no link
-    await pick(page, ["1", "2", "3"]);
-    await expect(page.locator(".hand-name")).toHaveText("NO FIGURE");
-    await expect(page.locator(".stage-hint .fig-pay")).toHaveCount(0);
+    await deal(page, ["SHARK", "PEPPER"]);         // opposed, nothing shared
+    await pick(page, ["1", "2"]);
+    await expect(page.locator("#stageHint .jn.tension")).toHaveCount(1);
+    await expect(page.locator("#stageHint .jn.resonance")).toHaveCount(0);
   });
 
-  test("the order you tap them in is the figure", async ({ page }) => {
+  test("names the rare one when both happen at once", async ({ page }) => {
     await open(page);
-    await deal(page, ["OAK", "MOSS", "EMBER"]);      // 3, 4, 5
-    await pick(page, ["1", "2", "3"]);
-    await expect(page.locator(".hand-name")).toHaveText("THE STAIR");
-
-    /* The same three words, tapped out of order, are nothing at all — and the
-       board has to say so without fixing it. */
-    await page.evaluate(() => { G.selected = []; render(); });
-    await pick(page, ["2", "1", "3"]);
-    await expect(page.locator(".hand-name")).toHaveText("NO FIGURE");
-    await expect(page.locator(".stage-hint .ord")).toContainText("THE STAIR");
+    await deal(page, ["EMBER", "GLACIER"]);        // NATURE shared, heat/cold and wet/heat opposed
+    await pick(page, ["1", "2"]);
+    await expect(page.locator("#stageHint .jn.paradox")).toHaveCount(1);
+    await expect(page.locator(".hand-name")).toHaveText("THE PARADOX");
   });
 
-  test("the figure actually moves the score", async ({ page }) => {
+  test("says where a line falls silent rather than going quiet", async ({ page }) => {
     await open(page);
-    await deal(page, ["MOSS", "TIDE", "WOLF"]);
-    await pick(page, ["1", "2", "3"]);
-    const want = await page.evaluate(() => String(1 + FIG_PAY.column[3].mult));
-    await expect(page.locator("#multV")).toHaveText(want);
+    await deal(page, ["WOLF", "OAK"]);             // nothing in common at all
+    await pick(page, ["1", "2"]);
+    await expect(page.locator("#stageHint .jn.silence")).toHaveCount(1);
+    await expect(page.locator(".hand-name")).toHaveText("NOTHING YET");
+  });
 
-    await page.evaluate(() => { G.selected = []; render(); });
-    await deal(page, ["OAK", "KILN", "FURNACE"]);
-    await pick(page, ["1", "2", "3"]);
-    await expect(page.locator(".hand-name")).toHaveText("NO FIGURE");
-    await expect(page.locator("#multV")).toHaveText("1");
+  test("never says what the line is worth before it is played", async ({ page }) => {
+    /* The old board scored every selection live, which is why picking cards
+       was arithmetic somebody else had already done. Judging it is the game
+       now, so the readout says what it can SEE and never what it adds up to. */
+    await open(page);
+    await deal(page, ["EMBER", "GLACIER"]);
+    await pick(page, ["1", "2"]);
+    const hint = await page.locator("#stageHint").textContent();
+    expect(hint).not.toMatch(/\bworth\b/);
+    expect(hint).not.toMatch(/[0-9],[0-9]{3}/);
+    await expect(page.locator("#stageHint")).toContainText("yours to judge");
+  });
+
+  test("the order is the decision, and the board says so without fixing it",
+    async ({ page }) => {
+      await open(page);
+      /* WOLF rings with BEAR and has nothing to say to OAK. One order reads all
+         the way through; the other stops dead after two words. */
+      await deal(page, ["WOLF", "OAK", "BEAR"]);
+      await pick(page, ["1", "2", "3"]);
+      await expect(page.locator("#stageHint .stops")).toHaveCount(1);
+
+      await page.evaluate(() => { G.selected = []; render(); });
+      await pick(page, ["1", "3", "2"]);
+      await expect(page.locator("#stageHint .stops")).toHaveCount(0);
+    });
+
+  test("a pull actually moves the multiplier", async ({ page }) => {
+    await open(page);
+    await deal(page, ["EMBER", "GLACIER"]);
+    await pick(page, ["1", "2"]);
+    const res = await page.evaluate(() => {
+      const line = G.selected.map(id => G.hand.find(c => c.id === id));
+      const j = joinOf(line[0], line[1], {});
+      return { t: j.t, mult: resolve(line).mult, per: JOIN_TENSION };
+    });
+    expect(res.t).toBeGreaterThan(0);
+    /* one per opposed pair, plus one more for the figure they make */
+    expect(res.mult).toBe(1 + res.t * res.per + 1);
   });
 
   test("the figure name opens the table of all five", async ({ page }) => {
     await open(page);
-    await deal(page, ["MOSS", "TIDE", "WOLF"]);
-    await pick(page, ["1", "2", "3"]);
+    await deal(page, ["EMBER", "GLACIER"]);
+    await pick(page, ["1", "2"]);
     await page.click(".hand-name");
     await expect(page.locator("#veil")).toBeVisible();
     await expect(page.locator(".figtab tbody tr")).toHaveCount(5);
-    for(const n of ["THE MONOGRAM", "THE CHAIN", "THE COLUMN", "THE STAIR", "THE PAIR"])
+    for(const n of ["THE CHIASMUS", "THE PARADOX", "THE ESCALATION",
+                    "THE SYNONYMY", "THE ANTITHESIS"])
       await expect(page.locator(".figtab")).toContainText(n);
   });
-
   test("the idle board points at the figures before anything is picked", async ({ page }) => {
     await open(page);
     await page.evaluate(() => { G.selected = []; render(); });
