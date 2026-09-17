@@ -1246,6 +1246,41 @@ button{ font-family: inherit; color: inherit; }
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
+/* A line the player wrote, offered back to them. It is not for sale, so it
+   does not wear a price. */
+.keeps{ display:grid; grid-template-columns: repeat(auto-fit, minmax(172px,1fr)); gap:10px; margin: 4px 0 2px; }
+.offer.keep{ box-shadow: 0 3px 0 var(--gold-d); background: rgba(239,163,29,.13); }
+.offer.keep .on{ font-size: 13px; letter-spacing: .04em; }
+.offer.keep .oc{ color: var(--gold); }
+.own.kept .on{ color: var(--gold); }
+
+/* A worked example that is two cards rather than one, because one word does
+   nothing in this game. */
+.worked.join{ flex-wrap: wrap; }
+.worked.join .card.static{ margin-right: 8px; }
+
+/* ---------- what two words are doing ----------
+.jn{
+  font-style: normal; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  font-weight: 700; padding: 2px 7px; border-radius: 4px;
+  background: var(--inset); color: var(--text-dim);
+}
+.jn.resonance{ background: rgba(0,147,255,.22); color: #9ED2FF; }
+.jn.tension{ background: rgba(239,163,29,.22); color: var(--gold); }
+.jn.paradox{ background: rgba(155,123,224,.26); color: var(--lens-lit); }
+.jn.silence{ background: rgba(254,95,85,.18); color: var(--mult); }
+.jnx{ color: var(--text-faint); margin: 0 5px; font-weight: 400; }
+.stage-hint .stops{ color: var(--mult); font-weight: 700; }
+.stage-hint .room{ color: var(--text-faint); }
+
+/* A word this profile has never played keeps its shape and loses its rings. */
+.card .art.unknown{ box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.card .tg.unknown{
+  background: transparent; color: var(--card-dim);
+  box-shadow: inset 0 0 0 1px var(--card-edge);
+  letter-spacing: .06em; font-size: 8.5px;
+}
+
 /* ---------- the title screen ----------
    Two objects and the identity, instead of five rows speaking five visual
    languages. THE DOOR is PLAY with the two things pressing PLAY will actually
@@ -2613,7 +2648,11 @@ const ORDEALS = [
 ];
 /* Which rounds are Ordeals. Round 8 always is, so a run ends on a wall rather
    than on a slightly larger number. */
-const ORDEAL_ROUNDS = [3, 5, 7];
+/* Every other round from the middle, and always the last, so a run ends on a
+   wall rather than on a bigger number. These are indices into a six-round
+   run: they used to read [3, 5, 7] for eight rounds, which at six meant the
+   last Ordeal never fired and APPRENTICE met none at all. */
+const ORDEAL_ROUNDS = [1, 3, 5];
 
 /* APPRENTICE meets one, at the end.
 
@@ -2628,7 +2667,7 @@ const ORDEAL_ROUNDS = [3, 5, 7];
    against which Lens — every one of those is untouched, and the targets go up
    to pay for the Ordeals that are gone. It is not a smaller game. It is the
    same game with nothing taken out of your hands mid-run. */
-const APPRENTICE_ORDEAL_ROUNDS = [7];
+const APPRENTICE_ORDEAL_ROUNDS = [5];
 
 /* And the ones it meets are the ones that squeeze rather than disarm.
    THE DROUGHT takes discards, THE LEAN YEAR takes three cards, THE FOG makes
@@ -2708,7 +2747,11 @@ const DEMANDS = [
    Ordeal takes a tool away rather than asking for more, so the round gets its
    difficulty from its rule. The Bookseller names it before you spend, which
    is why the number does not have to. */
-const TARGETS = [350, 2900, 5600, 9600, 20000, 22000, 36000, 40000];
+/* Six rounds, not eight, and two plays each rather than four: twelve
+   decisions that matter instead of thirty-two that do not. The numbers are the
+   p50 of one perfectly played line (7,720) climbing at 1.30 a round, which
+   tools/join-sim.js puts at a 20.6% win rate over 500 runs, 95% CI 17.1-24.1. */
+const TARGETS = [7720, 10036, 13047, 16961, 22049, 28664];
 
 /* ---------- difficulty ----------
    Eight targets that outrun any deck which is not multiplying is the game, and
@@ -2789,7 +2832,13 @@ function runDifficulty(){
   return (G && DIFF_BY_ID[G.diff]) || difficulty();
 }
 const ROUNDS = TARGETS.length;
-const HAND_SIZE = 7, MAX_PLAY = 3, LENS_SLOTS = 5;
+const HAND_SIZE = 7, LINE_MIN = 2, MAX_PLAY = 5, LENS_SLOTS = 5;
+/* What a join is worth. Resonance is safe and small, tension is large and
+   risky, and a kept line pays again every time its figure returns. */
+const JOIN_RESONANCE = 40, JOIN_TENSION = 1;
+const KEPT_CHIPS = 120, KEPT_MULT = 1;
+/* Plays a scored overtone stays dull for. */
+const FATIGUE_SPAN = 2;
 
 /* ---------- when order matters BEYOND the figure ----------
    Order is always live now: a figure reads the words left to right, so THE
@@ -2824,231 +2873,185 @@ function orderMatters(){
   return add && mul;
 }
 
-/* ---------- Figures: the shape of the hand itself ----------
-   The tags answer the round. A figure answers nothing — it is what your words
-   make when you stand them next to each other and read them as objects rather
-   than as meanings: how long they are, what letter they open on, what letter
-   they close on.
+/* ---------- Joins: what two words do when you stand them together ----------
+   The old figures read spelling — same first letter, same length, lengths in a
+   step — and they were the multiplier. So the quantity that decided whether a
+   run lived was letter-counting, in a game whose tagline is that meaning is the
+   physics. 26 of its 30 Lenses read meaning; all 5 of its figures read
+   spelling. The poetic layer and the mechanical layer never touched.
 
-   It is here because of a fair complaint. A player who read only the tag strip
-   could clear this game without once reading a word, and the order they tapped
-   in changed nothing unless they happened to own one of four Lenses. The
-   letters — most of every card — were decoration.
+   A join is what happens between two words laid side by side, read off the
+   overtones they already carry. Measured across all 30,876 pairs in the
+   lexicon:
 
-   So a figure is scored FIRST, before a single card is counted, and it moves
-   the multiplier. That is where a poker hand sits in the game this one owes its
-   shape to: the worth of the hand itself, which the engine then multiplies. The
-   round wants HEAT and DANGER; the figure wants three words the same length.
-   You will not always get both, and choosing is the point.
+     RESONANCE   they share an overtone        49.7%
+     TENSION     they carry an opposed pair    17.0%
+     PARADOX     both at once                  11.9%
+     SILENCE     neither                       33.2%
 
-   Only the best figure pays, and every figure but the floor has to bind EVERY
-   word you play — two words that chain stop chaining the moment a third is laid
-   beside them. That is the decision the whole thing exists for: three words for
-   the chips, or two for the figure. */
-const FIGURES = [
-  { id:"mono",   n:"THE MONOGRAM", d:"Every word starts with the same letter" },
-  { id:"chain",  n:"THE CHAIN",    d:"Each word starts with the letter the last one ended on" },
-  { id:"column", n:"THE COLUMN",   d:"Three words of exactly the same length" },
-  { id:"stair",  n:"THE STAIR",    d:"Three words going up or down by the same number of letters" },
-  { id:"pair",   n:"THE PAIR",     d:"Two words of exactly the same length" }
+   A line is scored left to right and STOPS at the first silence. The words
+   before it pay and the words after it do not, so the order is the decision
+   and length is a risk rather than a free bonus. Over 400 real hands the best
+   ordering of the same three words beats the worst by six times at the median.
+
+   OWL and EYE oppose on DARK/BRIGHT and on MIND/BODY at the same time. The
+   game used to score that pair as nothing. There are 1,469 like it. */
+const OPPOSED = [
+  ["HEA","COL"], ["DAR","BRI"], ["NAT","TEC"], ["MIN","BOD"],
+  ["WET","HEA"], ["ABS","BOD"], ["ABS","FOO"], ["ABS","TOO"]
 ];
-/* Chips and multiplier by figure and by how many words it binds.
 
-   Priced off measured reachability, not instinct. Instinct said a chain of three
-   was the rare one; a seven-card hand holds 210 ordered triples, so it turns up
-   in a third of them, while three words sharing an initial turns up in one hand
-   in twelve. The ladder follows what the deck actually does: pair ~95% of plays,
-   stair 87%, column 55%, chain-of-three 36%, monogram 8%.
+/* An overtone that has just scored is DULL and pays nothing until it recovers.
+   Opposition is never dulled: it is a fact about two words rather than a
+   resource being spent. */
+function dullTags(){ return (G && G.dull) || {}; }
+function sharedTags(a, b, dull){
+  dull = dull || dullTags();
+  return a.t.filter(function(t){ return b.t.indexOf(t) >= 0 && !dull[t]; });
+}
+function tensionPairs(a, b){
+  return OPPOSED.filter(function(p){
+    return (a.t.indexOf(p[0]) >= 0 && b.t.indexOf(p[1]) >= 0) ||
+           (a.t.indexOf(p[1]) >= 0 && b.t.indexOf(p[0]) >= 0);
+  });
+}
+function joinOf(a, b, dull){
+  const s = sharedTags(a, b, dull).length, t = tensionPairs(a, b).length;
+  return { s: s, t: t,
+           kind: s && t ? "paradox" : t ? "tension" : s ? "resonance" : "silence" };
+}
+/* Every join in a line, and how far the line gets before it falls silent. */
+function joinsOf(line, dull){
+  const joins = [];
+  for(let i = 0; i < line.length - 1; i++){
+    const j = joinOf(line[i], line[i + 1], dull);
+    if(j.kind === "silence") break;
+    joins.push(j);
+  }
+  return { joins: joins, scored: Math.min(line.length, joins.length + 1) };
+}
 
-   The multiplier is ADDED, not multiplied, which is the other half of the same
-   note. +2 takes a bare hand from x1 to x3 and a deck already holding three
-   +mult Lenses from x4 to x6 — worth most to the deck that has nothing, least
-   to the runaway engine. Multiplying would have done the opposite. */
+/* ---------- Figures, which are now figures of speech ----------
+   In rhetoric a figure IS a turn of meaning. The code used the word for
+   spelling patterns, which was a pun nobody had noticed. These read the join
+   list and nothing else — no length, no letters. */
+const FIGURES = [
+  { id:"chiasmus",   n:"THE CHIASMUS",   d:"Three joins that read the same backwards as forwards" },
+  { id:"paradox",    n:"THE PARADOX",    d:"Two words that agree and disagree at once" },
+  { id:"escalation", n:"THE ESCALATION", d:"Each join sharing more than the one before it" },
+  { id:"synonymy",   n:"THE SYNONYMY",   d:"Two words that share three overtones or more" },
+  { id:"antithesis", n:"THE ANTITHESIS", d:"Two words that carry opposite overtones" }
+];
+/* Priced off how often each one can actually be made, the same way the old
+   ladder was. Settled by tools/join-sim.js, not by instinct. */
 const FIG_PAY = {
-  mono:   { 2:{chips:110, mult:2}, 3:{chips:320, mult:5} },
-  chain:  { 2:{chips: 90, mult:2}, 3:{chips:220, mult:4} },
-  column: {                        3:{chips:150, mult:3} },
-  stair:  {                        3:{chips: 80, mult:2} },
-  pair:   { 2:{chips: 30, mult:1}, 3:{chips: 30, mult:1} }
+  chiasmus:   { chips: 250, mult: 2 },
+  paradox:    { chips: 200, mult: 1 },
+  escalation: { chips: 150, mult: 0 },
+  synonymy:   { chips: 120, mult: 0 },
+  antithesis: { chips:  80, mult: 0 }
 };
 const FIG_BY_ID = {};
 FIGURES.forEach(function(f){ FIG_BY_ID[f.id] = f; });
-/* One number to rank figures by, so "best" means the same thing everywhere:
-   in resolve(), in the reorder nudge, and in the reference panel. */
 function figValue(f){ return f ? f.chips + 150 * f.mult : 0; }
 
-/* ---------- the ledger ----------
-   Every escalating quantity in this game used to be a number the player did
-   not touch - the target, the Lens multipliers. Every quantity they DID
-   touch - which three words, in which order, for which shape - was the same
-   in round 8 as in round 1. Nothing a player LEARNED fed back into the run,
-   so somebody who had spotted four CHAINs was in the identical mechanical
-   position to somebody who had spotted none. That is what "stagnant" meant,
-   and it was never a balance problem: 400 simulated runs put SCHOLAR at
-   23.5%, inside the healthy band, with deaths spread across rounds 4-8.
-
-   So the ledger. Play a shape and the run remembers; the next one of that
-   shape pays more.
-
-   The thresholds are TRIANGULAR rather than linear, and that is the whole
-   design. A linear ladder capped at four tops out on the fourth play of a
-   thirty-two-play run and re-stagnates everything after it. At 1/3/6/10 the
-   top is a ten-play commitment, which is a third of a run spent on one
-   shape - a strategy rather than a formality. */
-const FIG_STEPS = [1, 3, 6, 10];
-/* Priced by measurement, and repriced once. The first ladder ran to +140%
-   chips and +2 multiplier at the top, which put 400 simulated runs at
-   29.0% against a 23.5% baseline — inside the healthy band on the point
-   estimate and outside it on the evidence, because the standard error at
-   that sample is 2.27 points and the interval reached 33.4%.
-
-   The reasoning that overpriced it is worth writing down. "Chips are the
-   safe term, the multiplier is the runaway one" is true of a figure's own
-   additive multiplier and false of this engine, because chips are then
-   multiplied by the whole deck. At the x60 a real run reaches by p90, the
-   old +448 chips on a maxed MONOGRAM was worth twenty-seven thousand
-   points. When the multiplier is large nothing is the safe term.
-
-   So: +80% chips at the top instead of +140%, and the multiplier moves
-   once, at the very top, for the shape you actually committed ten plays
-   to. These percentages are also exact on every base in FIG_PAY — no cell
-   in the ladder rounds at all, which is a property worth keeping.
-
-   Level 0 pays exactly what the game paid before this existed, so the
-   ladder is additive on top of the shipped balance and a first-timer's
-   first figure is untouched. */
-/* Percent, not a float factor: 110 * 2.05 evaluates to 225.49999999999997 and
-   rounds to 225 where the arithmetic says 226. These steps happen to divide
-   every FIG_PAY base exactly, so nothing rounds — but the integer form is
-   what guarantees that rather than luck. */
-const FIG_CHIPS_PCT = [100, 120, 140, 160, 180];
-const FIG_MULT_UP = [0, 0, 0, 0, 1];
-const FIG_MAX_LV = FIG_STEPS.length;
-/* A level is a thing you have become, not a number you have accumulated.
-   "COLUMN LV3" is a counter; FLUENT is the same fact said as mastery, which
-   is the whole point of the ledger. The register follows the difficulties
-   this game already has - APPRENTICE, SCHOLAR - so a shape you have worked
-   at reads as craft rather than as inventory. */
-const FIG_LEVEL_NAME = ["", "NOTICED", "PRACTISED", "FLUENT", "INSTINCT"];
-function figLevelName(id){ return FIG_LEVEL_NAME[figLevel(id)] || ""; }
-
-/* The counterweight. Without it the ladder only ever says "do the thing you
-   already did", and a run collapses onto one shape by round three. The first
-   of a shape in a run pays once, flat - flat on purpose, so discovering a
-   STAIR (80 base) is worth as much as discovering a MONOGRAM (320), and the
-   cheap shapes you would otherwise never touch become worth one visit.
-
-   That is the breadth-against-depth decision the session asked for: every
-   hand, deepen a shape you know or go and find one you do not.
-
-   It lives in resolve() rather than in figPay() for two reasons. figPay's
-   level 0 must keep paying exactly what the shipped game paid - that is a
-   spec constraint and a test - and a bonus folded into the ladder would
-   break it. And resolve() is where one-off terms belong. */
-const FIG_FOUND = 150;
-
-function figCount(id){ return (G && G.figSeen && G.figSeen[id]) || 0; }
-function figLevel(id){
-  const n = figCount(id);
-  let lv = 0;
-  for(let i = 0; i < FIG_STEPS.length; i++) if(n >= FIG_STEPS[i]) lv = i + 1;
-  return lv;
+/* Which figures a join list makes. Ordered best first, as FIGURES is. */
+function figuresFromJoins(joins){
+  const got = {};
+  joins.forEach(function(j){
+    if(j.kind === "paradox") got.paradox = 1;
+    else if(j.kind === "tension") got.antithesis = 1;
+    if(j.s >= 3) got.synonymy = 1;
+  });
+  for(let i = 0; i + 1 < joins.length; i++)
+    if(joins[i].s < joins[i + 1].s) got.escalation = 1;
+  /* A join either carries tension or it does not; three in a row reading
+     A-B-A is the shape the word chiasmus names. */
+  const k = joins.map(function(j){ return j.t ? "T" : "R"; });
+  for(let i = 0; i + 2 < k.length; i++)
+    if(k[i] === k[i + 2] && k[i] !== k[i + 1]) got.chiasmus = 1;
+  return FIGURES.filter(function(f){ return got[f.id]; }).map(function(f){
+    return { id:f.id, n:f.n, d:f.d, chips:FIG_PAY[f.id].chips, mult:FIG_PAY[f.id].mult };
+  });
 }
-/* How many more of this shape before it levels again, or 0 at the cap. */
-function figToNext(id){
-  const lv = figLevel(id);
-  return lv >= FIG_MAX_LV ? 0 : FIG_STEPS[lv] - figCount(id);
+/* Kept the old names: every reader of these wants "what does this line make",
+   and that question survived the rebuild even though its answer did not. */
+function figuresIn(line){
+  if(!line || line.length < 2) return [];
+  return figuresFromJoins(joinsOf(line).joins);
 }
-/* The ONE place the ladder is applied, so every surface that reads a figure
-   reads the same number. */
-function figPay(id, bind){
-  /* COLUMN and STAIR have no two-word entry, so the old fallback chain
-     (bind, then 2) could land on undefined and throw inside the scoring
-     path. figuresIn never asks for those at two words, so this was
-     unreachable — but an unreachable throw in resolve() is one refactor
-     away from being reachable, and it would take the hand with it. The
-     chain now ends somewhere that exists for every figure in the table. */
-  const tbl = FIG_PAY[id];
-  const base = tbl[bind] || tbl[3] || tbl[2];
-  const lv = figLevel(id);
-  return { chips: Math.round(base.chips * FIG_CHIPS_PCT[lv] / 100),
-           mult: base.mult + FIG_MULT_UP[lv],
-           lv: lv };
-}
-/* Banked when a hand commits - by play() in the game and by the simulator in
-   tools/balance.js, so both count the same thing. It counts the figure that
-   SCORED, never the ones merely present: a hand holds several and resolve()
-   pays exactly one. That is also what keeps PAIR honest without a special
-   case. PAIR is reachable in ~95% of hands, so levelling everything present
-   would max it on the first turn - but it only ever SCORES when nothing
-   better was there, so it levels on the consolation track, which is where a
-   shape that costs nothing to find belongs.
+function figureFor(line){ const f = figuresIn(line); return f.length ? f[0] : null; }
 
-   Not called from resolve(). resolve() is pure because renderPreview runs it
-   on every click, and a ledger that advanced on preview would pay a number
-   the board never showed. */
-function noteFigure(cards){
-  if(!G) return null;
-  const f = figureFor(cards);
-  if(!f) return null;
-  G.figSeen = G.figSeen || {};
-  G.figSeen[f.id] = (G.figSeen[f.id] || 0) + 1;
-  return f.id;
-}
+/* What a line is worth, roughly, without building an event list or firing a
+   single Lens. It is not the score - it is a ranking, good enough to pick the
+   few dozen orderings that deserve the real engine.
 
-/* Every figure these words make IN THIS ORDER, best first. Side-effect free —
-   the board calls it on every click. It reads the run's ledger, so the same
-   three words are worth more later in a run than they were at the start;
-   what it never does is CHANGE the ledger. */
-function figuresIn(cards){
-  const out = [];
-  if(!cards || cards.length < 2) return out;
-  const w = cards.map(function(c){ return String(c.w).toUpperCase(); });
-  const len = w.map(function(s){ return s.length; });
-
-  let chain = true;
-  for(let i=1;i<w.length;i++){
-    const prev = w[i-1];
-    if(w[i].charAt(0) !== prev.charAt(prev.length-1)){ chain = false; break; }
+   This exists because the verb changed. Scoring reads adjacent pairs, so the
+   ORDER of a line is part of the candidate, and the number of candidates went
+   from "subsets of three" to "every ordering of two to five". Anything that
+   used to search exhaustively has to shortlist now or it stops being
+   interactive. */
+function lineWorth(line){
+  if(!line || line.length < 2) return line && line.length ? line[0].base : 0;
+  const dull = dullTags();
+  const jr = joinsOf(line, dull);
+  let chips = 0, mult = 1;
+  jr.joins.forEach(function(j){
+    chips += JOIN_RESONANCE * j.s;
+    mult += JOIN_TENSION * j.t;
+  });
+  figuresFromJoins(jr.joins).forEach(function(f){
+    chips += f.chips; mult += f.mult;
+    (G && G.kept || []).forEach(function(k){
+      if(k.fig === f.id){ chips += KEPT_CHIPS; mult += KEPT_MULT; }
+    });
+  });
+  const want = G && G.demand ? G.demand.tags : [];
+  for(let i = 0; i < jr.scored; i++){
+    chips += line[i].base;
+    chips += 25 * line[i].t.filter(function(t){
+      return want.indexOf(t) >= 0 && !dull[t];
+    }).length;
   }
-  if(chain) out.push("chain");
-
-  let mono = true;
-  for(let i=1;i<w.length;i++) if(w[i].charAt(0) !== w[0].charAt(0)){ mono = false; break; }
-  if(mono) out.push("mono");
-
-  if(w.length >= 3){
-    let level = true;
-    for(let i=1;i<len.length;i++) if(len[i] !== len[0]){ level = false; break; }
-    if(level) out.push("column");
-    else {
-      const step = len[1] - len[0];
-      let even = step !== 0;
-      for(let i=2;i<len.length && even;i++) if(len[i] - len[i-1] !== step) even = false;
-      if(even) out.push("stair");
-    }
-  }
-
-  let pair = false;
-  for(let i=0;i<len.length && !pair;i++)
-    for(let j=i+1;j<len.length;j++) if(len[i] === len[j]){ pair = true; break; }
-  if(pair) out.push("pair");
-
-  const bind = Math.min(w.length, 3);
-  return out.map(function(id){
-    const pay = figPay(id, bind);
-    return { id:id, n:FIG_BY_ID[id].n, d:FIG_BY_ID[id].d,
-             chips:pay.chips, mult:pay.mult, lv:pay.lv };
-  }).sort(function(a,b){ return figValue(b) - figValue(a); });
+  return chips * mult;
 }
-function figureFor(cards){ const f = figuresIn(cards); return f.length ? f[0] : null; }
 
-/* Would these same words make a better figure in some other order? The board
-   says which one; it never reorders them for you. Choosing the words is the
-   decision — losing points because you did not notice is not. */
-function figureByReorder(cards){
-  if(!cards || cards.length < 2) return null;
-  const have = figValue(figureFor(cards));
+/* The best line a pool can make, found by beam search rather than by walking
+   every ordering. A 16-card pool at five words is 571,456 orderings; resolving
+   all of them took eleven seconds, which the shop did on open - so this was a
+   frozen browser, not only a slow simulator. The beam keeps the best 24
+   prefixes at each length and resolves only those. */
+function bestLineFrom(avail, cap){
+  let best = null;
+  let beam = avail.map(function(c){ return [c]; });
+  for(let len = 2; len <= cap; len++){
+    const next = [];
+    beam.forEach(function(pre){
+      avail.forEach(function(c){
+        if(pre.indexOf(c) >= 0) return;
+        const line = pre.concat([c]);
+        next.push({ line: line, w: lineWorth(line) });
+      });
+    });
+    if(!next.length) break;
+    next.sort(function(a, b){ return b.w - a.w; });
+    beam = next.slice(0, 24).map(function(x){ return x.line; });
+    beam.forEach(function(line){
+      const r = resolve(line);
+      if(!best || r.total > best.total) best = { total: r.total, cards: line.slice() };
+    });
+  }
+  return best;
+}
+
+/* Would these same words say more in another order? Under JOIN this matters
+   far more than it did — a silence in the wrong place costs the tail of the
+   line — so the board still says which, and still never reorders them for you. */
+function figureByReorder(line){
+  /* 120 orderings at five words, on every click. The nudge is worth having and
+     is not worth that, so it looks past four. */
+  if(!line || line.length < 2 || line.length > 4) return null;
+  const have = figValue(figureFor(line));
   let best = null;
   const perm = function(rest, acc){
     if(!rest.length){
@@ -3056,10 +3059,10 @@ function figureByReorder(cards){
       if(f && figValue(f) > have && figValue(f) > figValue(best)) best = f;
       return;
     }
-    for(let i=0;i<rest.length;i++)
-      perm(rest.slice(0,i).concat(rest.slice(i+1)), acc.concat([rest[i]]));
+    for(let i = 0; i < rest.length; i++)
+      perm(rest.slice(0, i).concat(rest.slice(i + 1)), acc.concat([rest[i]]));
   };
-  perm(cards, []);
+  perm(line, []);
   return best;
 }
 
@@ -3117,6 +3120,28 @@ const prefs = {
    than one that makes it feel yours. */
 function animScale(){ return 0.55; }
 function setPref(k, v){ prefs[k] = v; store.set(k, v); }
+
+/* ---------- what this profile knows ----------
+   The overtones used to be printed on the card, which meant the game handed
+   the player its own answer and then asked them to choose. There was no
+   judgement left in it and no way to be cleverer than the person beside you.
+
+   On SCHOLAR they are hidden until you have played the word once, and what you
+   have learned is kept between runs. A human already knows FURNACE is hot and
+   FROST is cold; that knowledge is the skill the game is finally testing, and
+   the 249-word lexicon stops being a thin library and becomes the thing you
+   are learning. APPRENTICE shows everything, so nobody meets this blind.
+
+   Learned on being PLAYED rather than on scoring, because a word you risked
+   and got nothing from is exactly the one you should be told about. */
+const LEARNED = store.get("learned", {});
+function wordKnown(w){ return difficulty().id !== "scholar" || !!LEARNED[w]; }
+function learnWord(w){
+  if(LEARNED[w]) return;
+  LEARNED[w] = 1;
+  store.set("learned", LEARNED);
+}
+function learnedCount(){ return Object.keys(LEARNED).length; }
 
 /* ---------- haptics ----------
    Android honours this; iOS Safari does not implement navigator.vibrate at
@@ -3510,7 +3535,7 @@ function newRun(seedStr, fresh){
     lenses: [],
     bank: 4,
     selected: [],
-    plays: 4, discards: 3,
+    plays: 2, discards: 3,
     roundScore: 0,
     total: 0,
     demandOrder: demandOrder,
@@ -3523,7 +3548,13 @@ function newRun(seedStr, fresh){
     /* how many times each figure has SCORED this run. The run's record of
        what the player has learned to see. Dies with the run on purpose:
        that is what makes a run a story rather than a save file. */
-    figSeen: {},
+    /* overtone -> plays until it wakes up */
+    dull: {},
+    /* lines the player kept. A Lens is bought; these are written, and they
+       share the same five slots. */
+    kept: [],
+    /* what was laid down this round, so the Bookseller can offer it back */
+    roundLines: [],
     /* which Lens in the rail is opened out to its full rule */
     openLens: null,
     /* a round result deferred while the opening tutorial finishes */
@@ -3581,7 +3612,7 @@ function roundRules(){
 function shapeFor(round, rules){
   const diff = runDifficulty();
   const probe = { target: Math.round(TARGETS[round] * curveScale(round)),
-                  plays: 4, discards: 3 + diff.discards, round: round };
+                  plays: 2, discards: 3 + diff.discards, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
   /* The rules take their cut after the Lenses, so a Lens can never hand back
      what the round has taken. */
@@ -3731,20 +3762,8 @@ function deckCeiling(round, shape){
   const used = [];
   let total = 0;
   for(let p = 0; p < shape.plays; p++){
-    let best = null;
     const avail = pool.filter(function(c){ return used.indexOf(c) < 0; });
-    (function walk(cards){
-      if(cards.length){
-        if(cards.length > shape.maxPlay) return;
-        const r = resolve(cards);
-        if(!best || r.total > best.total) best = { total:r.total, cards:cards.slice() };
-      }
-      if(cards.length >= shape.maxPlay) return;
-      for(let i = 0; i < avail.length; i++){
-        if(cards.indexOf(avail[i]) >= 0) continue;
-        walk(cards.concat([avail[i]]));
-      }
-    })([]);
+    const best = bestLineFrom(avail, shape.maxPlay);
     if(!best) break;
     best.cards.forEach(function(c){ used.push(c); });
     total += best.total;
@@ -3783,7 +3802,8 @@ function startRound(){
   const diff = runDifficulty();
   G.target = Math.round(TARGETS[G.round] * curveScale(G.round));
   G.roundScore = 0;
-  G.plays = 4; G.discards = 3 + diff.discards;
+  G.plays = 2; G.discards = 3 + diff.discards;
+  G.roundLines = [];
   G.mustForfeit = false; G.forfeited = false;
   /* Lenses that cost you something take it here, before the round starts, so
      the meters on the board are true from the first frame. And the ones that
@@ -3835,41 +3855,46 @@ function resolve(cards){
     lv: function(id){ return lensState[id] || 0; }
   };
 
-  /* The figure lands before any card is counted, so every Lens that multiplies
-     multiplies it too. It is the worth of the hand, not a bonus on top.
-
-     Its MULTIPLIER, though, is only paid for the words that answer the round.
-
-     This is the correction to a real problem. Measured over every possible play
-     of 951 hands, "take the best figure and ignore the Demand" was the exactly
-     correct play 70% of the time in round 1 and cost nothing at all through
-     round 4, while "take the best tags and ignore the shape" gave up 63-79% of
-     the hand. The two layers ran in parallel and the bigger one simply won —
-     which is the same complaint that started the figures work, pointed the
-     other way. Parallel systems do not make a decision; one of them makes it.
-
-     So they are coupled. Three words the same length, none of which the round
-     wants, is a shape with nothing behind it and pays no multiplier at all. The
-     chips still land — the words are still worth what they are worth — but the
-     thing that multiplies them has to be earned twice. */
-  const fig = figureFor(cards);
-  if(fig){
-    /* read-only: resolve() stays pure, play() is what banks the count */
-    const found = figCount(fig.id) === 0 ? FIG_FOUND : 0;
-    chips += fig.chips + found;
-    const answering = cards.filter(function(c){
-      return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
-    }).length;
-    const paid = Math.round(fig.mult * answering / cards.length);
-    mult += paid;
-    events.push({ k:"card", i:-1, cls:"m", fig:fig.id, answering:answering, paid:paid,
-                  found:found,
-                  txt: fig.n + (found ? " \u00b7 FIRST" : "") + " +" + (fig.chips + found)
-                     + (paid ? " and +" + paid + " mult" : ", no answer so no multiplier"),
+  /* A line is read left to right. Each join pays for what the two words do to
+     each other — shared overtones in points, opposition in multiplier — and the
+     first silence stops the reading. Everything after it is a word the player
+     wrote that the line could not carry. */
+  const dull = dullTags();
+  const jr = joinsOf(cards, dull);
+  const scored = jr.scored;
+  jr.joins.forEach(function(j, i){
+    const pts = JOIN_RESONANCE * j.s;
+    chips += pts;
+    mult += JOIN_TENSION * j.t;
+    const bits = [];
+    if(j.s) bits.push("+" + pts);
+    if(j.t) bits.push("+" + (JOIN_TENSION * j.t) + " mult");
+    events.push({ k:"join", i:i, cls:j.t ? "m" : "c", kind:j.kind,
+                  txt: j.kind.toUpperCase() + " " + bits.join(" "),
                   chips:chips, mult:mult });
-  }
+  });
+  if(scored < cards.length)
+    events.push({ k:"join", i:jr.joins.length, cls:"r", kind:"silence",
+                  txt:"SILENCE \u00b7 the line stops here", chips:chips, mult:mult });
 
-  for(let i=0;i<cards.length;i++){
+  figuresFromJoins(jr.joins).forEach(function(fig){
+    chips += fig.chips;
+    mult += fig.mult;
+    events.push({ k:"card", i:-1, cls:"m", fig:fig.id,
+                  txt: fig.n + " +" + fig.chips + (fig.mult ? " and +" + fig.mult + " mult" : ""),
+                  chips:chips, mult:mult });
+    /* A line you kept in an earlier round pays again whenever the figure it
+       made comes back. It is the only engine in the run; nothing is bought. */
+    (G.kept || []).forEach(function(k){
+      if(k.fig !== fig.id) return;
+      chips += KEPT_CHIPS; mult += KEPT_MULT;
+      events.push({ k:"card", i:-1, cls:"m",
+                    txt: k.n + " +" + KEPT_CHIPS + " and +" + KEPT_MULT + " mult",
+                    chips:chips, mult:mult });
+    });
+  });
+
+  for(let i=0;i<scored;i++){
     const c = cards[i];
     chips += c.base;
     events.push({ k:"card", i:i, cls:"c", txt:"+"+c.base, chips:chips, mult:mult });
@@ -3878,7 +3903,7 @@ function resolve(cards){
        overtones used to print MATCH +25 and then MATCH +25 again, 210ms apart,
        in the same spot — so the second was invisible and the player had no way
        to see that the card had paid twice. */
-    const hits = c.t.filter(function(t){ return G.demand.tags.includes(t); });
+    const hits = c.t.filter(function(t){ return G.demand.tags.includes(t) && !dull[t]; });
     if(hits.length){
       chips += 25 * hits.length;
       events.push({ k:"card", i:i, cls:"r",
@@ -3891,7 +3916,7 @@ function resolve(cards){
        still fires on a word the round has just taken the value out of. */
     roundRules().forEach(function(rule){
       if(!rule.card) return;
-      const o = rule.card(c, i, cards, ctx);
+      const o = rule.card(c, i, cards.slice(0, scored), ctx);
       if(o && o.chips){
         chips += o.chips;
         events.push({ k:"card", i:i, cls:"c",
@@ -3903,7 +3928,7 @@ function resolve(cards){
     for(let li=0; li<G.lenses.length; li++){
       const L = G.lenses[li];
       if(!L.onCard) continue;
-      const r = L.onCard(c, i, cards, ctx);
+      const r = L.onCard(c, i, cards.slice(0, scored), ctx);
       if(!r) continue;
       const parts = [];
       if(r.chips){ chips += r.chips; parts.push((r.chips>0?"+":"")+Math.round(r.chips)); }
@@ -3945,7 +3970,8 @@ function resolve(cards){
   chips = Math.max(0, Math.round(chips));
   mult = Math.max(0.1, mult);
   return { events: events, chips: chips, mult: mult, total: Math.round(chips*mult),
-           growth: growth };
+           growth: growth, joins: jr.joins, scored: scored,
+           figs: figuresFromJoins(jr.joins) };
 }
 
 /* ---------- play ---------- */
@@ -3971,9 +3997,35 @@ async function play(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.plays--;
-  /* After resolve(), never before: this hand is paid at the level it had
-     when the player chose it, and the count moves for the next one. */
-  noteFigure(cards);
+  /* After resolve(), never before: the line is paid at the overtones it had
+     when the player laid it, and they tire for the next one. An overtone that
+     just scored is dull, and pays nothing until it recovers - so the strongest
+     play this turn is never the strongest play next turn. */
+  cards.forEach(function(c){ learnWord(c.w); });
+  /* A line that made a figure is a line worth keeping, so the Bookseller can
+     offer it back at the end of the round. Lines that made nothing are not
+     offered: there would be nothing for them to pay out on. */
+  if(res.figs && res.figs.length){
+    G.roundLines = G.roundLines || [];
+    G.roundLines.push({
+      ws: cards.slice(0, res.scored).map(function(c){ return c.w; }),
+      fig: res.figs[0].id,
+      figName: res.figs[0].n,
+      total: res.total
+    });
+  }
+  G.dull = G.dull || {};
+  Object.keys(G.dull).forEach(function(t){
+    if(--G.dull[t] <= 0) delete G.dull[t];
+  });
+  const tired = {};
+  const paidLine = cards.slice(0, res.scored);
+  for(let i = 0; i + 1 < paidLine.length; i++)
+    sharedTags(paidLine[i], paidLine[i + 1], {}).forEach(function(t){ tired[t] = 1; });
+  paidLine.forEach(function(c){
+    c.t.forEach(function(t){ if(G.demand.tags.indexOf(t) >= 0) tired[t] = 1; });
+  });
+  Object.keys(tired).forEach(function(t){ G.dull[t] = FATIGUE_SPAN + 1; });
   /* the one place growth is banked */
   for(const gid in res.growth){
     G.lensState[gid] = (G.lensState[gid] || 0) + res.growth[gid];
@@ -4288,7 +4340,7 @@ function openShop(reward){
         ? ' \u00b7 <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
           + '\u00d7 the usual</b>, from what you hold' : '')
     + '</p>'
-    + (next.plays !== 4 || next.discards !== 3 || next.hand !== HAND_SIZE || next.maxPlay !== MAX_PLAY
+    + (next.plays !== 2 || next.discards !== 3 || next.hand !== HAND_SIZE || next.maxPlay !== MAX_PLAY
         ? '<p class="shape"><b>' + next.plays + '</b> play'
           + (next.plays === 1 ? '' : 's') + ' \u00b7 <b>' + next.discards + '</b> discard'
           + (next.discards === 1 ? '' : 's') + ' \u00b7 hand of <b>' + next.hand + '</b>'
@@ -4378,16 +4430,36 @@ function openShop(reward){
           + '</b>. <b>' + gap.toLocaleString() + '</b> short.'
           + (fix
               ? ' <b>' + escapeHtml(fix.n) + '</b> ($' + fix.cost + ') covers it.'
-              : (G.lenses.length >= LENS_SLOTS
+              : (G.lenses.length + (G.kept || []).length >= LENS_SLOTS
                   ? ' Slots are full. Sell one and buy louder, or reroll.'
                   : ' Reroll, or sell a Lens costing you more than it pays.'))
           + '</div></div>';
       })()
+    + (function(){
+        /* The one thing in this shop the player made rather than chose from a
+           list. It costs nothing but a slot, and it pays every time the figure
+           it made comes back - so what carries the run is a line they wrote. */
+        const lines = (G.roundLines || []).filter(function(l){ return l.fig; });
+        if(!lines.length || G.lenses.length + (G.kept || []).length >= LENS_SLOTS) return '';
+        return '<div class="sub" style="margin:16px 0 7px">Keep a line \u00b7 free</div>'
+          + '<div class="keeps" id="keeps"></div>';
+      })()
     + '<div class="offers" id="offers"></div>'
+    + ((G.kept || []).length
+        ? '<div class="sub" style="margin:16px 0 7px">Lines you kept</div>'
+          + '<div class="owned">'
+          + G.kept.map(function(k){
+              return '<div class="own kept"><div class="ow"><div class="on">'
+                + escapeHtml(k.n) + '</div><div class="od">'
+                + escapeHtml(k.figName) + ' &middot; +' + KEPT_CHIPS + ' and +' + KEPT_MULT
+                + ' mult every time it comes back</div></div></div>';
+            }).join("")
+          + '</div>'
+        : '')
     + (G.lenses.length
         ? '<div class="sub" style="margin:16px 0 7px">Your Lenses \u00b7 '
           + G.lenses.length + ' of ' + LENS_SLOTS
-          + (G.lenses.length >= LENS_SLOTS
+          + (G.lenses.length + (G.kept || []).length >= LENS_SLOTS
               ? ' slots full. Sell one to make room.' : ' slots used')
           + '</div><div class="owned" id="owned"></div>'
         : '')
@@ -4405,7 +4477,7 @@ function openShop(reward){
     const b = document.createElement("button");
     b.className = "offer"; b.type = "button";
     b.disabled = o.bought || G.bank < o.cost || (o.kind==="lens" && G.lenses.length>=LENS_SLOTS);
-    if(!o.bought && o.kind === "lens" && G.lenses.length >= LENS_SLOTS) b.title = "No slots left. Sell one below.";
+    if(!o.bought && o.kind === "lens" && G.lenses.length + (G.kept || []).length >= LENS_SLOTS) b.title = "No slots left. Sell one below.";
     else if(!o.bought && G.bank < o.cost) b.title = "You cannot afford this yet";
     if(o.kind === "lens"){
       /* An honest nudge: say when a Lens actually has words to fire on. */
@@ -4425,6 +4497,27 @@ function openShop(reward){
     b.onclick = function(){ buy(idx, reward); };
     box.appendChild(b);
   });
+
+  const keepBox = document.getElementById("keeps");
+  if(keepBox){
+    (G.roundLines || []).filter(function(l){ return l.fig; }).forEach(function(l){
+      const b = document.createElement("button");
+      b.className = "offer keep"; b.type = "button";
+      b.innerHTML = '<div class="on">' + escapeHtml(l.ws.join(" \u00b7 ")) + '</div>'
+        + '<div class="od">' + escapeHtml(l.figName) + ' &middot; it scored '
+        + l.total.toLocaleString() + '</div>'
+        + '<div class="oc">keep it</div>';
+      b.onclick = function(){
+        G.kept = G.kept || [];
+        if(G.lenses.length + G.kept.length >= LENS_SLOTS) return;
+        G.kept.push({ n: l.ws.join(" \u00b7 "), fig: l.fig, figName: l.figName });
+        SFX.buy();
+        toast("Kept " + l.ws.join(" \u00b7 "));
+        openShop(reward);
+      };
+      keepBox.appendChild(b);
+    });
+  }
 
   const ownedBox = document.getElementById("owned");
   if(ownedBox){
@@ -4501,7 +4594,7 @@ function buy(idx, reward){
   const o = G.offers[idx];
   if(o.bought || G.bank < o.cost) return;
   if(o.kind === "lens"){
-    if(G.lenses.length >= LENS_SLOTS) return;
+    if(G.lenses.length + (G.kept || []).length >= LENS_SLOTS) return;
     G.lenses.push(o.lens);
     G.shopSeen.push(o.lens.id);
   } else {
@@ -4882,13 +4975,16 @@ function artNode(card){
   if(!lead) lead = tags[0];
   const col = TAG_COLOR[lead] || TAG_COLOR.ABS;
 
+  const known = wordKnown(card.w);
   const d = document.createElement("div");
-  d.className = "art" + (isLightHex(col) ? " light" : "");
-  d.style.background = col;
+  d.className = "art" + (isLightHex(col) ? " light" : "") + (known ? "" : " unknown");
+  d.style.background = known ? col : "var(--inset)";
 
   const row = document.createElement("div");
   row.className = "icons";
-  tags.slice(0, 3).forEach(function(t){
+  /* An unknown word still gets a plate - the card has to look like a card -
+     but the icons would spell out the overtones the player is meant to guess. */
+  (wordKnown(card.w) ? tags.slice(0, 3) : []).forEach(function(t){
     const s = document.createElement("span");
     const hit = G && G.demand && G.demand.tags.indexOf(t) >= 0;
     s.className = "ms" + (hit ? " hit" : "");
@@ -5152,7 +5248,9 @@ function cardEl(c, staticCard){
   el.className = "card" + (staticCard ? " static" : "") + (c.interpreted ? " interpreted" : "");
   el.setAttribute("role", staticCard ? "img" : "button");
   el.dataset.id = c.id;
-  el.setAttribute("aria-label", c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", "));
+  el.setAttribute("aria-label", wordKnown(c.w)
+    ? c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", ")
+    : c.w + ", overtones not yet known");
   if(!staticCard) el.tabIndex = 0;
 
   const art = artNode(c);
@@ -5216,10 +5314,16 @@ function cardEl(c, staticCard){
   /* Sorted on a COPY: c.t is game state and the Lenses read it. Matching tags
      go first so that on a phone, where the row is capped at two lines, what
      falls out of sight is never a tag that scores. */
-  const shown = c.t.slice().sort(function(a, b){
+  const shown = !wordKnown(c.w) ? [] : c.t.slice().sort(function(a, b){
     const m = G && G.demand ? G.demand.tags : [];
     return (m.indexOf(b) >= 0) - (m.indexOf(a) >= 0);
   });
+  if(!wordKnown(c.w)){
+    const q = document.createElement("span");
+    q.className = "tg unknown";
+    q.textContent = "NOT YET PLAYED";
+    tags.appendChild(q);
+  }
   shown.forEach(function(t){
     const s = document.createElement("span");
     const match = G && G.demand && G.demand.tags.indexOf(t) >= 0;
@@ -5236,7 +5340,7 @@ function cardEl(c, staticCard){
   /* A card that can score at all should read as live before anything is
      read. This sorts the hand into useful / not useful at a glance without
      touching the actual decision, which is WHICH three and in what order. */
-  if(!staticCard && G && G.demand){
+  if(!staticCard && G && G.demand && wordKnown(c.w)){
     const live = c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
     if(live) el.classList.add("live");
   }
@@ -5273,8 +5377,13 @@ function toggleSel(id){
   if(i >= 0){ G.selected.splice(i,1); SFX.drop(); buzz(6); }
   else{
     if(G.selected.length >= maxPlay()){
-      toast(maxPlay() === 3 ? "Three at a time. Drop one first."
-                            : capper() + " allows " + maxPlay() + ". Drop one first.");
+      /* Named after whatever is doing the capping when something is, and after
+         the game itself when nothing is. It used to hardcode "Three at a time"
+         and fall through to "undefined allows 5" the moment MAX_PLAY moved. */
+      const WORDS = ["", "one", "two", "three", "four", "five"];
+      toast(maxPlay() === MAX_PLAY
+              ? "A line is " + (WORDS[maxPlay()] || maxPlay()) + " words at most. Drop one first."
+              : capper() + " allows " + maxPlay() + ". Drop one first.");
       SFX.deny(); buzz([8,45,8]); return;
     }
     G.selected.push(id); SFX.pick(G.selected.length); buzz(11);
@@ -5299,79 +5408,96 @@ function toggleSel(id){
 const TUT = [
   { label: "Overtone",
     text: function(){
+      const c = (G && G.hand && G.hand[0]) || null;
+      const rings = c ? c.t.slice(0, 3).map(function(t){
+        return "<b>" + TAGS[t][0] + "</b>"; }).join(", ") : "";
       return "Pluck a guitar string and fainter notes ring under it. Those are its "
-           + "<b>overtones</b>.<br><br>Words have them too: the small tags on every card. "
-           + "Those tags score. What the word means does not."
-           + '<span class="do">Seven words, four plays. One round together.</span>'; } },
+           + "<b>overtones</b>.<br><br>"
+           + (c ? "Words have them too. <b>" + c.w + "</b> rings of " + rings
+                  + " \u2014 what it means, printed on the card. "
+                : "Words have them too: what they mean, printed on the card. ")
+           + "Nineteen overtones run the whole game, and the game reads nothing else."
+           + '<span class="do">Six rounds. Each one wants a mood, and each asks for '
+           + 'more than the last.</span>'; } },
 
   { sel: ".blind", pos: "right", label: "What the round wants",
     text: function(){
       return "<b>" + G.demand.n + "</b> wants "
            + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-           + ". Every matching tag pays <b>+25</b>."
+           + ". Every word you lay that rings of either pays <b>+25</b> a tag."
            + '<span class="do">Reach ' + G.target.toLocaleString() + '.</span>'; } },
 
-  { sel: "#hand", pos: "top", label: "Pick a word",
+  { sel: "#hand", pos: "top", label: "Lay a word",
     text: function(){
-      return "Words that can score here have a <b>gold stripe</b> on top."
-           + '<span class="do">Tap one.</span>'; },
+      return "You are not picking three of seven. You are writing a <b>line</b>, "
+           + "left to right, and the order you tap is the order it is read."
+           + '<span class="do">Tap a word.</span>'; },
     done: function(){ return G.selected.length >= 1; } },
 
-  { sel: "#hand", pos: "top", label: "How many to take",
+  /* The whole game, in one step. Everything before it is furniture and
+     everything after it is detail. */
+  { sel: "#hand", pos: "top", label: "The word beside it",
     text: function(){
-      return "<b>Take three when you can.</b> Three score about three times as much as "
-           + "one, and a word that matches nothing still adds its points.<br><br>Finish a "
-           + "round with plays to spare and you earn <b>more money</b> for Lenses."
-           + '<span class="do">Tap two more.</span>'; },
-    done: function(){ return G.selected.length >= 3; } },
+      return "Now lay another. What you score is not the two words \u2014 it is what "
+           + "happens <b>between</b> them.<br><br>"
+           + "Share an overtone and they <b>ring</b>. Carry opposite ones \u2014 heat "
+           + "against cold, dark against bright \u2014 and they <b>pull</b>, which is "
+           + "worth far more. Have nothing in common and the line falls "
+           + "<b>silent</b> and stops there."
+           + '<span class="do">Tap a second word.</span>'; },
+    done: function(){ return G.selected.length >= 2; } },
 
   /* Reads the board rather than guessing at it, so it can never tell a player
-     they made a shape they did not. */
-  { sel: "#stageHint", pos: "bottom", label: "The shape of your hand",
+     their words are doing something they are not. */
+  { sel: "#stageHint", pos: "bottom", label: "What yours are doing",
     text: function(){
       const cards = G.selected.map(function(id){
         return G.hand.find(function(c){ return c.id === id; });
       }).filter(Boolean);
-      const f = figureFor(cards);
-      const better = figureByReorder(cards);
-      const answering = cards.filter(function(c){
-        return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
-      }).length;
-      const paid = f ? Math.round(f.mult * answering / cards.length) : 0;
-      const found = f
-        ? "Yours make <b>" + f.n + "</b>: <b>+" + f.chips + "</b> and <b>+" + paid
-          + " multiplier</b>"
-          + (paid < f.mult
-              ? ", cut from +" + f.mult + (answering === 1
-                  ? " because only one of them answers the round."
-                  : " because only " + answering + " of them answer the round.")
-              : ".")
-        : (better
-            ? "Yours make <b>nothing</b> in this order, but <b>" + better.n + "</b> in another."
-            : "Yours make <b>nothing</b>. Nothing shares a length, nothing links letters.");
-      return "Now look at the words, not the tags. Their shape is a <b>figure</b>, it "
-           + "scores first, and it sets your multiplier.<br><br>" + found
-           + '<span class="do">Swap a word and watch the name change.</span>'; } },
+      const jr = joinsOf(cards);
+      const said = jr.joins.map(function(j, i){
+        const a = cards[i].w, b = cards[i + 1].w;
+        if(j.kind === "paradox")
+          return "<b>" + a + "</b> and <b>" + b + "</b> agree and disagree at once. "
+               + "That is the rare one.";
+        if(j.kind === "tension")
+          return "<b>" + a + "</b> pulls against <b>" + b + "</b>.";
+        return "<b>" + a + "</b> rings with <b>" + b + "</b>.";
+      }).join(" ");
+      const quiet = jr.scored < cards.length
+        ? " Then it falls silent, and everything after that is a word you wrote "
+          + "for nothing."
+        : "";
+      return (said || "These two have nothing to say to each other, so the line stops "
+             + "before it starts.") + quiet
+           + "<br><br>The board says what it can see. It does <b>not</b> say what the "
+           + "line is worth \u2014 that is yours to judge."
+           + '<span class="do">Swap the order and watch it change.</span>'; } },
 
-  { sel: "#tally", pos: "right", label: "The score",
+  { sel: "#stageHint", pos: "bottom", label: "Figures of speech",
     text: function(){
-      return "<b>Points \u00d7 multiplier</b>. Gold tags add the points. Your figure and "
-           + "your Lenses raise the multiplier.<br><br>The board works it out before you "
-           + "commit."; } },
+      return "Two words pulling against each other make an <b>ANTITHESIS</b>. Two that "
+           + "agree and disagree at once make a <b>PARADOX</b>. Three joins reading the "
+           + "same backwards as forwards make a <b>CHIASMUS</b>.<br><br>"
+           + "Those are the figures, they set your multiplier, and <b>every one your "
+           + "line makes pays</b>. Not one of them counts a letter."
+           + '<span class="do">A longer line finds more of them \u2014 and has further '
+           + 'to fall.</span>'; } },
 
   { sel: "#playBtn", pos: "top", label: "Play it",
     text: function(){
-      return "Playing spends one of your four plays. <b>Discard</b> swaps words instead, "
-           + "three times a round."
+      return "Two plays a round, and a line is two to five words. <b>Discard</b> swaps "
+           + "words instead, three times a round."
            + '<span class="do">Hit PLAY.</span>'; },
-    done: function(){ return G.plays < 4; } },
+    done: function(){ return G.plays < 2; } },
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
-      return "Clear the round and the <b>Bookseller</b> sells you a <b>Lens</b>. Words add "
-           + "points. Lenses multiply them, and the targets climb faster than any deck "
-           + "keeps up with.<br><br>Some want fewer words: <b>ASCETIC</b> pays \u00d75 for one. "
-           + "<b>Flawed</b> ones pay most and take something back."
+      return "An overtone you just used goes <b>dull</b> for two plays, so the best line "
+           + "this turn is never the best line next turn.<br><br>"
+           + "Clear the round and the <b>Bookseller</b> offers back a line you actually "
+           + "played. Keep it, and it pays again every time its figure comes round. "
+           + "That is your engine, and you wrote it."
            + '<span class="do">'
            + (G.roundScore >= G.target
                 ? "You have cleared " + G.demand.n + ". The Bookseller is next."
@@ -5379,12 +5505,14 @@ const TUT = [
            + "</span>"; } }
 ];
 
-/* The tutorial tells the player to tap three cards and then names the FIGURE
-   they made. Dealt at random those three make nothing 43% of the time and THE
-   PAIR — which demonstrates neither length order nor letters — another 44%, so
-   the step that teaches the mechanic mostly taught that the mechanic does not
-   fire. Same seven words, same difficulty, laid out so the lesson is there to
-   be found. */
+/* The tutorial tells the player to lay two words and then names what happened
+   between them. Dealt at random a third of pairs have nothing in common, so
+   the step that teaches the mechanic would have taught, a third of the time,
+   that the mechanic does nothing. Same seven words, same difficulty \u2014 laid
+   out so the lesson is there to be found.
+
+   It looks for two joins of DIFFERENT kinds, so a player who taps the first
+   three cards sees a ring and a pull rather than two of the same thing. */
 let tutHandOrder = null;
 function arrangeForTutorial(){
   if(!G || !G.hand || G.hand.length < 3) return;
@@ -5394,14 +5522,17 @@ function arrangeForTutorial(){
   for(let i = 0; i < hand.length; i++)
     for(let j = 0; j < hand.length; j++){
       if(j === i) continue;
+      const one = joinOf(hand[i], hand[j], {});
+      if(one.kind === "silence") continue;
       for(let k = 0; k < hand.length; k++){
         if(k === i || k === j) continue;
-        const trio = [hand[i], hand[j], hand[k]];
-        const f = figureFor(trio);
-        if(!f) continue;
-        /* a figure that shows what a figure IS beats the floor */
-        const v = figValue(f) + (f.id === "pair" ? 0 : 500);
-        if(v > bestValue){ bestValue = v; best = trio; }
+        const two = joinOf(hand[j], hand[k], {});
+        if(two.kind === "silence") continue;
+        /* two different kinds teach twice as much as two of the same */
+        let v = one.s + one.t + two.s + two.t;
+        if(one.kind !== two.kind) v += 10;
+        if(one.kind === "paradox" || two.kind === "paradox") v += 4;
+        if(v > bestValue){ bestValue = v; best = [hand[i], hand[j], hand[k]]; }
       }
     }
   if(!best) return;
@@ -5725,47 +5856,47 @@ function renderPreview(){
      yours to change, and the thing a player reading only the tag strip would
      never find on their own. The match count drops a line — it is already
      spelled out in gold on every card. */
-  const fig = figureFor(cards);
+  const jr = joinsOf(cards);
+  const figs = figuresIn(cards);
+  const fig = figs.length ? figs[0] : null;
   const better = figureByReorder(cards);
   const solo = cards.length < 2;
-  /* A figure only pays its multiplier for the words that answer the round, so
-     the board has to show that sum rather than the headline number — otherwise
-     it promises a multiplier the score will not deliver. */
-  const answering = cards.filter(function(c){
-    return c.t.some(function(t){ return G.demand.tags.indexOf(t) >= 0; });
-  }).length;
-  const paid = fig ? Math.round(fig.mult * answering / cards.length) : 0;
-  const short = fig && paid < fig.mult;
+  const stops = jr.scored < cards.length;
+
+  /* The board no longer prints the score of a line you have not committed.
+     It printed the answer before the question, which is why picking cards was
+     arithmetic somebody else had already done. What it shows instead is what
+     it can see: what each pair of words is doing to the one beside it. The
+     player does the adding, or does not, and finds out on PLAY. */
+  const beads = jr.joins.map(function(j){
+    const said = j.kind === "paradox" ? "agrees and disagrees at once"
+               : j.kind === "tension" ? "pulls against it"
+               : "rings with it";
+    return '<i class="jn ' + j.kind + '" title="' + said + '">' + j.kind + '</i>';
+  }).join('<b class="jnx">&middot;</b>');
+
   hint.innerHTML =
       '<span class="hand-name' + (solo || fig ? '' : ' none') + '">'
-    +   (solo ? resonanceName(hits) : (fig ? fig.n : "NO FIGURE")) + '</span>'
-    + (fig && fig.lv ? '<span class="figlv" title="Level ' + fig.lv + ' of '
-        + FIG_MAX_LV + ' — you have played this shape ' + figCount(fig.id)
-        + ' times this run">' + FIG_LEVEL_NAME[fig.lv] + '</span>' : '')
-    + (fig && figCount(fig.id) === 0
-        ? '<span class="figlv new" title="Your first of this shape this run">FIRST +'
-          + FIG_FOUND + '</span>' : '')
-    + (fig ? '<span class="fig-pay' + (short ? ' short' : '') + '">+'
-             + (fig.chips + (figCount(fig.id) === 0 ? FIG_FOUND : 0))
-             + ' and +' + paid + ' mult'
-             + (short ? ' <i>(' + answering + ' of ' + cards.length + ' answer)</i>' : '')
-             + '</span>' : '')
+    +   (solo ? resonanceName(hits) : (fig ? fig.n : "NOTHING YET")) + '</span>'
+    + (figs.length > 1
+        ? '<span class="figlv" title="Every figure this line makes">and '
+          + (figs.length - 1) + ' more</span>' : '')
     + '<br>'
-    + (solo ? '' : resonanceName(hits) + ' &middot; ')
-    + 'worth <b>' + res.total.toLocaleString() + '</b> points'
-    + (spare ? ' &middot; room for ' + room + ' more' : '')
+    + (solo
+        ? 'One word rings on its own. Lay another beside it.'
+        : (beads || '<i class="jn silence">silence</i>')
+          + (stops
+              ? '<span class="stops"> &middot; the line stops after '
+                + jr.scored + (jr.scored === 1 ? ' word' : ' words') + '</span>'
+              : (spare ? '<span class="room"> &middot; room for ' + room + ' more</span>' : '')))
     + (better
-        ? '<br><span class="ord">The same words make <b>' + better.n + '</b> in another order.</span>'
-        : (orderMatters()
-            ? '<br><span class="ord">Your Lenses read left to right. Try reordering them.</span>'
-            : ''));
+        ? '<br><span class="ord">The same words say more as <b>' + better.n + '</b> in another order.</span>'
+        : '');
   const nm = hint.querySelector(".hand-name");
   if(nm && !solo) nm.onclick = function(){ showFigures(); };
-  say((solo ? resonanceName(hits) : (fig ? fig.n : "No figure"))
-      + (fig && fig.lv ? ", " + FIG_LEVEL_NAME[fig.lv] : "")
-      + (fig && figCount(fig.id) === 0 ? ", your first this run, plus " + FIG_FOUND : "")
-      + (fig ? ", plus " + fig.chips + " and " + fig.mult + " multiplier" : "")
-      + ". Worth " + res.total.toLocaleString() + " points."
+  say((solo ? resonanceName(hits) : (fig ? fig.n : "Nothing yet"))
+      + ". " + (solo ? "One word." : jr.joins.map(function(j){ return j.kind; }).join(", "))
+      + (stops ? ". The line stops after " + jr.scored + "." : "")
       + (better ? " In another order these make " + better.n + "." : ""));
 }
 
@@ -5781,29 +5912,20 @@ function showFigures(back){
      made it — endRun sets G.over and nothing clears it — so opening this
      from the title after finishing a run was quoting the dead run's
      levels at somebody whose next run starts at zero. */
-  const live = G && !G.over;
   const rows = FIGURES.map(function(f){
-    const lv = live ? figLevel(f.id) : 0;
-    const cell = function(n){
-      const base = FIG_PAY[f.id][n];
-      if(!base) return '<td class="no">no</td>';
-      const q = live ? figPay(f.id, n) : base;
-      return '<td>+' + q.chips + ' &middot; +' + q.mult + ' mult</td>';
-    };
-    return '<tr><th>' + f.n
-      + (lv ? '<em class="lvtag">' + FIG_LEVEL_NAME[lv] + '</em>'
-            : live ? '<em class="lvtag new">FIRST +' + FIG_FOUND + '</em>' : '')
-      + '<span>' + f.d + '</span></th>' + cell(2) + cell(3) + '</tr>';
+    return '<tr><th>' + f.n + '<span>' + f.d + '</span></th>'
+      + '<td>+' + FIG_PAY[f.id].chips + '</td>'
+      + '<td>' + (FIG_PAY[f.id].mult ? '+' + FIG_PAY[f.id].mult + ' mult' : '&mdash;') + '</td></tr>';
   }).join("");
   showPanel(''
     + '<h2>The figures</h2>'
-    + '<div class="sub">The shape of your hand</div>'
-    + '<p>Your hand is scored for its <b>shape</b> before any card is counted: how long the words are, and what letters they start and end on.</p>'
-    + '<p class="gold"><b>The round still has to want them.</b> A figure pays its multiplier only for the words that answer the Demand, so the best three for the shape are rarely the best three for the round.</p>'
+    + '<div class="sub">What your words do to each other</div>'
+    + '<p>Lay two words side by side and they either <b>ring together</b> \u2014 they share an overtone \u2014 or they <b>pull against each other</b>, or they have nothing to say at all. A line is read left to right, and the first <b>silence</b> stops it: the words before it pay, the words after it are wasted.</p>'
+    + '<p class="gold"><b>These are figures of speech.</b> Not one of them reads a letter or a length. They read what the words mean, which is the only thing this game has ever claimed to be about.</p>'
     + '<table class="figtab">'
-    +   '<thead><tr><th>Figure</th><th>Two words</th><th>Three words</th></tr></thead>'
+    +   '<thead><tr><th>Figure</th><th>Points</th><th>Multiplier</th></tr></thead>'
     +   '<tbody>' + rows + '</tbody></table>'
-    + '<p>Only your <b>best</b> figure pays, and every figure but THE PAIR has to bind every word you play. The board names yours while you pick.</p>'
+    + '<p>Every figure your line makes pays, not only the best one. And a line you keep at the end of a round pays again, every time its figure comes back.</p>'
     + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
     + (back ? '<button class="btn' + (back === "title" ? ' primary' : '')
               + '" id="figsBack" type="button">Back to '
@@ -5951,31 +6073,8 @@ function renderControls(){
     + (rd.id === "scholar" ? "" : " \u00b7 " + rd.n);
 }
 
-/* Five shapes, four pips each, lit to the level this run has earned. No
-   numbers: this row is for scanning "which shape is mine", and the exact
-   figure is spelled out on the stage the moment cards are selected. */
-function renderFigBar(){
-  const bar = document.getElementById("figBar");
-  if(!bar || !G) return;
-  bar.innerHTML = FIGURES.map(function(f){
-    const lv = figLevel(f.id);
-    let pips = "";
-    for(let i = 1; i <= FIG_MAX_LV; i++)
-      pips += '<i aria-hidden="true"' + (i <= lv ? ' class="on"' : '') + '></i>';
-    const left = figToNext(f.id);
-    const said = f.n + (lv ? ", " + FIG_LEVEL_NAME[lv] + ", level " + lv
-                              + " of " + FIG_MAX_LV
-                            : ", not yet played, worth " + FIG_FOUND + " to find")
-      + (left ? ", " + left + " more to level " + (lv + 1) : lv ? ", at its best" : "");
-    return '<span class="figp' + (lv ? " lit" : "") + '" title="' + said + '"'
-      + ' role="img" aria-label="' + said + '">'
-      + '<b aria-hidden="true">' + f.n.replace(/^THE /, "") + '</b>'
-      + pips + '</span>';
-  }).join("");
-}
-
 function render(){
-  renderDemand(); renderRail(); renderFigBar(); renderHand(); renderControls(); renderPreview();
+  renderDemand(); renderRail(); renderHand(); renderControls(); renderPreview();
   coachSet(G.coachStep);
   /* Anything that redraws the board can move what the tutorial is pointing at,
      and a fifth of a second of a spotlight sitting off its target is visible.
@@ -6468,20 +6567,32 @@ function showMenu(back){
 function showSettings(){ showMenu(); }
 
 function showHelp(back){
-  /* A worked example beats a rule list: the same card the player is about to
-     see, with the arithmetic spelled out on it. */
-  const ex = { w:"FURNACE", t:["HEA","TOO","DAN"], base: 5 + 3*7, interpreted:false };
-  const exTags = ex.t.map(function(t){
-    return '<span class="tg' + (t === "HEA" ? " match" : "") + '">' + TAGS[t][0] + '</span>';
-  }).join("");
-  const withLens = ex.base + 25 + 135;
-  const exCol = TAG_COLOR[ex.t[0]];
-  const exLight = isLightHex(exCol) ? " light" : "";
-  const exArt = '<div class="art' + exLight + '" style="background:' + exCol + '">'
-    + '<div class="base">' + ex.base + '</div>'
-    + '<div class="icons">' + ex.t.slice(0,3).map(function(t){
-        return '<span class="ms' + (t === "HEA" ? " hit" : "") + '" aria-hidden="true">' + ICONS[t] + '</span>';
-      }).join("") + '</div></div>';
+  /* A worked example beats a rule list, and under JOIN the example has to be
+     two words: one word does nothing. EMBER and GLACIER share NATURE and
+     oppose twice over - heat against cold, and wet against heat - which is the
+     rare join the game pays most for, so it is the one worth drawing. */
+  const pick = function(w){
+    return LEXICON.find(function(e){ return e.w === w; }) || LEXICON[0];
+  };
+  const exA = makeCard(pick("EMBER"), false), exB = makeCard(pick("GLACIER"), false);
+  const exJoin = joinOf(exA, exB, {});
+  const exFig = figuresFromJoins([exJoin])[0];
+  const exChips = JOIN_RESONANCE * exJoin.s + (exFig ? exFig.chips : 0)
+                + exA.base + exB.base;
+  const exMult = 1 + JOIN_TENSION * exJoin.t + (exFig ? exFig.mult : 0);
+  const cardHTML = function(c){
+    const col = TAG_COLOR[c.t[0]] || TAG_COLOR.ABS;
+    return '<div class="card static"><div class="card-inner">'
+      + '<div class="art' + (isLightHex(col) ? " light" : "") + '" style="background:' + col + '">'
+      + '<div class="base">' + c.base + '</div>'
+      + '<div class="icons">' + c.t.slice(0,3).map(function(t){
+          return '<span class="ms" aria-hidden="true">' + (ICONS[t] || "blur_on") + '</span>';
+        }).join("") + '</div></div>'
+      + '<div class="w">' + c.w + '</div>'
+      + '<div class="tags">' + c.t.map(function(t){
+          return '<span class="tg">' + TAGS[t][0] + '</span>'; }).join("")
+      + '</div></div></div>';
+  };
   const legend = TAG_KEYS.map(function(t){
     return '<span class="leg">' + iconSpan(t) + TAGS[t][0] + '</span>';
   }).join("");
@@ -6494,49 +6605,61 @@ function showHelp(back){
     +   'Those are its <b>overtones</b>.</p>'
     +   '<p>Words have them too. <b>FURNACE</b> rings of <b class="gold">HEAT</b>, '
     +   '<b class="gold">TOOL</b>, <b class="gold">DANGER</b>. Those rings are the tags '
-    +   'on the card, and they are what you play with. What a word means never scores a '
-    +   'point.</p>'
+    +   'on the card, and they are everything this game knows about a word \u2014 which '
+    +   'is the whole of it, because what you score is what two words do to each '
+    +   'other.</p>'
     + '</div>'
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p>Every round wants two overtones. Tags that match turn '
-    +     '<b class="gold">gold</b> and pay <b>+25</b> each.</p></div>'
-    +   '<div class="teach-row"><div class="teach-n">2</div><div>'
-    +     '<p>Your words also make a shape: same length, climbing by a step, or each one '
-    +     'starting where the last ended. That is a <b>figure</b>, and it is what lifts '
-    +     'your multiplier off 1. It reads left to right, so tap order counts. '
+    +     '<p>You write a <b>line</b>: two to five words, in an order. Scoring reads each '
+    +     '<b>pair</b> in turn, so where a word sits is as much of the decision as which '
+    +     'word it is.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">2</div>'
+    +     '<p>Two words that share an overtone <b>ring</b> \u2014 <b>+'
+    +     JOIN_RESONANCE + '</b> each. Two carrying opposite ones <b class="gold">pull</b> '
+    +     '\u2014 <b>+' + JOIN_TENSION + ' to the multiplier</b>, which is worth far more. '
+    +     'Two with nothing in common fall <b>silent</b>, and the line stops there: the '
+    +     'words after it score nothing at all.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">3</div><div>'
+    +     '<p>What your joins add up to is a <b>figure</b>, and every figure your line '
+    +     'makes pays. Not one of them counts a letter. '
     +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p>'
     +     '</div></div>'
-    +   '<div class="teach-row"><div class="teach-n">3</div>'
-    +     '<p><b>Take three words.</b> Even one that matches nothing still adds its '
-    +     'points.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
     +     '<p>Your score is <b>points &times; multiplier</b>. Round 1 wants '
-    +     TARGETS[0].toLocaleString() + ', round 8 wants '
-    +     TARGETS[ROUNDS-1].toLocaleString() + '.</p></div>'
+    +     TARGETS[0].toLocaleString() + ', round ' + ROUNDS + ' wants '
+    +     TARGETS[ROUNDS-1].toLocaleString() + '. The board <b>never</b> tells you the '
+    +     'total before you commit \u2014 judging it is the game.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">5</div>'
-    +     '<p>Clear a round and the Bookseller sells you a <b>Lens</b>. Hold five. Some '
-    +     'grow every round you keep them. <b class="gold">Flawed</b> ones pay most and '
-    +     'take something back.</p></div>'
+    +     '<p>An overtone you just used goes <b>dull</b> for ' + FATIGUE_SPAN + ' plays. '
+    +     'Clear a round and the Bookseller offers back a line you played: keep it and it '
+    +     'pays again every time its figure returns. Five slots, shared with Lenses.</p></div>'
     + '</div>'
-    + '<p>' + (difficulty().id === "apprentice"
-        ? '<b>The last round is an Ordeal.</b> Round 8 changes a rule instead of raising '
-          + 'the number. Rounds 1 to 7 leave your hands alone.'
-        : '<b>Three rounds are Ordeals.</b> Rounds 4, 6 and 8 change a rule instead of '
-          + 'raising the number.')
+
+    + '<p>' + (function(){
+        /* Count them rather than spell them out. This paragraph has said "round
+           8" and "rounds 4, 6 and 8" through two different round counts, and
+           both times it was the copy that went stale rather than the rule. */
+        const at = ordealRoundsFor(difficulty().id);
+        const WORDS = ["no", "One", "Two", "Three", "Four", "Five", "Six"];
+        return at.length === 1
+          ? '<b>The last round is an Ordeal.</b> Round ' + ROUNDS + ' changes a rule '
+            + 'instead of raising the number.'
+          : '<b>' + (WORDS[at.length] || at.length) + ' rounds are Ordeals.</b> Rounds '
+            + at.map(function(r){ return r + 1; }).join(", ").replace(/, ([^,]*)$/, " and $1")
+            + ' change a rule instead of raising the number.';
+      })()
     + ' The Bookseller names the next one before you spend.</p>'
 
-    + '<div class="worked">'
-    +   '<div class="card static"><div class="card-inner">'
-    +     exArt
-    +     '<div class="w">' + ex.w + '</div>'
-    +     '<div class="tags">' + exTags + '</div></div>'
-    +   '</div>'
+    + '<div class="worked join">'
+    +   cardHTML(exA) + cardHTML(exB)
     +   '<div class="worked-sum">'
-    +     'The round wants <b>HEAT</b>. FURNACE is worth <b>' + ex.base + '</b>, and its '
-    +     'gold HEAT tag adds <b>25</b>. Hold <b>PYROMANIAC</b> and it adds <b>135</b> '
-    +     'more by round two.'
-    +     '<span class="worked-tot">' + withLens + ' \u00d7 1 = ' + withLens + ' points</span>'
+    +     '<b>' + exA.w + '</b> and <b>' + exB.w + '</b> both ring of '
+    +     '<b>NATURE</b>, and they pull twice over \u2014 heat against cold, and wet '
+    +     'against heat. Sharing and opposing at once is <b class="gold">'
+    +     (exFig ? exFig.n : "a join") + '</b>, the rarest join there is.'
+    +     '<span class="worked-tot">' + exChips.toLocaleString() + ' \u00d7 '
+    +     exMult + ' = ' + (exChips * exMult).toLocaleString() + ' points</span>'
     +   '</div>'
     + '</div>'
 
