@@ -32,20 +32,14 @@ const PLAY = flag("play", "optimal");
    numbers taken a week apart. resolve() reads figureFor off the script's global
    scope, which is what makes the swap possible at all. */
 if (ARGS.includes("--nofigures")) ctx.figureFor = () => null;
-/* --noledger is the pre-ledger game exactly: nothing is banked and nothing
-   levels. Both halves are stubbed on purpose rather than just the scoring
-   one — with banking left on, the ladder-reach report at the bottom would
-   still print real levels next to flattened scores, which reads as a bug.
-
-   figPay() calls figLevel() unqualified, so it resolves off the script's
-   global scope; same mechanism --nofigures uses on figureFor. Note this
-   does NOT redirect api.figLevel, which was captured at export time — so
-   the report below reads the real function and a 0 there means banking
-   genuinely stopped, which is what makes it a usable alarm. */
-if (ARGS.includes("--noledger")) {
-  ctx.figLevel = () => 0;
-  ctx.noteFigure = () => null;
-}
+/* The control the join rebuild needs: no fatigue, so the cost of playing the
+   same overtone twice can be read off the difference. */
+if (ARGS.includes("--nofatigue")) ctx.dullTags = () => ({});
+/* --nojoins flattens the new physics back to a pile of words: no resonance,
+   no tension, no silence. The difference against a normal run is what the
+   whole rebuild is worth. */
+if (ARGS.includes("--nojoins")) ctx.joinsOf = (line) =>
+  ({ joins: [], scored: line.length });
 /* --targets 1400,3300,... scores a candidate curve without editing the game, so
    a sweep can run several curves at once instead of serially rewriting the one
    file they all read from. */
@@ -88,58 +82,68 @@ const BUY = flag("buy", "value");
    puzzle — CARNIVORE eats leftwards, and a +mult Lens landing before a xmult
    one is a different number — so a player looking for their best hand is
    choosing among permutations, not combinations. */
+/* A cheap read of what a line is worth: joins, figures, kept lines, the words
+   themselves, and whatever the round wants. It knows nothing about Lenses or
+   Ordeals, so it is not the score — it is a ranking, good enough to say which
+   forty of three thousand orderings deserve the real engine's attention.
+
+   resolve() builds an event list and runs every Lens hook on every candidate,
+   which is the right thing to do once and the wrong thing to do 3,612 times a
+   play. The old search looked at 259 candidates and could afford it; this one
+   cannot. */
+function lineWorth(line) {
+  const G = api.G;
+  const dull = (G && G.dull) || {};
+  const jr = api.joinsOf(line, dull);
+  let chips = 0, mult = 1;
+  jr.joins.forEach(j => { chips += api.JOIN_RESONANCE * j.s; mult += api.JOIN_TENSION * j.t; });
+  const figs = api.figuresFromJoins(jr.joins);
+  figs.forEach(f => { chips += f.chips; mult += f.mult; });
+  (G.kept || []).forEach(k => {
+    if (figs.some(f => f.id === k.fig)) { chips += api.KEPT_CHIPS; mult += api.KEPT_MULT; }
+  });
+  for (let i = 0; i < jr.scored; i++) {
+    chips += line[i].base;
+    chips += 25 * line[i].t.filter(t => G.demand.tags.indexOf(t) >= 0 && !dull[t]).length;
+  }
+  return chips * mult;
+}
+
 function bestPlay(hand, optimal) {
-  let best = null;
-  const n = hand.length;
+  /* The verb changed, so the search had to. Scoring reads ADJACENT PAIRS now,
+     which means the order of a line is part of the candidate rather than a
+     tidy-up afterwards: the same three words can be worth six times more one
+     way round than the other. Subsets of three no longer describe the space.
+
+     Lines are 2 to maxPlay() words, every ordering — P(7,2)+…+P(7,5) = 3,612
+     per play against the old 259. They are ranked cheaply by lineWorth() and
+     only the shortlist is put through the real engine, which is what keeps a
+     1,200-run confirmation inside a coffee break. */
   const cap = api.maxPlay();
-  const consider = (cards) => {
-    if (cards.length > cap) return;
-    const r = api.resolve(cards);
-    if (!best || r.total > best.total) best = { cards: cards.slice(), total: r.total, mult: r.mult };
-  };
-  /* A human does not enumerate 259 orderings -- but they do not have to. The
-     board scores every selection live, so clicking three cards and swapping
-     them about IS a search, just a shallower one. "human" searches the top five
-     cards by face value, which is about what a person tries before playing. */
   const pool = optimal === "human"
     ? hand.slice().sort((a, b) => b.base - a.base).slice(0, 5)
     : hand;
-  const m = pool.length;
-  for (let i = 0; i < m; i++) {
-    consider([pool[i]]);
-    for (let j = 0; j < m; j++) {
-      if (j === i) continue;
-      consider([pool[i], pool[j]]);
-      if (!optimal) continue;
-      for (let k = 0; k < m; k++) {
-        if (k === i || k === j) continue;
-        consider([pool[i], pool[j], pool[k]]);
-      }
-    }
-  }
-  for (let i = 0; i < n; i++) {
-    if (optimal === "human") break;
-    consider([hand[i]]);
-    for (let j = 0; j < n; j++) {
-      if (j === i) continue;
-      consider([hand[i], hand[j]]);
-      if (!optimal) continue;
-      for (let k = 0; k < n; k++) {
-        if (k === i || k === j) continue;
-        consider([hand[i], hand[j], hand[k]]);
-      }
-    }
-  }
-  /* A greedy player takes three by face value and does not shop the ordering. */
-  if (optimal === "human") return best;
-  if (!optimal) {
-    const d = api.G.demand;
-    const ranked = hand.slice().sort((a, b) =>
-      (b.base + 25 * b.t.filter(t => d.tags.indexOf(t) >= 0).length) -
-      (a.base + 25 * a.t.filter(t => d.tags.indexOf(t) >= 0).length));
-    const three = ranked.slice(0, cap);
-    const r = api.resolve(three);
-    if (!best || r.total > best.total) best = { cards: three, total: r.total, mult: r.mult };
+  const limit = optimal ? cap : Math.min(cap, 3);
+  const seen = [];
+  const walk = (cur, rest) => {
+    if (cur.length >= 2) seen.push({ cards: cur.slice(), worth: lineWorth(cur) });
+    if (cur.length >= limit) return;
+    for (let i = 0; i < rest.length; i++)
+      walk(cur.concat([rest[i]]), rest.slice(0, i).concat(rest.slice(i + 1)));
+  };
+  walk([], pool);
+  if (!seen.length) return null;
+  seen.sort((a, b) => b.worth - a.worth);
+
+  /* A Lens can reorder the top of that list — THE ORACLE pays the first word
+     and silences the rest, ANTONYM ENGINE doubles a tension — so the shortlist
+     is deliberately wide rather than a single pick. */
+  const SHORTLIST = 40;
+  let best = null;
+  for (let i = 0; i < Math.min(SHORTLIST, seen.length); i++) {
+    const r = api.resolve(seen[i].cards);
+    if (!best || r.total > best.total)
+      best = { cards: seen[i].cards, total: r.total, mult: r.mult };
   }
   return best;
 }
@@ -164,7 +168,7 @@ function playRound(optimal) {
         .sort((a, b) =>
           (a.base + 25 * a.t.filter(t => d.tags.indexOf(t) >= 0).length) -
           (b.base + 25 * b.t.filter(t => d.tags.indexOf(t) >= 0).length))
-        .slice(0, 3);
+        .slice(0, 3);   /* three dead cards, whatever the line length */
       G.hand = G.hand.filter(c => dead.indexOf(c) < 0);
       G.discard = G.discard.concat(dead);
       G.discards--;
@@ -176,19 +180,26 @@ function playRound(optimal) {
     G.hand = G.hand.filter(c => best.cards.indexOf(c) < 0);
     G.discard = G.discard.concat(best.cards);
     G.plays--;
-    /* play() banks the figure once a hand commits; this loop never calls
-       play(), so it banks it here. Without this the ladder would be dead in
-       every simulated run and the win rate would describe the old game.
+    /* play() tires the overtones a line used once the hand commits; this loop
+       never calls play(), so it does it here. Without it every simulated run
+       would play the same overtone every turn and the win rate would describe
+       a game with no fatigue in it.
 
-       bestPlay() scores candidates through api.resolve(), which reads the
-       ledger, so the policy values a levelled shape correctly WITHOUT being
-       told to. What it does not do is invest — it will not take a weaker
-       hand now to level a shape for later, because it only ever looks at
-       the hand in front of it. That makes this number a FLOOR on what the
-       ladder is worth, not a ceiling: a player who commits to a shape on
-       purpose does better than this. */
-    /* through ctx, not the captured export, so --noledger can stub it */
-    ctx.noteFigure(best.cards);
+       bestPlay() scores through api.resolve(), which reads G.dull, so the
+       policy avoids tired overtones WITHOUT being told to. What it does not do
+       is plan around them — it never takes a weaker line now to keep an
+       overtone fresh for later — so this is a FLOOR on what fatigue costs,
+       not a ceiling. */
+    const res = api.resolve(best.cards);
+    if (ctx.__noteLine) ctx.__noteLine(best.cards);
+    G.dull = G.dull || {};
+    Object.keys(G.dull).forEach(t => { if (--G.dull[t] <= 0) delete G.dull[t]; });
+    const tired = {};
+    const paid = best.cards.slice(0, res.scored);
+    for (let i = 0; i + 1 < paid.length; i++)
+      api.sharedTags(paid[i], paid[i + 1], {}).forEach(t => { tired[t] = 1; });
+    paid.forEach(c => c.t.forEach(t => { if (G.demand.tags.indexOf(t) >= 0) tired[t] = 1; }));
+    Object.keys(tired).forEach(t => { G.dull[t] = api.FATIGUE_SPAN + 1; });
     G.roundScore += best.total;
     G.total += best.total;
     if (best.mult > G.best.mult) G.best = { word: "", mult: best.mult, score: best.total };
@@ -314,7 +325,15 @@ function runOnce(seed, opts) {
   const G = api.G;
   /* The highest figure level this run reached, reported so a regression that
      stops the ledger banking shows up as a zero rather than as silence. */
-  const topFig = () => Math.max(0, ...api.FIGURES.map(f => api.figLevel(f.id)));
+  /* How many distinct figures this run managed to write. A run that makes one
+     figure over and over is a run where the physics is not doing anything. */
+  const seenFig = {};
+  const topFig = () => Object.keys(seenFig).length;
+  const noteLine = (cards) => {
+    const r = api.resolve(cards);
+    (r.figs || []).forEach(f => { seenFig[f.id] = 1; });
+  };
+  ctx.__noteLine = noteLine;
   /* Memory: from run 2 onward a real player starts holding a Lens they earned.
      The simulator never called endRun, so it never banked one, and every run it
      measured was somebody's first. */
@@ -359,10 +378,10 @@ function headline() {
   const res = [];
   for (let s = 0; s < RUNS; s++) res.push(runOnce("bal-" + s, opts));
 
-  /* How far the ladder actually got. This exists to be a regression alarm:
-     if playRound ever stops calling noteFigure, every number above still
-     prints and every one of them silently describes the pre-ledger game.
-     A row of zeroes here is that failure, made visible. */
+  /* What the lines actually did. This exists to be a regression alarm: if
+     playRound ever stops tiring overtones, or resolve stops reading joins,
+     every number above still prints and every one of them silently describes
+     a game nobody is playing. Zeroes here are that failure, made visible. */
   const tops = res.map(r => r.topFig || 0).sort((a, b) => a - b);
   const banked = res.filter(r => (r.topFig || 0) > 0).length;
 
@@ -387,10 +406,10 @@ function headline() {
       + "  x" + mults[Math.floor(mults.length * q)].toFixed(1));
   });
   console.log("  max  x" + mults[mults.length - 1].toFixed(1));
-  console.log("\nFigure ladder reached  (0 across the board = the ledger is not being banked)");
-  console.log("  runs that levelled anything  " + banked + " of " + res.length
+  console.log("\nFigures written  (0 across the board = the joins are not being read)");
+  console.log("  runs that made any figure at all  " + banked + " of " + res.length
     + "  (" + (banked / res.length * 100).toFixed(1) + "%)");
-  console.log("  best level in a run   p50 " + tops[Math.floor(tops.length * 0.5)]
+  console.log("  distinct figures in a run   p50 " + tops[Math.floor(tops.length * 0.5)]
     + "   p90 " + tops[Math.floor(tops.length * 0.9)]
     + "   max " + tops[tops.length - 1]);
   return res;
