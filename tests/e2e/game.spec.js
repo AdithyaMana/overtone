@@ -88,6 +88,48 @@ async function settle(page) {
   await page.waitForFunction(() => typeof G !== "undefined" && G && !G.animating);
 }
 
+/* The scoring readout is a transient. play() builds .stage-total near the end
+   of the resolve and removes it Math.round(820 * animScale()) — 451ms — later,
+   and waiting for it from the test process is a race the suite loses: three
+   runs in twelve under six workers, with the element present, laid out and
+   visible for that entire window.
+
+   Measured rather than guessed. In a failing run the hand was fine — all three
+   keys registered, play() ran with all three card ids — and a MutationObserver
+   inside the page saw .stage-total inserted and removed on time, display:block,
+   visibility:visible, a 207x172 box the whole way. page.waitForFunction and
+   locator.count() both saw it. Only locator.waitFor missed it, and the same
+   call then resolved on the NEXT hand's readout a second and a half later. So
+   the element is not the problem and neither is the timeout: an out-of-process
+   poll just does not reliably sample inside 451ms.
+
+   Record it from inside the page instead. The observer fires on the insertion
+   itself, so nothing can be missed, and the whole life of the readout is
+   measured rather than whichever frame a round trip happens to land on. Call
+   this before the hand is played; read window.__total once it has settled. */
+async function recordTotal(page) {
+  await page.evaluate(() => {
+    window.__total = { texts: [], rects: [] };
+    const stage = document.getElementById("stage");
+    new MutationObserver(() => {
+      const t = stage.querySelector(".stage-total");
+      if (!t || t.dataset.watched) return;
+      t.dataset.watched = "1";
+      (function sample() {
+        if (!t.isConnected) return;
+        const r = t.getBoundingClientRect();
+        window.__total.texts.push(t.textContent);
+        window.__total.rects.push({
+          w: r.width, h: r.height, top: r.top, bottom: r.bottom,
+          left: r.left, right: r.right,
+          vw: window.innerWidth, vh: window.innerHeight
+        });
+        requestAnimationFrame(sample);
+      })();
+    }).observe(stage, { childList: true, subtree: true });
+  });
+}
+
 /* Play the strongest hand available, skipping the animation. */
 async function playAHand(page) {
   await page.keyboard.press("1");
@@ -1792,17 +1834,19 @@ test.describe("the counters", () => {
 
   test("the total counts up and locks on the real score", async ({ page }) => {
     await open(page);
+    await recordTotal(page);
     for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
     const want = await page.evaluate(() => {
       const cards = G.selected.map(id => G.hand.find(c => c.id === id));
       return "+" + resolve(cards).total.toLocaleString();
     });
     await page.click("#playBtn");
-    const total = page.locator(".stage-total");
-    await total.waitFor({ state: "visible", timeout: 15000 });
-    /* it starts at zero and arrives at the number, rather than appearing as it */
-    await expect(total).toHaveText(want, { timeout: 6000 });
     await settle(page);
+
+    /* it starts at zero and arrives at the number, rather than appearing as it */
+    const texts = await page.evaluate(() => window.__total.texts);
+    expect(texts.length, "the scoring readout never appeared").toBeGreaterThan(0);
+    expect(texts[texts.length - 1]).toBe(want);
   });
 });
 
@@ -1861,29 +1905,31 @@ test.describe("the scoring readout", () => {
 
   test("the total is never cut off by the box it sits in", async ({ page }) => {
     await open(page);
+    await recordTotal(page);
     for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
+    /* #playBtn is disabled while nothing is picked, so a hand that never landed
+       would hang the click rather than fail here. Say the precondition out loud:
+       three words chosen is what the rest of this test measures. */
+    await expect.poll(() => page.evaluate(() => G.selected.length),
+      { timeout: 3000, message: "the three keypresses never reached the hand" }).toBe(3);
     await page.click("#playBtn");
+    await settle(page);
 
-    const total = page.locator(".stage-total");
-    await total.waitFor({ state: "visible", timeout: 15000 });
+    const seen = await page.evaluate(() => window.__total.rects);
+    expect(seen.length, "the scoring readout never appeared").toBeGreaterThan(0);
 
     /* The total slams in from scale(2.2) while the stage is still growing, so
-       the first frame is legitimately oversized and out of place. Poll for the
-       resting state rather than measuring the entrance. */
-    await expect.poll(() => page.evaluate(() => {
-      const t = document.querySelector(".stage-total");
-      if (!t) return null;
-      const r = t.getBoundingClientRect();
-      return r.width > 20 && r.height > 20
-        && r.top >= 0 && r.bottom <= window.innerHeight
-        && r.left >= 0 && r.right <= window.innerWidth;
-    }), { timeout: 6000, message: "the total never settled inside the viewport" }).toBe(true);
+       the opening frames are legitimately oversized and out of place. Ask that
+       it came to rest inside the viewport, not that the entrance did. */
+    const settled = seen.some(r => r.w > 20 && r.h > 20
+      && r.top >= 0 && r.bottom <= r.vh && r.left >= 0 && r.right <= r.vw);
+    expect(settled, "the total never settled inside the viewport; last frame was "
+      + JSON.stringify(seen[seen.length - 1])).toBe(true);
 
     /* the old bug: overflow:hidden on a 76px-tall stage cut the readout in half */
     const clips = await page.evaluate(() =>
       getComputedStyle(document.getElementById("stage")).overflow === "hidden");
     expect(clips, "the stage is clipping its own scoring popup").toBe(false);
-    await settle(page);
   });
 
   test("the green wash only fires on a hand that actually cleared", async ({ page }) => {
