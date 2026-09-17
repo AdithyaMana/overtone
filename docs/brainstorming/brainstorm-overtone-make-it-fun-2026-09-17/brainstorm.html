@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Overtone — The Verb Is Wrong</title>
+<meta name="description" content="A keepsake of the brainstorming session of 17 September 2026, in which a word game discovered a better game inside its own data.">
+<style>
+/* ============================================================
+   OVERTONE — session keepsake, 2026-09-17
+   One file. No external anything. Every colour explicit.
+   ============================================================ */
+
+:root{
+  color-scheme: dark;
+
+  --void:      #07080b;
+  --ink:       #0b0d12;
+  --panel:     #101319;
+  --panel-2:   #141821;
+  --panel-3:   #191e29;
+  --rule:      #1e2431;
+  --rule-2:    #2b3345;
+
+  --dim:       #6a7488;
+  --dimmer:    #4d5567;
+  --body:      #a5aec1;
+  --bright:    #e9edf5;
+  --white:     #ffffff;
+
+  --gold:      #e3b263;   /* resonance */
+  --gold-2:    #f4d49a;
+  --gold-dim:  #8a6c36;
+  --gold-haze: rgba(227,178,99,0.14);
+
+  --ice:       #63c6e0;   /* tension */
+  --ice-2:     #a6e2f2;
+  --ice-dim:   #2f6478;
+  --ice-haze:  rgba(99,198,224,0.13);
+
+  --violet:    #b48ce0;   /* both at once */
+  --violet-dim:#5b4380;
+  --violet-haze:rgba(180,140,224,0.13);
+
+  --rust:      #cf7a5e;   /* the avoided thing */
+  --rust-dim:  #7a422f;
+
+  --silent:    #333b49;
+
+  --serif: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --gut: clamp(18px, 4.5vw, 56px);
+  --maxw: 1080px;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{
+  background-color: var(--void);
+  color: var(--body);
+  -webkit-text-size-adjust:100%;
+}
+
+body{
+  margin:0;
+  background-color: var(--void);
+  background-image:
+    radial-gradient(1100px 620px at 50% -8%, rgba(227,178,99,0.055), rgba(0,0,0,0) 62%),
+    radial-gradient(880px 520px at 92% 34%, rgba(99,198,224,0.042), rgba(0,0,0,0) 60%),
+    radial-gradient(760px 620px at 4% 78%, rgba(180,140,224,0.035), rgba(0,0,0,0) 62%);
+  background-attachment: scroll;
+  color: var(--body);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height:1.62;
+  overflow-x:hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,h2,h3,h4,h5,h6{ color: var(--bright); margin:0; font-weight:600; letter-spacing:-0.01em; }
+p{ margin:0 0 1em; color: var(--body); }
+p:last-child{ margin-bottom:0; }
+ul,ol{ margin:0; padding:0; list-style:none; }
+li{ color: var(--body); }
+strong{ color: var(--bright); font-weight:600; }
+em{ color: var(--body); }
+a{ color: var(--gold); }
+hr{ border:0; border-top:1px solid var(--rule); margin:0; }
+svg{ display:block; }
+
+.wrap{ width:100%; max-width: var(--maxw); margin:0 auto; padding-left: var(--gut); padding-right: var(--gut); }
+
+/* ---------- scroll meter ---------- */
+#meter{
+  position:fixed; top:0; left:0; height:2px; width:100%;
+  background-color: rgba(30,36,49,0.75);
+  z-index:90;
+}
+#meter i{
+  display:block; height:100%; width:0%;
+  background-image: linear-gradient(90deg, var(--gold-dim), var(--gold) 55%, var(--ice));
+  box-shadow: 0 0 10px rgba(227,178,99,0.45);
+}
+
+/* ---------- reveal (opt-in via JS, so no-JS shows everything) ---------- */
+.js .rv{ opacity:0; transform: translateY(14px); }
+.js .rv.on{ opacity:1; transform:none; transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
+@media (prefers-reduced-motion: reduce){
+  .js .rv{ opacity:1 !important; transform:none !important; transition:none !important; }
+  .harm path{ animation:none !important; }
+  .pulse{ animation:none !important; }
+}
+
+/* ============================================================
+   OVERTURE
+   ============================================================ */
+.overture{ position:relative; padding: 92px 0 74px; border-bottom:1px solid var(--rule); overflow:hidden; }
+.harm{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:1400px; max-width:none; height:190px; opacity:.85; pointer-events:none; }
+.harm path{ fill:none; stroke-linecap:round; }
+.h1p{ stroke: var(--gold); stroke-width:1.5; opacity:.42; animation: drift1 26s linear infinite; }
+.h2p{ stroke: var(--gold); stroke-width:1.2; opacity:.30; animation: drift2 19s linear infinite; }
+.h3p{ stroke: var(--ice); stroke-width:1.1; opacity:.26; animation: drift3 14s linear infinite; }
+.h4p{ stroke: var(--ice); stroke-width:1;   opacity:.19; animation: drift4 11s linear infinite; }
+.h5p{ stroke: var(--violet); stroke-width:1; opacity:.16; animation: drift5 9s linear infinite; }
+@keyframes drift1{ from{transform:translateX(0)} to{transform:translateX(-600px)} }
+@keyframes drift2{ from{transform:translateX(0)} to{transform:translateX(-300px)} }
+@keyframes drift3{ from{transform:translateX(0)} to{transform:translateX(-200px)} }
+@keyframes drift4{ from{transform:translateX(0)} to{transform:translateX(-150px)} }
+@keyframes drift5{ from{transform:translateX(0)} to{transform:translateX(-120px)} }
+
+.overture .wrap{ position:relative; z-index:2; }
+.stamp{
+  font-family: var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase;
+  color: var(--dim); display:flex; flex-wrap:wrap; gap:.35em 1.1em; margin-bottom:38px;
+}
+.stamp b{ color: var(--gold); font-weight:400; }
+.wordmark{
+  font-family: var(--serif);
+  font-size: clamp(50px, 14.5vw, 132px);
+  line-height:.92; letter-spacing:-0.035em; color: var(--white);
+  margin:0 0 6px; font-weight:400;
+  text-shadow: 0 0 46px rgba(227,178,99,0.16);
+}
+.wordmark span{ color: var(--gold); }
+.sub{
+  font-family: var(--serif); font-style:italic;
+  font-size: clamp(17px, 3.3vw, 25px); line-height:1.4; color: var(--gold-2);
+  max-width: 24em; margin: 0 0 46px;
+}
+.qa{ display:grid; gap:26px; grid-template-columns: 1fr; max-width:62ch; }
+@media (min-width:760px){ .qa{ grid-template-columns: 1fr 1fr; max-width:none; gap:34px; } }
+.qa .lbl{
+  font-family: var(--mono); font-size:10.5px; letter-spacing:.22em; text-transform:uppercase;
+  color: var(--dimmer); display:block; margin-bottom:10px;
+}
+.qa p{ font-size:15.5px; color: var(--body); border-left:1px solid var(--rule-2); padding-left:16px; }
+.qa .topic p{ border-left-color: var(--gold-dim); color: var(--bright); }
+
+/* ============================================================
+   generic section furniture
+   ============================================================ */
+.sec{ padding: 78px 0; border-bottom:1px solid var(--rule); }
+.sec:last-of-type{ border-bottom:0; }
+.eyebrow{
+  font-family: var(--mono); font-size:10.5px; letter-spacing:.24em; text-transform:uppercase;
+  color: var(--dim); margin-bottom:14px;
+}
+.eyebrow .num{ color: var(--gold); }
+.sec-h{
+  font-family: var(--serif); font-weight:400;
+  font-size: clamp(28px, 6.4vw, 46px); line-height:1.08; letter-spacing:-0.025em;
+  color: var(--white); margin-bottom:16px;
+}
+.standfirst{
+  font-family: var(--serif); font-style:italic; font-size: clamp(16px,2.6vw,20px);
+  line-height:1.5; color: var(--gold-2); max-width:34ch; margin-bottom:38px;
+}
+.note{ font-family: var(--mono); font-size:11px; letter-spacing:.06em; color: var(--dimmer); line-height:1.7; }
+
+/* ---------- word chips / cards ---------- */
+.w{
+  font-family: var(--serif); letter-spacing:.06em; color: var(--bright);
+  display:inline-block;
+}
+.tag{
+  display:inline-block; font-family: var(--mono); font-size:9.5px; letter-spacing:.16em;
+  text-transform:uppercase; color: var(--dim);
+  border:1px solid var(--rule-2); border-radius:2px; padding:2px 6px; background-color: var(--panel-2);
+}
+.tag.gold{ color: var(--gold); border-color: var(--gold-dim); background-color: rgba(227,178,99,0.07); }
+.tag.ice{ color: var(--ice); border-color: var(--ice-dim); background-color: rgba(99,198,224,0.07); }
+.tag.blank{ color: transparent; }
+
+/* ============================================================
+   I. GROUND TRUTH
+   ============================================================ */
+.stats{ display:grid; grid-template-columns: repeat(2,1fr); gap:1px; background-color: var(--rule); border:1px solid var(--rule); margin-bottom:46px; }
+@media (min-width:640px){ .stats{ grid-template-columns: repeat(4,1fr); } }
+.stat{ background-color: var(--ink); padding:20px 16px; }
+.stat b{ display:block; font-family: var(--serif); font-size: clamp(26px,5vw,38px); line-height:1; color: var(--gold); font-weight:400; margin-bottom:8px; }
+.stat span{ font-family: var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color: var(--dim); line-height:1.5; display:block; }
+
+.two{ display:grid; gap:40px; grid-template-columns:1fr; }
+@media (min-width:820px){ .two{ grid-template-columns: 1fr 1fr; gap:48px; } }
+
+.blk-h{ font-family: var(--mono); font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color: var(--dim); margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--rule); }
+
+.bars{ display:grid; gap:9px; }
+.bar{ display:grid; grid-template-columns: 62px 1fr 34px; align-items:center; gap:10px; }
+.bar .n{ font-family: var(--mono); font-size:10.5px; letter-spacing:.1em; color: var(--body); text-align:right; }
+.bar .t{ height:8px; background-color: var(--panel-2); position:relative; overflow:hidden; }
+.bar .t i{ display:block; height:100%; background-color: var(--gold-dim); }
+.bar.thin .t i{ background-color: var(--silent); }
+.bar .v{ font-family: var(--mono); font-size:10.5px; color: var(--dim); }
+.bar-cap{ font-family: var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color: var(--dimmer); margin:16px 0 8px; }
+
+.seam{ margin-top:8px; }
+.seam-row{ margin-bottom:22px; }
+.seam-row .lab{ font-family: var(--mono); font-size:11px; letter-spacing:.12em; color: var(--body); margin-bottom:10px; }
+.seam-row .lab b{ color: var(--gold); font-weight:400; }
+.seam-row.spell .lab b{ color: var(--rust); }
+.dots{ display:flex; flex-wrap:wrap; gap:4px; }
+.dots i{ width:9px; height:9px; background-color: var(--silent); border-radius:50%; display:block; }
+.dots i.on{ background-color: var(--gold); box-shadow:0 0 7px rgba(227,178,99,.5); }
+.dots i.sp{ background-color: var(--rust); box-shadow:0 0 7px rgba(207,122,94,.45); border-radius:1px; }
+
+.contradiction{ margin-top:46px; border:1px solid var(--rule-2); background-color: var(--panel); padding: 26px var(--pad,24px); }
+.contradiction .pair{ display:grid; gap:18px; grid-template-columns:1fr; align-items:center; }
+@media (min-width:700px){ .contradiction .pair{ grid-template-columns: 1fr 40px 1fr; } }
+.quote-cell{ font-family: var(--serif); font-size: clamp(16px,3vw,21px); line-height:1.35; color: var(--bright); font-style:italic; }
+.quote-cell small{ display:block; font-family: var(--mono); font-style:normal; font-size:10px; letter-spacing:.18em; text-transform:uppercase; color: var(--dimmer); margin-top:10px; }
+.versus{ font-family: var(--mono); font-size:11px; letter-spacing:.2em; color: var(--rust); text-align:center; }
+.quote-cell.gold{ color: var(--gold-2); }
+
+/* ============================================================
+   II. THE TURN
+   ============================================================ */
+.turn{ background-color: var(--ink); border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); }
+.turn-steps{ display:grid; gap:0; counter-reset: step; margin-top:10px; }
+.turn-steps li{
+  counter-increment: step;
+  font-family: var(--serif); font-size: clamp(17px,3.6vw,26px); line-height:1.35; color: var(--bright);
+  padding:16px 0 16px 52px; position:relative; border-bottom:1px solid var(--rule);
+}
+.turn-steps li::before{
+  content: counter(step,decimal-leading-zero);
+  position:absolute; left:0; top:22px;
+  font-family: var(--mono); font-size:10px; letter-spacing:.14em; color: var(--dimmer);
+}
+.turn-steps li:last-child{ border-bottom:0; color: var(--dim); }
+.turn-steps li.beat{ color: var(--rust); }
+
+/* ============================================================
+   THE NINE RUNS
+   ============================================================ */
+.run{ padding: 76px 0; border-bottom:1px solid var(--rule); }
+.run-head{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
+.run-num{
+  font-family: var(--mono); font-size:11px; letter-spacing:.2em; color: var(--gold);
+  border:1px solid var(--gold-dim); border-radius:2px; padding:3px 8px; background-color: rgba(227,178,99,.06);
+}
+.run-name{ font-family: var(--serif); font-weight:400; font-size: clamp(25px,5.6vw,42px); letter-spacing:-0.025em; line-height:1.05; color: var(--white); }
+.run-sub{ font-family: var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color: var(--dim); }
+
+.ins{
+  border-left:2px solid var(--gold); background-color: var(--gold-haze);
+  padding:18px 20px; margin:26px 0;
+}
+.ins .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--gold); display:block; margin-bottom:9px; }
+.ins p{ font-family: var(--serif); font-size: clamp(16px,2.9vw,21px); line-height:1.42; color: var(--gold-2); }
+.ins.ice{ border-left-color: var(--ice); background-color: var(--ice-haze); }
+.ins.ice .k{ color: var(--ice); } .ins.ice p{ color: var(--ice-2); }
+.ins.rust{ border-left-color: var(--rust); background-color: rgba(207,122,94,.09); }
+.ins.rust .k{ color: var(--rust); } .ins.rust p{ color: #edb8a4; }
+.ins.violet{ border-left-color: var(--violet); background-color: var(--violet-haze); }
+.ins.violet .k{ color: var(--violet); } .ins.violet p{ color: #dcc4f4; }
+
+/* --- I. Alien Anthropologist: observation ledger --- */
+.run-alien{ background-color: rgba(11,13,18,0.5); }
+.ledger{ border-top:1px solid var(--rule); }
+.ledger li{
+  display:grid; grid-template-columns: 44px 1fr; gap:14px;
+  padding:13px 0; border-bottom:1px solid var(--rule);
+  font-family: var(--serif); font-size: clamp(15px,2.5vw,17.5px); line-height:1.45; color: #9aa3b6;
+}
+.ledger li .ix{ font-family: var(--mono); font-size:9.5px; letter-spacing:.12em; color: var(--dimmer); padding-top:.5em; }
+.ledger li strong{ color: var(--bright); font-weight:400; }
+.specimen{
+  margin:34px 0; border:1px solid var(--rule-2); background-color: var(--ink);
+  padding:30px 22px; text-align:center;
+}
+.specimen .row{ display:flex; align-items:center; justify-content:center; gap:clamp(10px,4vw,34px); flex-wrap:wrap; }
+.specimen .w{ font-size: clamp(22px,6vw,38px); color: var(--bright); }
+.specimen .beside{ font-family: var(--mono); font-size:10px; letter-spacing:.2em; color: var(--dimmer); text-transform:uppercase; }
+.specimen .num{ font-family: var(--serif); font-size: clamp(46px,14vw,88px); line-height:1; color: var(--silent); margin:18px 0 6px; }
+.specimen .negs{ display:flex; gap:6px 18px; justify-content:center; flex-wrap:wrap; font-family: var(--mono); font-size:10.5px; letter-spacing:.1em; color: var(--dim); }
+.specimen .negs span{ text-decoration: line-through; text-decoration-color: var(--rust-dim); }
+
+/* --- II. Kill the Crown Jewel --- */
+.demolish{
+  position:relative; border:1px solid var(--rust-dim); background-color: rgba(122,66,47,.08);
+  padding:26px 20px; margin-bottom:34px; overflow:hidden;
+}
+.demolish .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--rust); margin-bottom:12px; }
+.demolish .target{
+  font-family: var(--serif); font-size: clamp(19px,4.6vw,34px); line-height:1.15; color: #6d7488;
+  position:relative; display:inline-block; letter-spacing:-0.02em;
+}
+.demolish .target::after{
+  content:""; position:absolute; left:-2%; right:-2%; top:52%; height:2px;
+  background-color: var(--rust); transform: rotate(-3deg); box-shadow:0 0 12px rgba(207,122,94,.5);
+}
+.survives{ font-family: var(--mono); font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color: var(--dim); margin-bottom:16px; }
+
+.chain{ margin:30px 0; padding:26px 18px; border:1px solid var(--rule-2); background-color: var(--ink); }
+.chain-line{ display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 2px; }
+.chain-w{ font-family: var(--serif); font-size: clamp(17px,4.2vw,27px); color: var(--bright); letter-spacing:.04em; padding:0 4px; }
+.chain-l{ display:flex; flex-direction:column; align-items:center; min-width:58px; padding:0 2px; }
+.chain-l span{ font-family: var(--mono); font-size:9px; letter-spacing:.14em; color: var(--gold); margin-bottom:4px; }
+.chain-l i{ display:block; width:100%; height:1px; background-image:linear-gradient(90deg, var(--rule-2), var(--gold-dim), var(--rule-2)); }
+.chain-cap{ text-align:center; font-family: var(--serif); font-style:italic; color: var(--gold-2); margin-top:20px; font-size:15px; }
+
+.ladder{ margin:28px 0; }
+.ladder li{ display:grid; grid-template-columns: 74px 1fr; gap:14px; padding:14px 0; border-top:1px solid var(--rule); align-items:baseline; }
+.ladder li .r{ font-family: var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color: var(--dim); }
+.ladder li .c{ font-family: var(--serif); font-size: clamp(16px,3vw,21px); line-height:1.35; color: var(--bright); }
+.ladder li:last-child{ border-bottom:1px solid var(--rule); }
+.ladder li:last-child .r{ color: var(--gold); }
+
+.plain{ display:grid; gap:0; }
+.plain li{ padding:11px 0 11px 20px; border-bottom:1px solid var(--rule); position:relative; font-size:15.5px; line-height:1.5; color: var(--body); }
+.plain li::before{ content:""; position:absolute; left:0; top:1.05em; width:7px; height:1px; background-color: var(--gold-dim); }
+.plain li:first-child{ border-top:1px solid var(--rule); }
+.plain li b{ color: var(--bright); font-weight:600; }
+.plain.ice li::before{ background-color: var(--ice-dim); }
+.plain.rust li::before{ background-color: var(--rust-dim); }
+.plain.violet li::before{ background-color: var(--violet-dim); }
+
+/* --- III. One Feature Only: the funnel --- */
+.run-one{ background-color: rgba(11,13,18,0.5); }
+.funnel{ display:grid; gap:9px; justify-items:center; margin: 8px 0 10px; }
+.funnel .fq{
+  width:100%; max-width: var(--fw, 100%);
+  border:1px solid var(--rule-2); background-color: var(--panel);
+  padding:14px 18px; text-align:center;
+  font-family: var(--serif); font-size: clamp(15px,2.8vw,19px); line-height:1.35; color: var(--body);
+}
+.funnel .fq b{ font-family: var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color: var(--dim); display:block; margin-bottom:7px; font-weight:400; }
+.funnel .fq:nth-child(1){ --fw:100%; }
+.funnel .fq:nth-child(2){ --fw:93%; }
+.funnel .fq:nth-child(3){ --fw:86%; }
+.funnel .fq:nth-child(4){ --fw:79%; }
+.funnel .fq:nth-child(5){ --fw:72%; }
+.narrow-out{ display:grid; gap:12px; margin-top:12px; justify-items:center; }
+.bottleneck{
+  width:100%; max-width:62%; min-width:250px; text-align:center;
+  border:1px solid var(--gold-dim); background-color: var(--gold-haze); padding:22px 18px;
+}
+.bottleneck.two-b{ max-width:70%; border-color: var(--ice-dim); background-color: var(--ice-haze); }
+.bottleneck .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--gold); display:block; margin-bottom:10px; }
+.bottleneck.two-b .k{ color: var(--ice); }
+.bottleneck p{ font-family: var(--serif); font-size: clamp(16px,3vw,21px); line-height:1.4; color: var(--gold-2); }
+.bottleneck.two-b p{ color: var(--ice-2); }
+.bottleneck .verb-swap{ font-family: var(--serif); font-size: clamp(22px,6vw,40px); letter-spacing:-0.02em; margin-bottom:8px; color: var(--white); }
+.bottleneck .verb-swap s{ color: var(--dimmer); text-decoration-color: var(--rust); }
+.bottleneck .verb-swap em{ color: var(--gold); font-style:normal; }
+@media (max-width:700px){ .funnel .fq{ max-width:100%; } .bottleneck, .bottleneck.two-b{ max-width:100%; min-width:0; } }
+
+/* --- IV. Shadow Work: strata --- */
+.strata{ border:1px solid var(--rule); border-bottom:0; }
+.strata li{
+  padding:18px 20px; border-bottom:1px solid var(--rule);
+  display:grid; grid-template-columns: 52px 1fr; gap:14px; align-items:baseline;
+  font-family: var(--sans); font-size:15.5px; line-height:1.55;
+}
+.strata li .d{ font-family: var(--mono); font-size:9.5px; letter-spacing:.1em; color: var(--dimmer); }
+.strata li:nth-child(1){ background-color:#0c0e13; color:#767f92; }
+.strata li:nth-child(2){ background-color:#0e1016; color:#818a9d; }
+.strata li:nth-child(3){ background-color:#101319; color:#8c95a8; }
+.strata li:nth-child(4){ background-color:#12151c; color:#97a0b3; }
+.strata li:nth-child(5){ background-color:#141820; color:#a2abbe; }
+.strata li:nth-child(6){ background-color:#171b24; color:#adb6c9; }
+.strata li strong{ color: var(--rust); font-weight:600; }
+.bedrock{
+  border:1px solid var(--rust-dim); border-top:2px solid var(--rust);
+  background-color: rgba(122,66,47,.1); padding:22px 20px; margin-top:0;
+}
+.bedrock .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--rust); display:block; margin-bottom:10px; }
+.bedrock p{ font-family: var(--serif); font-size: clamp(16px,3vw,21px); line-height:1.42; color:#edb8a4; }
+
+/* --- V. Dream Fusion --- */
+.run-fusion{ background-color: rgba(11,13,18,0.5); }
+.reaction{ display:grid; grid-template-columns:1fr; gap:0; border:1px solid var(--rule-2); margin:6px 0 30px; }
+@media (min-width:780px){ .reaction{ grid-template-columns: 1fr 58px 1fr; align-items:stretch; } }
+.vessel{ padding:24px 20px; background-color: var(--panel); }
+.vessel.b{ background-color: var(--panel-2); }
+.vessel .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--dim); display:block; margin-bottom:12px; }
+.vessel.a .k{ color: var(--violet); }
+.vessel.b .k{ color: var(--ice); }
+.vessel p{ font-family: var(--serif); font-size: clamp(15.5px,2.8vw,19px); line-height:1.45; color: var(--bright); }
+.joint{ display:flex; align-items:center; justify-content:center; background-color: var(--ink); border-top:1px solid var(--rule-2); border-bottom:1px solid var(--rule-2); padding:10px 0; }
+@media (min-width:780px){ .joint{ border:0; border-left:1px solid var(--rule-2); border-right:1px solid var(--rule-2); } }
+.joint span{ font-family: var(--mono); font-size:14px; color: var(--gold); letter-spacing:.1em; }
+
+.physics{ display:grid; gap:14px; grid-template-columns:1fr; margin:26px 0; }
+@media (min-width:640px){ .physics{ grid-template-columns:1fr 1fr; } }
+.phys{ border:1px solid var(--rule-2); background-color: var(--panel); padding:20px; }
+.phys .nm{ font-family: var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; margin-bottom:10px; }
+.phys.res .nm{ color: var(--gold); } .phys.ten .nm{ color: var(--ice); }
+.phys.res{ border-color: var(--gold-dim); } .phys.ten{ border-color: var(--ice-dim); }
+.phys p{ font-size:14.5px; color: var(--body); }
+.phys .def{ font-family: var(--serif); font-size:17px; color: var(--bright); margin-bottom:8px; }
+
+.outcards{ display:grid; gap:16px; grid-template-columns:1fr; margin:28px 0; }
+@media (min-width:620px){ .outcards{ grid-template-columns:1fr 1fr; } }
+.oc{ border:1px solid var(--rule-2); background-color: var(--ink); padding:22px 18px; position:relative; overflow:hidden; }
+.oc .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color: var(--dim); margin-bottom:14px; }
+.oc .big{ font-family: var(--serif); font-size: clamp(20px,4.6vw,28px); color: var(--bright); margin-bottom:12px; letter-spacing:.02em; }
+.oc p{ font-size:14px; color: var(--dim); }
+.oc.distil{ border-color: var(--gold-dim); }
+.oc.distil .k{ color: var(--gold); }
+.oc.paradox{ border-color: var(--violet-dim); }
+.oc.paradox .k{ color: var(--violet); }
+.oc.paradox .big{ color: var(--violet); }
+.oc.paradox::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background-image: linear-gradient(112deg, rgba(0,0,0,0) 46%, rgba(180,140,224,.16) 49%, rgba(0,0,0,0) 52%);
+}
+.pulse{ animation: breathe 4.5s ease-in-out infinite; }
+@keyframes breathe{ 0%,100%{ opacity:.55 } 50%{ opacity:1 } }
+
+/* --- VI. Verb Hunt --- */
+.verbs{ display:grid; grid-template-columns: repeat(2,1fr); gap:1px; background-color: var(--rule); border:1px solid var(--rule); }
+@media (min-width:620px){ .verbs{ grid-template-columns: repeat(3,1fr); } }
+@media (min-width:900px){ .verbs{ grid-template-columns: repeat(4,1fr); } }
+.vb{ background-color: var(--ink); padding:20px 14px 18px; transition: background-color .3s ease; }
+.vb:hover{ background-color: var(--panel-2); }
+.vb .vw{ font-family: var(--serif); font-size: clamp(21px,5vw,30px); line-height:1; color: var(--gold); letter-spacing:.01em; margin-bottom:11px; }
+.vb:nth-child(3n+2) .vw{ color: var(--ice); }
+.vb:nth-child(4n+3) .vw{ color: var(--violet); }
+.vb p{ font-size:13.5px; line-height:1.5; color: var(--dim); }
+
+/* --- VII. Opposition: the seam --- */
+.run-opp{ background-color: rgba(11,13,18,0.5); }
+.spine{ position:relative; margin: 6px 0 4px; }
+.spine::before{
+  content:""; position:absolute; left:9px; top:0; bottom:0; width:1px;
+  background-image: linear-gradient(180deg, rgba(0,0,0,0), var(--ice-dim) 12%, var(--gold-dim) 88%, rgba(0,0,0,0));
+}
+@media (min-width:820px){ .spine::before{ left:50%; } }
+.spine li{ position:relative; padding: 14px 0 14px 34px; }
+.spine li .dot{ position:absolute; left:5px; top:22px; width:9px; height:9px; border-radius:50%; background-color: var(--ink); border:1px solid var(--ice-dim); }
+.spine li .txt{ font-family: var(--serif); font-size: clamp(15.5px,3vw,19px); line-height:1.4; color: var(--bright); display:block; }
+@media (min-width:820px){
+  .spine li{ width:50%; padding:14px 34px 14px 0; text-align:right; }
+  .spine li:nth-child(even){ margin-left:50%; padding:14px 0 14px 34px; text-align:left; }
+  .spine li .dot{ left:auto; right:-5px; }
+  .spine li:nth-child(even) .dot{ left:-5px; right:auto; border-color: var(--gold-dim); }
+}
+.fatigue{ margin:32px 0; border:1px solid var(--gold-dim); background-color: var(--gold-haze); padding:24px 20px; }
+.fatigue .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--gold); margin-bottom:10px; }
+.fatigue p{ font-family: var(--serif); font-size: clamp(16px,3vw,21px); line-height:1.4; color: var(--gold-2); margin-bottom:22px; }
+.dull{ display:grid; grid-template-columns: repeat(5,1fr); gap:6px; }
+.dull .cel{ text-align:center; padding:14px 2px 10px; border:1px solid var(--rule-2); background-color: var(--ink); }
+.dull .cel .wd{ font-family: var(--serif); font-size: clamp(13px,3.2vw,18px); letter-spacing:.06em; }
+.dull .cel .tn{ font-family: var(--mono); font-size:8.5px; letter-spacing:.12em; color: var(--dimmer); margin-top:7px; text-transform:uppercase; }
+.dull .c1 .wd{ color: var(--gold); text-shadow:0 0 14px rgba(227,178,99,.6); }
+.dull .c2 .wd{ color: #6f5c39; }
+.dull .c3 .wd{ color: #7b6844; }
+.dull .c4 .wd{ color: #9d834f; }
+.dull .c5 .wd{ color: var(--gold); }
+.dull .c1{ border-color: var(--gold-dim); }
+.dull .c5{ border-color: var(--gold-dim); }
+
+/* --- VIII. Figures of Speech --- */
+.figs{ display:grid; grid-template-columns:1fr; gap:1px; background-color: var(--rule); border:1px solid var(--rule); margin:6px 0 24px; }
+@media (min-width:640px){ .figs{ grid-template-columns:1fr 1fr; } }
+@media (min-width:980px){ .figs{ grid-template-columns:1fr 1fr 1fr; } }
+.fig{ background-color: var(--ink); padding:22px 18px; display:flex; flex-direction:column; gap:12px; }
+.fig .gl{ height:34px; }
+.fig .gl svg{ height:34px; width:auto; overflow:visible; }
+.fig .nm{ font-family: var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color: var(--gold); }
+.fig p{ font-size:14px; line-height:1.55; color: var(--body); margin:0; }
+.fig .ex{ margin-top:auto; padding-top:10px; border-top:1px solid var(--rule); font-family: var(--serif); font-size:16px; letter-spacing:.05em; color: var(--bright); }
+.fig .ex small{ font-family: var(--mono); font-size:9.5px; letter-spacing:.14em; color: var(--dimmer); text-transform:uppercase; display:block; margin-top:5px; }
+
+/* --- IX. Structure & Shareability: the ticket --- */
+.ticket{
+  border:1px dashed var(--rule-2); background-color: var(--ink);
+  padding: 30px clamp(18px,5vw,34px); position:relative;
+  box-shadow: 0 24px 60px rgba(0,0,0,.45);
+}
+.ticket::before, .ticket::after{
+  content:""; position:absolute; width:22px; height:22px; border-radius:50%;
+  background-color: var(--void); top:50%; margin-top:-11px;
+}
+.ticket::before{ left:-11px; } .ticket::after{ right:-11px; }
+.ticket-h{ font-family: var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color: var(--dim); text-align:center; padding-bottom:18px; border-bottom:1px dashed var(--rule-2); margin-bottom:8px; }
+.ticket li{ padding:12px 0; border-bottom:1px dashed var(--rule); font-family: var(--serif); font-size: clamp(15px,2.8vw,18px); line-height:1.45; color: var(--bright); }
+.ticket li:last-child{ border-bottom:0; }
+.ticket li span{ font-family: var(--mono); font-size:9.5px; letter-spacing:.14em; color: var(--dimmer); display:block; margin-top:5px; text-transform:uppercase; }
+
+/* ============================================================
+   SYNTHESIS
+   ============================================================ */
+.synth{
+  padding: 92px 0 86px; border-top:1px solid var(--gold-dim); border-bottom:1px solid var(--rule);
+  background-color: #090a0e;
+  background-image: radial-gradient(900px 520px at 50% 0%, rgba(227,178,99,.085), rgba(0,0,0,0) 66%);
+}
+.verdict{ text-align:center; margin-bottom:56px; }
+.verdict .k{ font-family: var(--mono); font-size:10.5px; letter-spacing:.32em; text-transform:uppercase; color: var(--gold); margin-bottom:26px; }
+.verdict h2{
+  font-family: var(--serif); font-weight:400;
+  font-size: clamp(34px,10vw,84px); line-height:.98; letter-spacing:-0.035em; color: var(--white);
+  margin-bottom:34px; text-shadow:0 0 50px rgba(227,178,99,.2);
+}
+.swap{ display:flex; align-items:center; justify-content:center; gap: clamp(12px,5vw,44px); flex-wrap:wrap; margin-bottom:26px; }
+.swap .v{ font-family: var(--serif); font-size: clamp(38px,12vw,96px); line-height:1; letter-spacing:-0.03em; }
+.swap .from{ color: #4b5264; position:relative; }
+.swap .from::after{ content:""; position:absolute; left:-4%; right:-4%; top:52%; height:2px; background-color: var(--rust); transform:rotate(-6deg); }
+.swap .arw{ font-family: var(--mono); font-size: clamp(16px,4vw,26px); color: var(--dim); }
+.swap .to{ color: var(--gold); text-shadow:0 0 36px rgba(227,178,99,.5); }
+.swap-cap{ font-family: var(--serif); font-style:italic; font-size: clamp(16px,3.2vw,23px); color: var(--gold-2); }
+.verdict-body{ max-width:60ch; margin: 34px auto 0; font-size:16px; line-height:1.7; color: var(--body); text-align:left; }
+.verdict-body b{ color: var(--bright); }
+
+.twice{ display:grid; grid-template-columns:1fr; gap:1px; background-color: var(--rule); border:1px solid var(--rule); margin-bottom:48px; }
+@media (min-width:760px){ .twice{ grid-template-columns:1fr 1fr; } }
+.twice > div{ background-color: var(--ink); padding:26px 22px; }
+.twice .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color: var(--ice); margin-bottom:14px; }
+.twice .t{ font-family: var(--serif); font-size: clamp(19px,4vw,26px); line-height:1.2; color: var(--bright); margin-bottom:12px; letter-spacing:-0.01em; }
+.twice p{ font-size:14.5px; color: var(--dim); line-height:1.6; }
+.twice > div:nth-child(2) .k{ color: var(--violet); }
+.twice .above{ font-family: var(--mono); font-size:10.5px; letter-spacing:.06em; color: var(--body); margin-top:14px; padding-top:12px; border-top:1px solid var(--rule); }
+
+.reveal-demo{ display:grid; grid-template-columns:1fr; gap:18px; align-items:center; margin: 8px 0 46px; }
+@media (min-width:640px){ .reveal-demo{ grid-template-columns: 1fr 52px 1fr; } }
+.card{
+  border:1px solid var(--rule-2); background-color: var(--panel); padding:22px 16px; text-align:center;
+}
+.card .wd{ font-family: var(--serif); font-size: clamp(24px,6vw,36px); letter-spacing:.06em; color: var(--bright); margin-bottom:16px; }
+.card .tags{ display:flex; gap:5px; justify-content:center; flex-wrap:wrap; }
+.card .cap{ font-family: var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color: var(--dimmer); margin-top:16px; }
+.card.after{ border-color: var(--gold-dim); }
+.card.after .cap{ color: var(--gold); }
+.redact{ display:inline-block; width:44px; height:16px; background-color: #22293a; border-radius:2px; }
+.reveal-arw{ text-align:center; font-family: var(--mono); font-size:13px; color: var(--dim); }
+
+.steps{ position:relative; margin: 10px 0 44px; }
+.steps::before{ content:""; position:absolute; left:17px; top:24px; bottom:24px; width:1px; background-image:linear-gradient(180deg, var(--gold), var(--ice)); }
+.steps li{ position:relative; padding: 0 0 26px 54px; }
+.steps li:last-child{ padding-bottom:0; }
+.steps .n{
+  position:absolute; left:0; top:0; width:35px; height:35px; border-radius:50%;
+  background-color: var(--void); border:1px solid var(--gold-dim); color: var(--gold);
+  font-family: var(--mono); font-size:12px; display:flex; align-items:center; justify-content:center;
+}
+.steps .t{ font-family: var(--serif); font-size: clamp(18px,4vw,27px); line-height:1.25; color: var(--white); display:block; margin-top:3px; letter-spacing:-0.015em; }
+.steps .d{ font-family: var(--mono); font-size:10.5px; letter-spacing:.12em; color: var(--dim); display:block; margin-top:8px; }
+.companion{ border:1px solid var(--rule-2); background-color: var(--panel); padding:18px 20px; }
+.companion .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color: var(--dim); margin-bottom:10px; }
+.companion p{ font-family: var(--serif); font-size:17px; color: var(--bright); }
+
+.decisions{ display:grid; gap:14px; margin-top:44px; }
+.dec{ border-left:2px solid var(--ice); background-color: var(--ice-haze); padding:18px 20px; }
+.dec .k{ font-family: var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--ice); margin-bottom:9px; }
+.dec p{ font-size:15.5px; line-height:1.6; color: var(--ice-2); }
+
+/* ============================================================
+   MEASURED AFTER — the two visualisations
+   ============================================================ */
+.meas{ padding: 82px 0; border-bottom:1px solid var(--rule); }
+.claim{ font-family: var(--serif); font-size: clamp(17px,3.4vw,24px); line-height:1.45; color: var(--bright); max-width:38ch; margin-bottom:12px; }
+.claim em{ color: var(--gold); font-style:normal; }
+
+.viz{ border:1px solid var(--rule-2); background-color: var(--ink); padding: clamp(20px,4vw,32px); margin: 34px 0; }
+.viz-h{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:26px; padding-bottom:14px; border-bottom:1px solid var(--rule); }
+.viz-h h3{ font-family: var(--serif); font-weight:400; font-size: clamp(19px,4vw,26px); color: var(--white); letter-spacing:-0.015em; }
+.viz-h .n{ font-family: var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color: var(--dim); }
+
+.stack{ position:relative; height:66px; display:flex; border:1px solid var(--rule-2); overflow:hidden; margin-bottom:8px; }
+.stack .seg{ position:relative; height:100%; }
+.stack .s-res{ background-color: var(--gold-dim); background-image:linear-gradient(180deg, rgba(227,178,99,.36), rgba(227,178,99,.10)); }
+.stack .s-ten{ background-color: var(--ice-dim); background-image:linear-gradient(180deg, rgba(99,198,224,.34), rgba(99,198,224,.10)); }
+.stack .s-sil{ background-color: var(--silent); background-image:linear-gradient(180deg, rgba(120,130,150,.16), rgba(120,130,150,.04)); }
+.stack .both{
+  position:absolute; top:0; bottom:0; border-left:1px solid var(--violet); border-right:1px solid var(--violet);
+  background-image: repeating-linear-gradient(48deg, rgba(180,140,224,.42) 0 3px, rgba(180,140,224,0) 3px 8px);
+}
+.legend{ display:grid; gap:10px; grid-template-columns:1fr; margin-top:18px; }
+@media (min-width:700px){ .legend{ grid-template-columns: repeat(4,1fr); } }
+.lg{ border-top:1px solid var(--rule-2); padding-top:12px; }
+.lg .pc{ font-family: var(--serif); font-size: clamp(22px,5vw,31px); line-height:1; margin-bottom:7px; }
+.lg .nm{ font-family: var(--mono); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color: var(--dim); line-height:1.5; }
+.lg.res{ border-top-color: var(--gold-dim); } .lg.res .pc{ color: var(--gold); }
+.lg.ten{ border-top-color: var(--ice-dim); } .lg.ten .pc{ color: var(--ice); }
+.lg.sil{ border-top-color: var(--silent); } .lg.sil .pc{ color: #7f8799; }
+.lg.both{ border-top-color: var(--violet-dim); } .lg.both .pc{ color: var(--violet); }
+.lg.both .nm{ color: var(--violet); }
+
+.shared{ margin-top:34px; padding-top:26px; border-top:1px solid var(--rule); }
+.cols{ display:grid; grid-template-columns: repeat(4,1fr); gap:10px; align-items:end; height:150px; margin-top:16px; }
+.col{ display:flex; flex-direction:column; justify-content:flex-end; height:100%; }
+.col .bar-i{ width:100%; background-image:linear-gradient(180deg, var(--gold), var(--gold-dim)); }
+.col:nth-child(1) .bar-i{ background-image:linear-gradient(180deg, #4a5364, var(--silent)); }
+.col .pc{ font-family: var(--mono); font-size:11px; color: var(--bright); text-align:center; margin-bottom:7px; }
+.col .lb{ font-family: var(--mono); font-size:9.5px; letter-spacing:.14em; color: var(--dim); text-align:center; margin-top:9px; text-transform:uppercase; }
+
+.hand{ margin-top:34px; padding-top:26px; border-top:1px solid var(--rule); }
+.meters{ display:grid; gap:12px; grid-template-columns:1fr; margin:16px 0 30px; }
+@media (min-width:620px){ .meters{ grid-template-columns: repeat(3,1fr); } }
+.mtr .top{ display:flex; justify-content:space-between; font-family: var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color: var(--dim); margin-bottom:8px; }
+.mtr .top b{ font-weight:400; color: var(--bright); }
+.mtr .tr{ height:6px; background-color: var(--panel-2); }
+.mtr .tr i{ display:block; height:100%; }
+.mtr.res .tr i{ background-color: var(--gold); }
+.mtr.ten .tr i{ background-color: var(--ice); }
+.mtr.sil .tr i{ background-color: var(--silent); }
+
+.grid200{ display:grid; grid-template-columns: repeat(20, 1fr); gap:3px; margin:16px 0 14px; }
+@media (max-width:520px){ .grid200{ grid-template-columns: repeat(14,1fr); gap:2.5px; } }
+.grid200 i{ display:block; width:100%; aspect-ratio:1/1; border-radius:1px; background-color:#181d27; }
+.grid200 i.lit{ background-color: var(--ice); }
+.grid200 i.lit-g{ background-color: var(--gold-dim); }
+.grid200 i.dead{ background-color:#2a3140; box-shadow: 0 0 0 1px var(--rust); }
+.grid-cap{ display:flex; gap:8px 22px; flex-wrap:wrap; font-family: var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color: var(--dim); }
+.grid-cap b{ color: var(--ice); font-weight:400; }
+
+.opps{ display:flex; flex-wrap:wrap; gap:7px; margin:18px 0 12px; }
+.opp{
+  font-family: var(--mono); font-size:10px; letter-spacing:.1em; color: var(--body);
+  border:1px solid var(--rule-2); background-color: var(--panel-2); padding:5px 9px; border-radius:2px;
+}
+.opp b{ color: var(--ice); font-weight:400; }
+.opp i{ color: var(--dimmer); font-style:normal; padding:0 2px; }
+
+/* --- the decider --- */
+.decider{ display:grid; grid-template-columns:1fr; gap:1px; background-color: var(--rule-2); border:1px solid var(--rule-2); }
+@media (min-width:860px){ .decider{ grid-template-columns:1fr 1fr; } }
+.side{ background-color: var(--ink); padding: clamp(20px,3.6vw,30px); }
+.side .k{ font-family: var(--mono); font-size:10px; letter-spacing:.26em; text-transform:uppercase; margin-bottom:8px; }
+.side.a .k{ color: var(--rust); } .side.b .k{ color: var(--gold); }
+.side .hd{ font-family: var(--serif); font-size: clamp(20px,4.4vw,28px); line-height:1.15; color: var(--white); margin-bottom:6px; letter-spacing:-0.02em; }
+.side .sb{ font-family: var(--mono); font-size:10px; letter-spacing:.12em; color: var(--dim); text-transform:uppercase; margin-bottom:22px; }
+.side .headline{ font-family: var(--serif); font-size: clamp(30px,8vw,52px); line-height:1; margin:18px 0 6px; }
+.side.a .headline{ color: #6d7488; }
+.side.b .headline{ color: var(--gold); text-shadow:0 0 30px rgba(227,178,99,.35); }
+.side .hl-cap{ font-family: var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color: var(--dim); margin-bottom:20px; }
+.split3{ display:flex; height:30px; border:1px solid var(--rule-2); overflow:hidden; margin-bottom:12px; }
+.split3 .p1{ background-color: #2b3140; }
+.split3 .p2{ background-color: #343b4c; }
+.split3 .p3{ background-color: var(--rust-dim); }
+.split-key{ display:grid; gap:7px; }
+.split-key div{ display:grid; grid-template-columns: 46px 1fr; gap:10px; font-family: var(--mono); font-size:10px; letter-spacing:.08em; color: var(--dim); line-height:1.5; }
+.split-key b{ color: var(--body); font-weight:400; }
+.split-key .hi b{ color: var(--rust); }
+
+.decider-out{
+  border:1px solid var(--gold-dim); border-top:0; background-color: var(--gold-haze);
+  padding: clamp(22px,4vw,34px); text-align:center;
+}
+.decider-out p{ font-family: var(--serif); font-style:italic; font-size: clamp(18px,4.2vw,28px); line-height:1.35; color: var(--gold-2); max-width:26ch; margin:0 auto; }
+
+/* --- OWL / EYE --- */
+.owleye{ margin-top:52px; border:1px solid var(--violet-dim); background-color: rgba(91,67,128,.08); padding: clamp(24px,5vw,44px) clamp(18px,4vw,34px); }
+.oe-k{ font-family: var(--mono); font-size:10px; letter-spacing:.26em; text-transform:uppercase; color: var(--violet); text-align:center; margin-bottom:26px; }
+.oe-stage{ display:flex; align-items:center; justify-content:center; gap: clamp(10px,3vw,26px); flex-wrap:nowrap; }
+.oe-w{ font-family: var(--serif); font-size: clamp(30px,10vw,66px); line-height:1; letter-spacing:.04em; color: var(--white); flex:0 0 auto; }
+.oe-mid{ flex:1 1 auto; min-width:70px; max-width:320px; }
+.oe-axis{ margin:12px 0; text-align:center; }
+.oe-axis .lb{ font-family: var(--mono); font-size:9.5px; letter-spacing:.16em; color: var(--violet); margin-bottom:5px; }
+.oe-axis .ln{ height:1px; background-image:linear-gradient(90deg, var(--violet-dim), var(--violet), var(--violet-dim)); }
+.oe-verdict{ text-align:center; margin-top:34px; padding-top:26px; border-top:1px solid var(--violet-dim); }
+.oe-verdict .zero{ font-family: var(--serif); font-size: clamp(56px,16vw,110px); line-height:.9; color: #3b4252; }
+.oe-verdict p{ font-family: var(--serif); font-size: clamp(15px,3vw,20px); color: var(--bright); margin-top:12px; }
+.oe-count{ text-align:center; margin-top:30px; font-family: var(--mono); font-size:11px; letter-spacing:.1em; color: var(--dim); line-height:1.8; }
+.oe-count b{ color: var(--violet); font-size:16px; font-weight:400; font-family: var(--serif); }
+
+/* ============================================================
+   COLOPHON
+   ============================================================ */
+.colo{ padding:70px 0 90px; }
+.colo-grid{ display:grid; gap:34px; grid-template-columns:1fr; }
+@media (min-width:760px){ .colo-grid{ grid-template-columns: 1.3fr 1fr; gap:56px; } }
+.colo .last{ font-family: var(--serif); font-size: clamp(19px,4.4vw,30px); line-height:1.3; color: var(--gold-2); font-style:italic; letter-spacing:-0.01em; }
+.colo dl{ margin:0; }
+.colo dt{ font-family: var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color: var(--dimmer); margin-top:16px; }
+.colo dd{ margin:5px 0 0; font-size:14.5px; color: var(--body); }
+.colo dd:first-of-type{ margin-top:0; }
+.endmark{ margin-top:52px; padding-top:22px; border-top:1px solid var(--rule); display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; font-family: var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color: var(--dimmer); }
+.endmark b{ color: var(--gold); font-weight:400; }
+
+::selection{ background-color: rgba(227,178,99,.28); color: var(--white); }
+</style>
+</head>
+<body>
+
+<div id="meter" aria-hidden="true"><i></i></div>
+
+<!-- ===================== OVERTURE ===================== -->
+<header class="overture">
+  <svg class="harm" viewBox="0 0 1200 190" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path class="h1p" d="M0 95 q150 -80 300 0 q150 80 300 0 q150 -80 300 0 q150 80 300 0 q150 -80 300 0 q150 80 300 0"/>
+    <path class="h2p" d="M0 95 q75 -44 150 0 q75 44 150 0 q75 -44 150 0 q75 44 150 0 q75 -44 150 0 q75 44 150 0 q75 -44 150 0 q75 44 150 0 q75 -44 150 0 q75 44 150 0"/>
+    <path class="h3p" d="M0 95 q50 -28 100 0 q50 28 100 0 q50 -28 100 0 q50 28 100 0 q50 -28 100 0 q50 28 100 0 q50 -28 100 0 q50 28 100 0 q50 -28 100 0 q50 28 100 0 q50 -28 100 0 q50 28 100 0 q50 -28 100 0 q50 28 100 0"/>
+    <path class="h4p" d="M0 95 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0 q37.5 -18 75 0 q37.5 18 75 0"/>
+    <path class="h5p" d="M0 95 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0 q30 -12 60 0 q30 12 60 0"/>
+  </svg>
+
+  <div class="wrap">
+    <div class="stamp">
+      <span>Brainstorming session</span>
+      <span>2026&#8209;09&#8209;17</span>
+      <span>Mode: autonomous</span>
+      <span>Status: <b>complete</b></span>
+      <span>Nine runs</span>
+    </div>
+
+    <h1 class="wordmark">OVER<span>TONE</span></h1>
+    <p class="sub">A word game about the overtones of meaning, which turned out to be sitting on a better game than the one built on top of it.</p>
+
+    <div class="qa">
+      <div class="topic">
+        <span class="lbl">Topic</span>
+        <p>Overtone plays boring. The idea is praised, the playing is not. What would make the moment-to-moment actually fun?</p>
+      </div>
+      <div>
+        <span class="lbl">Goal</span>
+        <p>A direction for the core loop, with permission to rebuild it from scratch. The assets stay — 249-word lexicon, 19-tag ontology, card art, audio. The loop does not have to.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== I. GROUND TRUTH ===================== -->
+<section class="sec">
+  <div class="wrap">
+    <div class="eyebrow rv"><span class="num">I</span> &nbsp;·&nbsp; Measured ground truth, before any idea</div>
+    <h2 class="sec-h rv">What was actually on the table</h2>
+    <p class="standfirst rv">249 words. 19 overtones. 3.23 tags per word. A lexicon small enough to hold in one hand and measure end to end.</p>
+
+    <div class="stats rv">
+      <div class="stat"><b>249</b><span>Words in the lexicon</span></div>
+      <div class="stat"><b>19</b><span>Overtones</span></div>
+      <div class="stat"><b>3.23</b><span>Tags per word<br>min 1 · max 5</span></div>
+      <div class="stat"><b>2–11</b><span>Letters per word</span></div>
+      <div class="stat"><b>18</b><span>Demands</span></div>
+      <div class="stat"><b>30</b><span>Lenses · 5 slots</span></div>
+      <div class="stat"><b>9</b><span>Ordeals</span></div>
+      <div class="stat"><b>32</b><span>Plays per run<br>8 rounds · hand of 7</span></div>
+    </div>
+
+    <div class="two">
+      <div class="rv">
+        <div class="blk-h">Tag frequency is lopsided</div>
+        <div class="bar-cap">The heavy end · of 249 words</div>
+        <div class="bars">
+          <div class="bar"><span class="n">DANGER</span><span class="t"><i style="width:100%"></i></span><span class="v">85</span></div>
+          <div class="bar"><span class="n">MOTION</span><span class="t"><i style="width:97.6%"></i></span><span class="v">83</span></div>
+          <div class="bar"><span class="n">NATURE</span><span class="t"><i style="width:72.9%"></i></span><span class="v">62</span></div>
+          <div class="bar"><span class="n">TIME</span><span class="t"><i style="width:67%"></i></span><span class="v">57</span></div>
+        </div>
+        <div class="bar-cap">The thin end</div>
+        <div class="bars">
+          <div class="bar thin"><span class="n">TECH</span><span class="t"><i style="width:25.9%"></i></span><span class="v">22</span></div>
+          <div class="bar thin"><span class="n">MONEY</span><span class="t"><i style="width:25.9%"></i></span><span class="v">22</span></div>
+          <div class="bar thin"><span class="n">FOOD</span><span class="t"><i style="width:24.7%"></i></span><span class="v">21</span></div>
+          <div class="bar thin"><span class="n">PLANT</span><span class="t"><i style="width:23.5%"></i></span><span class="v">20</span></div>
+        </div>
+        <p class="note" style="margin-top:18px;">Nineteen categories for all of existence,<br>and a third of everything is DANGER.</p>
+      </div>
+
+      <div class="rv">
+        <div class="blk-h">The seam nobody had named</div>
+        <div class="seam">
+          <div class="seam-row">
+            <div class="lab"><b>26 of 30</b> Lenses read MEANING (tags)</div>
+            <div class="dots" id="lensDots" aria-hidden="true"></div>
+          </div>
+          <div class="seam-row spell">
+            <div class="lab"><b>5 of 5</b> figures — the multiplier source — read SPELLING</div>
+            <div class="dots" id="figDots" aria-hidden="true"></div>
+            <p class="note" style="margin-top:12px;">same first letter · letter-chaining · same length<br>length steps · same length again</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contradiction rv">
+      <div class="pair">
+        <div class="quote-cell">“what a word means never scores a point”<small>The tutorial. And the help panel.</small></div>
+        <div class="versus">against</div>
+        <div class="quote-cell gold">“Meaning is the physics”<small>The tagline</small></div>
+      </div>
+      <p class="note" style="margin-top:24px; border-top:1px solid var(--rule); padding-top:18px;">And: the board computes and displays the score of a selection BEFORE the player commits.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== II. THE TURN ===================== -->
+<section class="sec turn">
+  <div class="wrap">
+    <div class="eyebrow rv"><span class="num">II</span> &nbsp;·&nbsp; The turn, written out</div>
+    <h2 class="sec-h rv">Thirty-two times</h2>
+    <ol class="turn-steps rv">
+      <li>Scan seven tag rows.</li>
+      <li>Find which cards carry a gold (demanded) tag.</li>
+      <li>Check lengths and initials for a figure.</li>
+      <li>Order three.</li>
+      <li>Press PLAY.</li>
+      <li class="beat">Watch ~900ms of numbers.</li>
+      <li>Repeat 31 more times.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================== RUN I — ALIEN ANTHROPOLOGIST ===================== -->
+<section class="run run-alien">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN I</span>
+      <h2 class="run-name">Alien Anthropologist</h2>
+    </div>
+    <p class="standfirst rv">“The most beautiful thing on the table — a hand of English nouns — is the part the rules tell the human to ignore.”</p>
+
+    <div class="specimen rv">
+      <div class="row">
+        <span class="w">CAVERN</span>
+        <span class="beside">beside</span>
+        <span class="w">FROST</span>
+      </div>
+      <div class="num">150</div>
+      <div class="negs">
+        <span>not cold</span><span>not depth</span><span>not the specific silence of a cold hollow</span>
+      </div>
+    </div>
+
+    <ol class="ledger rv">
+      <li><span class="ix">OBS 01</span><span>The human is given seven words of their own language and the first thing they do is <strong>stop reading them</strong>.</span></li>
+      <li><span class="ix">OBS 02</span><span>They read small grey labels under each word. The labels say what the word means. The human already knew what the word means.</span></li>
+      <li><span class="ix">OBS 03</span><span>The machine prints the answer on the card before the human chooses, then congratulates them for choosing.</span></li>
+      <li><span class="ix">OBS 04</span><span>Three words are laid side by side and nothing happens between them. <strong>Putting two words together is the entire art</strong>, and here it is a row.</span></li>
+      <li><span class="ix">OBS 05</span><span>The human has a language of enormous subtlety and is counting letters with it.</span></li>
+      <li><span class="ix">OBS 06</span><span>Nothing on the table remembers anything. Each turn the table is as it was.</span></li>
+      <li><span class="ix">OBS 07</span><span>There is no opponent. The human plays against a number decided before they sat down.</span></li>
+      <li><span class="ix">OBS 08</span><span>Four plays, and all four are used every time. That is not a choice, it is a length.</span></li>
+      <li><span class="ix">OBS 09</span><span>Discarding gets different LABELS, not different words.</span></li>
+      <li><span class="ix">OBS 10</span><span>When the human wins, nothing exists that did not exist before. No sentence was written. No object was made.</span></li>
+      <li><span class="ix">OBS 11</span><span>Nineteen categories for all of existence, and a third of everything is DANGER.</span></li>
+      <li><span class="ix">OBS 12</span><span>A game about words in which <strong>the human never utters one</strong>.</span></li>
+      <li><span class="ix">OBS 13</span><span>Tags are drawn as small boxes. Boxes are how you store what you are not using.</span></li>
+      <li><span class="ix">OBS 14</span><span>The gold stripe tells the human which cards are correct, then asks them to choose.</span></li>
+      <li><span class="ix">OBS 15</span><span>Two humans playing on the same day produce identical play and can tell each other nothing about it afterwards.</span></li>
+      <li><span class="ix">OBS 16</span><span>The scoring animation is the game's most expensive moment and the human presses space to get past it.</span></li>
+      <li><span class="ix">OBS 17</span><span>There is a shop, and money, and a shopkeeper with a name. None of them are ever seen. <strong>The Bookseller is a menu.</strong></span></li>
+    </ol>
+
+    <div class="ins rv">
+      <span class="k">Insight — the pun the game made and does not know it</span>
+      <p>They call the shapes “figures” and the shapes are about spelling. In rhetoric a figure <em>is</em> a turn of meaning — metaphor, antithesis, chiasmus.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RUN II — KILL THE CROWN JEWEL ===================== -->
+<section class="run">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN II</span>
+      <h2 class="run-name">Kill the Crown Jewel</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">Delete the Lens engine and points × multiplier</p>
+
+    <div class="demolish rv">
+      <div class="k">Removed</div>
+      <div class="target">THE LENS ENGINE &nbsp;·&nbsp; POINTS × MULTIPLIER</div>
+    </div>
+
+    <div class="rv">
+      <div class="survives">What survives</div>
+      <ul class="plain">
+        <li><b>249 words with 19 dimensions of meaning</b> — a semantic space. The game becomes navigation, not accountancy.</li>
+        <li>Without a multiplier there is no exponential target, so “survive 8 rounds” dies too. A run becomes a journey, a construction, or a conversation.</li>
+      </ul>
+    </div>
+
+    <div class="chain rv">
+      <div class="chain-line">
+        <span class="chain-w">FURNACE</span>
+        <span class="chain-l"><span>HEAT</span><i></i></span>
+        <span class="chain-w">EMBER</span>
+        <span class="chain-l"><span>BRIGHT</span><i></i></span>
+        <span class="chain-w">CHOIR</span>
+        <span class="chain-l"><span>LOUD</span><i></i></span>
+        <span class="chain-w">DRONE</span>
+      </div>
+      <p class="chain-cap">Play a word sharing an overtone with the last. The chain is the artifact, and it reads back as a poem.</p>
+    </div>
+
+    <div class="ins rv">
+      <span class="k">Insight — escalate the CONSTRAINT, not the target</span>
+      <p>Difficulty becomes the sentence you are asked to write.</p>
+    </div>
+
+    <ol class="ladder rv">
+      <li><span class="r">Round 1</span><span class="c">Say something COLD.</span></li>
+      <li><span class="r">Round 8</span><span class="c">Say something COLD and BRIGHT, without NATURE, in four words, each shorter than the last.</span></li>
+    </ol>
+
+    <ul class="plain rv">
+      <li>Score becomes how far you got, how strange the path, whether you returned home.</li>
+      <li>The Demand becomes a <b>DESTINATION</b> rather than a filter. “Get from WINTER to FURNACE in five words.”</li>
+      <li>Progression becomes the words you keep. You build a vocabulary, not a machine.</li>
+      <li>Kill the numbers and the feedback is the line you made, read aloud. The audio assets already exist.</li>
+      <li>Kill the hand. Give the whole lexicon and a constraint.</li>
+      <li>The daily becomes: same seven words for everyone, and you compare what you <b>SAID</b>.</li>
+      <li>The shareable is a line of poetry rather than a number.</li>
+      <li>“Pick 3” becomes “play 1, and the table answers”.</li>
+      <li>The game plays back — you play FROST, it answers with a word sharing an overtone, you must answer that. An opponent, and a rally.</li>
+      <li>Each word sounds a tone derived from its tags. A chain is a melody.</li>
+      <li>A run ends with the poem you wrote and the machine's reply to it.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== RUN III — ONE FEATURE ONLY ===================== -->
+<section class="run run-one">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN III</span>
+      <h2 class="run-name">One Feature Only</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">Everything else is scaffolding</p>
+
+    <div class="funnel rv">
+      <div class="fq"><b>Keep only</b>Two words next to each other make a third thing.</div>
+      <div class="fq"><b>Keep only</b>The ontology, expressed as a space you move through rather than a table you look up.</div>
+      <div class="fq"><b>Keep only</b>The daily shared hand, and the comparison.</div>
+      <div class="fq"><b>Keep only</b>The tension of spend-now or hold.</div>
+      <div class="fq"><b>Keep only</b>Naming — the player names what they made and the game says what it means.</div>
+    </div>
+
+    <div class="narrow-out rv">
+      <div class="bottleneck">
+        <span class="k">If one verb survives</span>
+        <div class="verb-swap"><s>PICK</s> &nbsp;→&nbsp; <em>JOIN</em></div>
+        <p>Pick is selection. Join is creation. The whole boredom diagnosis is that Overtone's verb is PICK.</p>
+      </div>
+      <div class="bottleneck two-b">
+        <span class="k">Keep only this</span>
+        <p><strong style="color:var(--white)">THE TAGS ARE HIDDEN.</strong> Then the player uses their own knowledge of English, and “meaning is the physics” is finally true. The game is boring because it prints its own answer.</p>
+      </div>
+    </div>
+
+    <ul class="plain ice rv" style="margin-top:34px;">
+      <li>Softer version — tags revealed only for words you have played before, so the lexicon is something you learn across runs.</li>
+      <li>The round's Demand is a <b>WORD</b>, not a tag list. “THE THAW wants words like THAW.” You judge the likeness yourself.</li>
+      <li>Reveal a card's tags on demand, but it costs something.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== RUN IV — SHADOW WORK MINING ===================== -->
+<section class="run">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN IV</span>
+      <h2 class="run-name">Shadow Work Mining</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">The thing being avoided</p>
+
+    <ol class="strata rv">
+      <li><span class="d">−1</span><span>Overtone is <strong>Balatro with a thesaurus</strong>. Everyone can feel the skeleton. The words are a costume on a scoring machine.</span></li>
+      <li><span class="d">−2</span><span>249 words is small. A word game people replay needs either a large vocabulary or deep interaction with a small one. It currently has neither.</span></li>
+      <li><span class="d">−3</span><span>The game is solvable by brute force. The preview scores the selection, so an optimiser scans 210 ordered triples. The “decision” is arithmetic the game already did.</span></li>
+      <li><span class="d">−4</span><span>Nothing is at stake inside a turn. You cannot lose a turn. You can only score less.</span></li>
+      <li><span class="d">−5</span><span>There is no interesting failure. You simply do not reach a number.</span></li>
+      <li><span class="d">−6</span><span>The theme is gorgeous and <strong>the verbs are accountancy</strong>.</span></li>
+    </ol>
+
+    <div class="bedrock rv">
+      <span class="k">Bedrock</span>
+      <p>Every recent improvement — the scoring animation, the figure ledger, the balance passes — polished the scoring layer. The scoring layer is not the problem. The problem is one layer up: <strong style="color:var(--white)">what the player is deciding</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RUN V — DREAM FUSION LABORATORY ===================== -->
+<section class="run run-fusion">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN V</span>
+      <h2 class="run-name">Dream Fusion Laboratory</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">The fantasy, and the bridge back to what is buildable</p>
+
+    <div class="reaction rv">
+      <div class="vessel a">
+        <span class="k">Fantasy</span>
+        <p>You type a sentence, the game understands it, scores its beauty and answers in kind.</p>
+      </div>
+      <div class="joint"><span>⤫</span></div>
+      <div class="vessel b">
+        <span class="k">Bridge</span>
+        <p>Arbitrary English cannot be parsed offline — but 249 × 19 is a tiny matrix. Precompute every PAIR's relationship: shared overtones, opposed overtones, distance.</p>
+      </div>
+    </div>
+
+    <div class="ins rv">
+      <span class="k">Insight — the new physics</span>
+      <p>Make word-to-word the physics, not word-to-checklist. ANTONYM ENGINE is already the most interesting Lens in the game. It should be the core, not an item.</p>
+    </div>
+
+    <div class="physics rv">
+      <div class="phys res">
+        <div class="nm">Resonance</div>
+        <div class="def">A shared overtone.</div>
+        <p>Safe and small.</p>
+      </div>
+      <div class="phys ten">
+        <div class="nm">Tension</div>
+        <div class="def">An opposed pair — HEAT/COLD, DARK/BRIGHT, ABSTRACT/concrete.</div>
+        <p>Large and risky. Every placement becomes a judgement about meaning.</p>
+      </div>
+    </div>
+
+    <div class="outcards rv">
+      <div class="oc distil">
+        <div class="k">Product of a shared overtone</div>
+        <div class="big">Distillate</div>
+        <p>A pair with a shared overtone distils into a new card carrying only that overtone.</p>
+      </div>
+      <div class="oc paradox">
+        <div class="k">Product of an opposition</div>
+        <div class="big pulse">Paradox</div>
+        <p>A pair with opposed overtones makes a paradox card — worth more, unstable.</p>
+      </div>
+    </div>
+
+    <ul class="plain violet rv">
+      <li>The game reads your play back with connectives: “FROST, and then the CHOIR.”</li>
+      <li>Compose left to right where each word modifies the next, adjective-to-noun.</li>
+    </ul>
+
+    <div class="ins violet rv">
+      <span class="k">Insight — you write your jokers instead of buying them</span>
+      <p>A line you played becomes a Lens for the rest of the run, named after itself. This solves expression, persistence and the invisible shop in one move.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RUN VI — VERB HUNT ===================== -->
+<section class="run">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN VI</span>
+      <h2 class="run-name">Verb Hunt</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">What the hands actually do</p>
+
+    <div class="verbs rv">
+      <div class="vb"><div class="vw">DRAG</div><p>One word onto another, to fuse them.</p></div>
+      <div class="vb"><div class="vw">SLOT</div><p>Words into a sentence frame — “The ___ ___s the ___.”</p></div>
+      <div class="vb"><div class="vw">PLACE</div><p>Words on a grid where adjacency scores. A crossword of meaning.</p></div>
+      <div class="vb"><div class="vw">ROTATE</div><p>A card, to choose which overtone is active. A four-tag word becomes a four-sided die you orient.</p></div>
+      <div class="vb"><div class="vw">STACK</div><p>Words, so later ones inherit or overwrite tags.</p></div>
+      <div class="vb"><div class="vw">SPEAK</div><p>A word, and spend it permanently. The perfect word costs you the word.</p></div>
+      <div class="vb"><div class="vw">TRADE</div><p>Give the game a word, it gives you one back.</p></div>
+      <div class="vb"><div class="vw">BURY</div><p>A word, to make its overtone the theme of the round.</p></div>
+      <div class="vb"><div class="vw">SPLIT</div><p>A word — take one overtone off it and keep it as a token.</p></div>
+      <div class="vb"><div class="vw">SHARPEN</div><p>A word — remove overtones so it means fewer things, more strongly.</p></div>
+      <div class="vb"><div class="vw">TUNE</div><p>Two words held together and pulled apart.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RUN VII — OPPOSITION DESIGN ===================== -->
+<section class="run run-opp">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN VII</span>
+      <h2 class="run-name">Opposition Design</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">Why you want the next turn</p>
+
+    <ul class="spine rv">
+      <li><span class="dot"></span><span class="txt">A rival who plays after you and takes overtones off the table.</span></li>
+      <li><span class="dot"></span><span class="txt">A listener you must convince, who is bored by repetition — COLD twice pays less than COLD once.</span></li>
+      <li><span class="dot"></span><span class="txt">The round DRIFTS — after each play the demand moves toward what you played, or away from it.</span></li>
+      <li><span class="dot"></span><span class="txt">The table answers with a word and you must top it.</span></li>
+      <li><span class="dot"></span><span class="txt">A diegetic clock — the candle, the thaw, the tide — rather than a play counter.</span></li>
+      <li><span class="dot"></span><span class="txt">Something on the table that persists and grows: a poem, a structure, a creature.</span></li>
+      <li><span class="dot"></span><span class="txt">Remove the score preview. Let the player be wrong, and let being wrong be interesting.</span></li>
+      <li><span class="dot"></span><span class="txt">Fewer, heavier turns. Twelve rich decisions beat thirty-two thin ones.</span></li>
+      <li><span class="dot"></span><span class="txt">One hand per round instead of four plays, so each play carries weight.</span></li>
+      <li><span class="dot"></span><span class="txt">Make discarding cost something real. Four free discards is churn.</span></li>
+    </ul>
+
+    <div class="fatigue rv">
+      <div class="k">Insight — the cheapest large win</div>
+      <p><strong style="color:var(--white)">FATIGUE.</strong> An overtone you used goes dull for a few turns. One rule, and the same play twice stops working — which is the whole repetition complaint, answered cheaply.</p>
+      <div class="dull" aria-hidden="true">
+        <div class="cel c1"><div class="wd">COLD</div><div class="tn">played</div></div>
+        <div class="cel c2"><div class="wd">COLD</div><div class="tn">dull</div></div>
+        <div class="cel c3"><div class="wd">COLD</div><div class="tn">dull</div></div>
+        <div class="cel c4"><div class="wd">COLD</div><div class="tn">waking</div></div>
+        <div class="cel c5"><div class="wd">COLD</div><div class="tn">clear</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RUN VIII — FIGURES OF SPEECH ===================== -->
+<section class="run">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN VIII</span>
+      <h2 class="run-name">Figures of Speech</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">Following the pun</p>
+
+    <div class="ins rv" style="margin-top:0;">
+      <span class="k">Insight — close the seam</span>
+      <p>Replace the five spelling shapes with five rhetorical ones, read off the tag matrix. This closes the seam between the poetic layer and the mechanical layer, and it is the single most on-theme change available.</p>
+    </div>
+
+    <div class="figs rv">
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><line x1="4" y1="17" x2="28" y2="17" stroke="#e3b263" stroke-width="1.5"/><path d="M28 17 l-6 -4 M28 17 l-6 4" stroke="#e3b263" stroke-width="1.5" fill="none"/><line x1="66" y1="17" x2="42" y2="17" stroke="#63c6e0" stroke-width="1.5"/><path d="M42 17 l6 -4 M42 17 l6 4" stroke="#63c6e0" stroke-width="1.5" fill="none"/><line x1="35" y1="4" x2="35" y2="30" stroke="#2b3345" stroke-width="1"/></svg></div>
+        <div class="nm">Antithesis</div>
+        <p>Two words with opposed overtones.</p>
+        <div class="ex">FURNACE · FROST<small>Opposed</small></div>
+      </div>
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><circle cx="28" cy="17" r="12" fill="rgba(227,178,99,.13)" stroke="#8a6c36" stroke-width="1"/><circle cx="42" cy="17" r="12" fill="rgba(227,178,99,.13)" stroke="#8a6c36" stroke-width="1"/><path d="M35 6.2 a12 12 0 0 0 0 21.6 a12 12 0 0 0 0 -21.6z" fill="rgba(227,178,99,.34)"/></svg></div>
+        <div class="nm">Synonymy</div>
+        <p>Two words sharing three or more overtones.</p>
+        <div class="ex">Near-repetition<small>Safe · small</small></div>
+      </div>
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><rect x="10" y="22" width="12" height="10" fill="#8a6c36"/><rect x="28" y="14" width="12" height="18" fill="#c09850"/><rect x="46" y="4" width="12" height="28" fill="#e3b263"/></svg></div>
+        <div class="nm">Escalation</div>
+        <p>Three words with a rising count of shared overtones.</p>
+        <div class="ex">1 → 2 → 3<small>Rising</small></div>
+      </div>
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><circle cx="18" cy="17" r="11" fill="none" stroke="#b48ce0" stroke-width="1.2"/><circle cx="52" cy="17" r="11" fill="none" stroke="#b48ce0" stroke-width="1.2"/><line x1="31" y1="17" x2="39" y2="17" stroke="#2b3345" stroke-width="1" stroke-dasharray="2 3"/></svg></div>
+        <div class="nm">Juxtaposition</div>
+        <p>Two words sharing nothing at all. The surreal one.</p>
+        <div class="ex">Pays most<small>Hardest to use</small></div>
+      </div>
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><path d="M8 6 C26 6 44 28 62 28" fill="none" stroke="#e3b263" stroke-width="1.5"/><path d="M8 28 C26 28 44 6 62 6" fill="none" stroke="#63c6e0" stroke-width="1.5"/></svg></div>
+        <div class="nm">Synaesthesia</div>
+        <p>A word that is LOUD next to one that is BRIGHT.</p>
+        <div class="ex">Already a Lens<small>Promote it</small></div>
+      </div>
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><circle cx="16" cy="17" r="9" fill="rgba(227,178,99,.3)" stroke="#e3b263" stroke-width="1"/><circle cx="54" cy="17" r="9" fill="none" stroke="#39414f" stroke-width="1"/><path d="M27 17 C34 17 38 17 44 17" fill="none" stroke="#e3b263" stroke-width="1.2" stroke-dasharray="3 3"/><path d="M44 17 l-5 -3.5 M44 17 l-5 3.5" stroke="#e3b263" stroke-width="1.2" fill="none"/></svg></div>
+        <div class="nm">Metonymy</div>
+        <p>A word carrying an overtone the round wants, placed beside one that does not — lending it.</p>
+        <div class="ex">Lend<small>Carrier · borrower</small></div>
+      </div>
+      <div class="fig">
+        <div class="gl"><svg viewBox="0 0 70 34" width="70" height="34" aria-hidden="true"><path d="M8 7 L62 27" fill="none" stroke="#e3b263" stroke-width="1.3"/><path d="M8 27 L62 7" fill="none" stroke="#63c6e0" stroke-width="1.3"/><circle cx="8" cy="7" r="2.5" fill="#e3b263"/><circle cx="62" cy="27" r="2.5" fill="#e3b263"/><circle cx="8" cy="27" r="2.5" fill="#63c6e0"/><circle cx="62" cy="7" r="2.5" fill="#63c6e0"/></svg></div>
+        <div class="nm">Chiasmus</div>
+        <p>Four words whose overtones mirror.</p>
+        <div class="ex">A · B · B · A<small>Mirrored</small></div>
+      </div>
+    </div>
+
+    <ul class="plain rv">
+      <li>The figure <b>NAMES itself</b> in rhetorical language, so a player learns real words for what they just did.</li>
+      <li>Figures become the thing you collect and master across runs — which is what the ledger was reaching for, but on the wrong axis.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== RUN IX — STRUCTURE AND SHAREABILITY ===================== -->
+<section class="run">
+  <div class="wrap">
+    <div class="run-head rv">
+      <span class="run-num">RUN IX</span>
+      <h2 class="run-name">Structure and Shareability</h2>
+    </div>
+    <p class="run-sub rv" style="margin-bottom:34px;">What leaves the table with you</p>
+
+    <div class="ticket rv">
+      <div class="ticket-h">Overtone &nbsp;·&nbsp; end of run</div>
+      <ul>
+        <li>A run's artifact is the poem, not the score.</li>
+        <li>Daily leaderboard ranks the best LINE, not the biggest number.</li>
+        <li>The run ends on a printable card of what you wrote.</li>
+        <li>Words age — one you keep across rounds wears, and its meaning drifts.</li>
+        <li>Words combine into words not in the lexicon, and the game names them.</li>
+        <li>The deck is a library and you are the librarian. <span>Rounds are requests from readers.</span></li>
+        <li>Overtone as a duet — you and the machine alternate, building one poem together.</li>
+        <li>Keep the daily seed. <span>It is the one piece of the current structure that creates conversation.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SYNTHESIS ===================== -->
+<section class="synth">
+  <div class="wrap">
+    <div class="verdict rv">
+      <div class="k">Synthesis</div>
+      <h2>THE VERB IS WRONG</h2>
+      <div class="swap">
+        <span class="v from">PICK</span>
+        <span class="arw">▸▸▸</span>
+        <span class="v to">JOIN</span>
+      </div>
+      <p class="swap-cap">Pick is selection. Join is creation.</p>
+      <div class="verdict-body">
+        <p>Overtone's verb is PICK — choose 3 of 7 against a checklist the game has already scored for you. <b>Every symptom the players report follows from it:</b> no skill expression, no composition, no surprise, no artifact, no reason to tell anyone about it.</p>
+        <p>The fix is not a better scoring curve. It is a different verb.</p>
+      </div>
+    </div>
+
+    <h3 class="blk-h rv" style="margin-bottom:22px;">The game already contains its own answer — twice over</h3>
+    <div class="twice rv">
+      <div>
+        <div class="k">Answer one</div>
+        <div class="t">ANTONYM ENGINE</div>
+        <p>“A HEAT word straight after a COLD one.” The only Lens where two words in the hand interact with each other — and the most interesting thing in the file.</p>
+        <div class="above">It should be the core, not an item.</div>
+      </div>
+      <div>
+        <div class="k">Answer two</div>
+        <div class="t">The word “figure”</div>
+        <p>In rhetoric it already means a turn of MEANING. The code uses it for spelling.</p>
+        <div class="above">Both are the game pointing at the design it should have had.</div>
+      </div>
+    </div>
+
+    <h3 class="blk-h rv" style="margin:52px 0 22px;">The load-bearing change</h3>
+    <div class="reveal-demo rv">
+      <div class="card">
+        <div class="wd">FURNACE</div>
+        <div class="tags"><span class="tag gold">HEAT</span><span class="tag blank">····</span><span class="tag blank">····</span></div>
+        <div class="cap">Now — the card prints its own answer</div>
+      </div>
+      <div class="reveal-arw">▸▸</div>
+      <div class="card after">
+        <div class="wd">FURNACE</div>
+        <div class="tags"><span class="redact"></span><span class="redact"></span><span class="redact"></span></div>
+        <div class="cap">Hidden — your English is the skill</div>
+      </div>
+    </div>
+    <div class="ins rv" style="margin-top:0;">
+      <span class="k">Insight</span>
+      <p>While the card prints its own overtones and the board prints the score before you commit, there is no judgement left to make and no way to be cleverer than the person next to you. Hide them and the player's own sense of English becomes the skill — which is exactly what “meaning is the physics” promised.</p>
+    </div>
+    <div class="ins ice rv">
+      <span class="k">Insight</span>
+      <p>FATIGUE is the cheapest large win. One rule — an overtone dulls after you use it — and the identical-every-turn complaint is answered without touching anything else.</p>
+    </div>
+    <div class="ins violet rv">
+      <span class="k">Insight</span>
+      <p>Written Lenses beat bought Lenses. A line you actually played, kept as a permanent effect and named after itself, gives the run an object that is yours, makes the Bookseller visible, and turns a score into something worth showing another person.</p>
+    </div>
+
+    <h3 class="blk-h rv" style="margin:56px 0 30px;">Direction taken forward — five changes, in dependency order</h3>
+    <ol class="steps rv">
+      <li><span class="n">1</span><span class="t">Hide the overtones.</span><span class="d">Nothing below works while the card prints its own answer.</span></li>
+      <li><span class="n">2</span><span class="t">Score word-to-word resonance and tension, instead of word-to-checklist.</span><span class="d">The new physics. Needs the tags hidden to mean anything.</span></li>
+      <li><span class="n">3</span><span class="t">Replace the five spelling figures with rhetorical figures read off the tag matrix.</span><span class="d">The multiplier moves onto meaning. Needs the pair relationships from step 2.</span></li>
+      <li><span class="n">4</span><span class="t">Overtone fatigue.</span><span class="d">One rule. The same play twice stops working.</span></li>
+      <li><span class="n">5</span><span class="t">Lines you play become the Lenses you keep.</span><span class="d">Progression, persistence, and the artifact — built on everything above.</span></li>
+    </ol>
+
+    <div class="companion rv">
+      <div class="k">Structural companions</div>
+      <p>Fewer and heavier turns. And no score preview.</p>
+    </div>
+
+    <div class="decisions rv">
+      <div class="dec">
+        <div class="k">Decision</div>
+        <p>THE VERB BECOMES JOIN.</p>
+      </div>
+      <div class="dec">
+        <div class="k">Decision</div>
+        <p>Everything survives the rebuild except the scoring maths. Lexicon, ontology, card art, audio, the daily seed, the Demands and most Lens concepts all carry over.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MEASURED AFTER ===================== -->
+<section class="meas">
+  <div class="wrap">
+    <div class="eyebrow rv">Measured after the session, to test the direction</div>
+    <h2 class="sec-h rv">Does the matrix hold?</h2>
+    <p class="claim rv">The direction rests on one claim: that the existing tag matrix <em>already</em> has enough texture to be the physics.</p>
+    <p class="note rv">Measured on the real lexicon. All 30,876 pairs.</p>
+
+    <!-- VIZ A -->
+    <div class="viz rv">
+      <div class="viz-h">
+        <h3>Every pair in the lexicon</h3>
+        <span class="n">30,876 pairs</span>
+      </div>
+
+      <div class="stack" aria-hidden="true">
+        <div class="seg s-res" style="width:49.7%">
+          <div class="both" style="left:calc(100% - 23.94%); width:23.94%;"></div>
+        </div>
+        <div class="seg s-ten" style="width:17.0%"></div>
+        <div class="seg s-sil" style="width:33.2%"></div>
+      </div>
+      <p class="note">The violet band sits inside resonance: those pairs are resonant <em>and</em> in tension at the same time.</p>
+
+      <div class="legend">
+        <div class="lg res"><div class="pc">49.7%</div><div class="nm">Resonant<br>share an overtone</div></div>
+        <div class="lg ten"><div class="pc">17.0%</div><div class="nm">In tension only<br>opposed pair</div></div>
+        <div class="lg sil"><div class="pc">33.2%</div><div class="nm">Silent<br>nothing in common</div></div>
+        <div class="lg both"><div class="pc">11.9%</div><div class="nm">Both at once<br>the poetically interesting ones</div></div>
+      </div>
+
+      <div class="shared">
+        <div class="blk-h" style="border:0; padding:0; margin-bottom:4px;">Shared-overtone count, per pair</div>
+        <div class="cols" aria-hidden="true">
+          <div class="col"><div class="pc">50.3%</div><div class="bar-i" style="height:100%"></div><div class="lb">0</div></div>
+          <div class="col"><div class="pc">36.9%</div><div class="bar-i" style="height:73.4%"></div><div class="lb">1</div></div>
+          <div class="col"><div class="pc">11.2%</div><div class="bar-i" style="height:22.3%"></div><div class="lb">2</div></div>
+          <div class="col"><div class="pc">1.7%</div><div class="bar-i" style="height:3.4%"></div><div class="lb">3+</div></div>
+        </div>
+      </div>
+
+      <div class="hand">
+        <div class="blk-h" style="border:0; padding:0; margin-bottom:4px;">Inside a real dealt hand of seven</div>
+        <p class="note" style="margin-bottom:6px;">400 opening hands · 8,400 pairs</p>
+        <div class="meters" aria-hidden="true">
+          <div class="mtr res"><div class="top"><span>Resonant</span><b>49.2%</b></div><div class="tr"><i style="width:49.2%"></i></div></div>
+          <div class="mtr ten"><div class="top"><span>In tension</span><b>29.6%</b></div><div class="tr"><i style="width:29.6%"></i></div></div>
+          <div class="mtr sil"><div class="top"><span>Silent</span><b>33.1%</b></div><div class="tr"><i style="width:33.1%"></i></div></div>
+        </div>
+
+        <div class="grid200" id="handGrid" aria-hidden="true"></div>
+        <div class="grid-cap">
+          <span><b>99.5%</b> of opening hands hold at least one pair in tension</span>
+          <span>Each square is one opening hand of the 200 drawn here</span>
+        </div>
+      </div>
+
+      <div class="shared">
+        <div class="blk-h" style="border:0; padding:0; margin-bottom:4px;">The oppositions used</div>
+        <div class="opps">
+          <span class="opp">HEAT<i>/</i><b>COLD</b></span>
+          <span class="opp">DARK<i>/</i><b>BRIGHT</b></span>
+          <span class="opp">NATURE<i>/</i><b>TECH</b></span>
+          <span class="opp">MIND<i>/</i><b>BODY</b></span>
+          <span class="opp">WET<i>/</i><b>HEAT</b></span>
+          <span class="opp">ABSTRACT<i>/</i><b>BODY</b></span>
+          <span class="opp">ABSTRACT<i>/</i><b>FOOD</b></span>
+          <span class="opp">ABSTRACT<i>/</i><b>TOOL</b></span>
+        </div>
+        <p class="note">All already in the ontology. Nothing new was authored to get these numbers.</p>
+      </div>
+    </div>
+
+    <!-- VIZ B -->
+    <h3 class="sec-h rv" style="font-size:clamp(23px,5vw,34px); margin:64px 0 10px;">The comparison that decides it</h3>
+    <p class="standfirst rv" style="margin-bottom:28px;">Two systems, asked the same question: how often does a fresh hand contain something worth looking at?</p>
+
+    <div class="decider rv">
+      <div class="side a">
+        <div class="k">Reads spelling</div>
+        <div class="hd">The current figure system</div>
+        <div class="sb">Letters · lengths · initials</div>
+
+        <div class="split3" aria-hidden="true">
+          <div class="p1" style="width:43%"></div>
+          <div class="p2" style="width:44%"></div>
+          <div class="p3" style="width:13%"></div>
+        </div>
+        <div class="split-key">
+          <div><b>43%</b><span>Makes nothing at all from three random cards</span></div>
+          <div><b>44%</b><span>Makes THE PAIR — which demonstrates nothing</span></div>
+          <div class="hi"><b>the rest</b><span>An actually interesting shape</span></div>
+        </div>
+
+        <div class="headline">≈ 1 in 8</div>
+        <div class="hl-cap">hands produce an interesting shape</div>
+
+        <div class="grid200" id="spellGrid" aria-hidden="true"></div>
+        <p class="note">200 hands, drawn at the same one-in-eight rate.</p>
+      </div>
+
+      <div class="side b">
+        <div class="k">Reads meaning</div>
+        <div class="hd">The matrix already in the file</div>
+        <div class="sb">Resonance · tension · distance</div>
+
+        <div class="split3" aria-hidden="true">
+          <div class="p3" style="width:99.5%; background-color:var(--gold-dim)"></div>
+          <div class="p1" style="width:0.5%"></div>
+        </div>
+        <div class="split-key">
+          <div><b>99.5%</b><span>Opening hands holding at least one pair in tension</span></div>
+          <div><b>49.7%</b><span>Of all pairs resonate — half of everything</span></div>
+          <div><b>11.9%</b><span>Resonate and oppose at the same time</span></div>
+        </div>
+
+        <div class="headline">99.5%</div>
+        <div class="hl-cap">of opening hands already fire</div>
+
+        <div class="grid200" id="meanGrid" aria-hidden="true"></div>
+        <p class="note">The same 200 hands, read for meaning instead.</p>
+      </div>
+    </div>
+    <div class="decider-out rv">
+      <p>The interesting game is sitting in the data the game already has, and declines to read.</p>
+    </div>
+
+    <!-- OWL / EYE -->
+    <div class="owleye rv">
+      <div class="oe-k">Exhibit — a double antithesis, in the lexicon right now</div>
+      <div class="oe-stage">
+        <span class="oe-w">OWL</span>
+        <span class="oe-mid">
+          <span class="oe-axis"><span class="lb">DARK ⇄ BRIGHT</span><span class="ln"></span></span>
+          <span class="oe-axis"><span class="lb">MIND ⇄ BODY</span><span class="ln"></span></span>
+        </span>
+        <span class="oe-w">EYE</span>
+      </div>
+      <div class="oe-verdict">
+        <div class="zero">0</div>
+        <p>Overtone currently scores that pair as nothing.</p>
+      </div>
+      <div class="oe-count">
+        <b>1,469</b> double antitheses exist in the lexicon right now.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COLOPHON ===================== -->
+<footer class="colo">
+  <div class="wrap">
+    <div class="colo-grid">
+      <div>
+        <p class="last rv">A game about the overtones of meaning, which had written its answer into its own data and then told the player that what a word means never scores a point.</p>
+      </div>
+      <div class="rv">
+        <dl>
+          <dt>Session</dt>
+          <dd>brainstorm-overtone-make-it-fun</dd>
+          <dt>Date</dt>
+          <dd>17 September 2026</dd>
+          <dt>Mode</dt>
+          <dd>Autonomous</dd>
+          <dt>Runs</dt>
+          <dd>Alien Anthropologist · Kill the Crown Jewel · One Feature Only · Shadow Work Mining · Dream Fusion Laboratory · Verb Hunt · Opposition Design · Figures of Speech · Structure and Shareability</dd>
+          <dt>Outcome</dt>
+          <dd>Two decisions, five changes, one verb.</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="endmark">
+      <span>Status <b>complete</b></span>
+      <span>The verb becomes <b>JOIN</b></span>
+      <span>249 words · 19 overtones · 30,876 pairs</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var d = document, root = d.documentElement;
+  root.classList.add('js');
+
+  function fill(el, n, cls){
+    if(!el) return;
+    var f = d.createDocumentFragment();
+    for(var i=0;i<n;i++){
+      var s = d.createElement('i');
+      if(cls) s.className = cls(i);
+      f.appendChild(s);
+    }
+    el.appendChild(f);
+  }
+
+  /* --- the seam: 30 Lenses, 26 read meaning --- */
+  fill(d.getElementById('lensDots'), 30, function(i){ return i < 26 ? 'on' : ''; });
+  fill(d.getElementById('figDots'), 5, function(){ return 'sp'; });
+
+  /* --- 200 opening hands: 99.5% hold at least one pair in tension --- */
+  fill(d.getElementById('handGrid'), 200, function(i){ return i === 137 ? 'dead' : 'lit'; });
+
+  /* --- the decider: spelling ~1 in 8, meaning 99.5% --- */
+  fill(d.getElementById('spellGrid'), 200, function(i){ return (i % 8 === 3) ? 'lit-g' : ''; });
+  fill(d.getElementById('meanGrid'),  200, function(i){ return i === 137 ? 'dead' : 'lit'; });
+
+  /* --- scroll meter --- */
+  var bar = d.querySelector('#meter i'), ticking = false;
+  function meter(){
+    var h = d.body.scrollHeight - window.innerHeight;
+    var p = h > 0 ? (window.pageYOffset / h) * 100 : 0;
+    bar.style.width = Math.max(0, Math.min(100, p)) + '%';
+    ticking = false;
+  }
+  window.addEventListener('scroll', function(){
+    if(!ticking){ ticking = true; window.requestAnimationFrame(meter); }
+  }, {passive:true});
+  meter();
+
+  /* --- reveal on enter --- */
+  var items = d.querySelectorAll('.rv');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); }
+      });
+    }, {rootMargin:'0px 0px -8% 0px', threshold:0.06});
+    for(var i=0;i<items.length;i++) io.observe(items[i]);
+  } else {
+    for(var j=0;j<items.length;j++) items[j].classList.add('on');
+  }
+})();
+</script>
+</body>
+</html>
