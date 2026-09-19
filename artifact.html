@@ -278,6 +278,16 @@ button{ font-family: inherit; color: inherit; }
 .tally .chips{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .tally .multv{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
 .tally .x{ font-size: 15px; font-weight:700; color: var(--text-faint); text-align:center; padding-bottom: 11px; }
+/* A line that has not been played has no score, and the counters said so by
+   reading 0 and 1 - which looks exactly like a counter that has stopped
+   working. Dashes and a caption say the same thing on purpose. */
+.tally.pending .chips, .tally.pending .multv{ opacity: .45; }
+.tpend{
+  margin-top: 5px; text-align: center; line-height: 1.3;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.tpend[hidden]{ display: none !important; }
 .tcell{ min-width: 0; }
 .tk{
   font-size: 9.5px; letter-spacing: .11em; color: var(--text-faint);
@@ -2108,6 +2118,7 @@ button{ font-family: inherit; color: inherit; }
         <div class="tcell"><div class="tk">&nbsp;</div><div class="x">&times;</div></div>
         <div class="tcell"><div class="tk">MULTIPLIER</div><div class="multv" id="multV">1</div></div>
       </div>
+      <div class="tpend" id="tpend" hidden>counted when you hit PLAY</div>
 
       <div class="meters">
         <div class="meter plays slab">
@@ -4504,7 +4515,34 @@ async function lament(){
   await sleep(Math.round(980 * Math.max(0.7, sp)));
 }
 
+/* While a selection sits on the table its score is not knowable yet - see
+   spec-the-verb-is-join. The counters go to dashes rather than to zero, so
+   the blank reads as "not yet" instead of as "nothing". */
+function setTallyPending(on){
+  const t = document.getElementById("tally");
+  const cap = document.getElementById("tpend");
+  if(t) t.classList.toggle("pending", !!on);
+  if(cap) cap.hidden = !on;
+  const cv = document.getElementById("chipsV"), mv = document.getElementById("multV");
+  /* setAttribute is guarded because the Node test harness renders against a
+     DOM stub that does not implement the whole element interface. */
+  const label = function(el, text){
+    if(el && typeof el.setAttribute === "function") el.setAttribute("aria-label", text);
+  };
+  if(!on){
+    label(cv, "points"); label(mv, "multiplier");
+    return;
+  }
+  const dash = "–";
+  if(cv) cv.textContent = dash;
+  if(mv) mv.textContent = dash;
+  label(cv, "points, not counted until you play");
+  label(mv, "multiplier, not counted until you play");
+}
 function setTally(c, m){
+  /* Any real number ends the pending state, so nothing has to remember to
+     clear it on the way into a resolution. */
+  setTallyPending(false);
   /* The pulse classes used to live here, driven by a string comparison against
      the DOM. countTo knows whether the value actually moved, so the punch
      belongs there — and two animations fighting over the same element was
@@ -6265,7 +6303,7 @@ function renderPreview(){
   });
   /* Not res.chips and res.mult. The beads say what the line IS; the counters
      say what it is WORTH, and that is the thing PLAY is for. */
-  setTally(0, 1);
+  setTallyPending(true);
 
   /* The engine pays for a matching overtone only if the overtone is not
      already spent this round, and only for words up to where the line stops.

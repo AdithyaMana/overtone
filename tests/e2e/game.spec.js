@@ -257,8 +257,12 @@ test.describe("playing a hand", () => {
     await expect(page.locator("#hand .card.sel")).toHaveCount(1);
     await expect(page.locator("#hand .card.sel .pos")).toHaveText("1");
     await expect(page.locator("#stageCards .card")).toHaveCount(1);
-    await expect(page.locator("#chipsV"), "the board priced a line nobody played").toHaveText("0");
-    await expect(page.locator("#multV"), "the board priced a line nobody played").toHaveText("1");
+    /* Dashes, not zeroes. Reading 0 and 1 was accurate and looked exactly
+       like a counter that had stopped working - the first thing a player
+       asked was why the points were not being counted. */
+    await expect(page.locator("#chipsV"), "the board priced a line nobody played").toHaveText("–");
+    await expect(page.locator("#multV"), "the board priced a line nobody played").toHaveText("–");
+    await expect(page.locator("#tpend"), "nothing said why the counters were blank").toBeVisible();
     /* One word is not a line. LINE_MIN used to live only in the tutorial's
        copy while play() took a single card, so ASCETIC's "play exactly 1
        word" was selling a play everybody already had. */
