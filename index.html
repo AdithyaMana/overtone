@@ -2626,7 +2626,11 @@ const LENSES = [
     d:"Your FIRST word: multiplier ×4. Every word after it scores no points.",
     onCard:function(c,i){
       if(i===0) return {xmult:4};
-      return {chips:-c.base, label:"paid nothing"}; } },
+      /* "Every word after it scores no points" - including the points and the
+         multiplier the round's own overtones pay. */
+      const h = demandHits(c);
+      return { chips:-(c.base + DEMAND_CHIPS * h), mult:-(DEMAND_MULT * h),
+               label:"paid nothing" }; } },
   { id:"famine", n:"THE FAMINE", flaw:true, cost:6, hand:-3,
     d:"Each word: +150 points. Your hand is three cards smaller and you get one less discard.",
     onCard:function(){ return {chips:150}; },
@@ -2689,9 +2693,15 @@ const ORDEALS = [
   { id:"toll", n:"THE TOLL", d:"Every word you play costs 90 points before the multiplier.",
     card:function(){ return {chips:-90, label:"toll"}; } },
   { id:"mirror", n:"THE MIRROR", d:"A word scores nothing unless two of its tags match the round.",
-    card:function(c,i,all,ctx){
-      const hits = c.t.filter(function(t){ return ctx.demand.tags.indexOf(t) >= 0; }).length;
-      return hits >= 2 ? null : {chips:-(c.base + 25*hits), label:"unreflected"}; } },
+    card:function(c){
+      /* Cancelled base + 25 a match, which was the Demand's rate before this
+         pass raised it to DEMAND_CHIPS and gave it a multiplier too - so a
+         one-match word under THE MIRROR still scored, on a rule whose whole
+         text is that it does not. */
+      const h = demandHits(c);
+      return h >= 2 ? null
+        : { chips: -(c.base + DEMAND_CHIPS * h), mult: -(DEMAND_MULT * h),
+            label:"unreflected" }; } },
   { id:"halflight", n:"THE HALF-LIGHT", d:"Every hand begins at half a multiplier.",
     play:function(){ return {xmult:0.5}; } }
 ];
@@ -2846,7 +2856,13 @@ const DIFFICULTIES = [
     reckon:false, bestKey:"best:gentle", lockedUntilRun:0,
     d:"The easier game. Lower targets, a fourth discard, and one Ordeal instead of two. Same words, same Lenses." },
   { id:"scholar", n:"SCHOLAR", rank:1,
-    curve:[1.22, 1.08, 1.15, 1.05, 1.12, 1.04],
+    /* Reshaped, not just rescaled. At [1.22,...] round 1 asked 9,418 of a bare
+       deck and ended 3.6% of runs before a shop had opened - a wall at the
+       front, and a final/first ratio of only 3.2 so there was little arc to
+       climb. This starts lower and finishes higher: ratio 4.0, and round 1
+       now ends 7.0% while the wall sits at round 3 where a deck exists to
+       answer it. */
+    curve:[0.95, 0.94, 1.02, 0.97, 1.08, 1.02],
     discards:0, ordealRounds:[3, 5], ordealBan:[],
     reckon:true, bestKey:"best:steep", lockedUntilRun:1,
     d:"The harder game. Three discards, two Ordeals, and a curve only a multiplying deck keeps up with." }
@@ -2924,6 +2940,24 @@ const PLAYS_PER_ROUND = 2, DISCARDS_PER_ROUND = 3;
 /* What a join is worth. Resonance is safe and small, tension is large and
    risky, and a kept line pays again every time its figure returns. */
 const JOIN_RESONANCE = 40, JOIN_TENSION = 1;
+/* What the round's own overtones are worth on a word that carries them. It
+   was 25 points flat and nothing else: about a twentieth of a line, against a
+   header, a shop preview and a death screen that all name the Demand as the
+   thing the round is about. Points AND multiplier now, so a hand that answers
+   the room beats a hand that merely joins up well. */
+/* 0.5 rather than 0.4 deliberately: halves are exact in binary and 0.4 is
+   not, so the multiplier drifted - a hand that should have read x2 resolved
+   to 1.9999999999999998 and scored a point light. */
+const DEMAND_CHIPS = 55, DEMAND_MULT = 0.5;
+/* How many of the round's overtones a word actually pays for: carried, and
+   not already spent this round. Read by the scoring loop, by lineWorth, and
+   by every rule that cancels a word's worth. */
+function demandHits(c){
+  const want = (G && G.demand && G.demand.tags) || [];
+  if(!want.length) return 0;
+  const dull = dullTags();
+  return c.t.filter(function(t){ return want.indexOf(t) >= 0 && !dull[t]; }).length;
+}
 const KEPT_CHIPS = 120, KEPT_MULT = 1;
 /* Plays a scored overtone stays dull for. */
 const FATIGUE_SPAN = 2;
@@ -3075,13 +3109,36 @@ function figuresFromJoins(joins){
     else if(j.kind === "tension") got.antithesis = 1;
     if(j.s >= 3) got.synonymy = 1;
   });
-  for(let i = 0; i + 1 < joins.length; i++)
-    if(joins[i].s < joins[i + 1].s) got.escalation = 1;
+  /* "Each pair with more in common than the pair before it" - EACH pair. It
+     used to fire if ANY adjacent pair happened to rise, which is nearly every
+     line with three words in it: measured at 98% of optimal plays. A build is
+     a line that climbs the whole way. */
+  if(joins.length >= 2){
+    let climbs = true;
+    for(let i = 0; i + 1 < joins.length; i++)
+      if(joins[i].s >= joins[i + 1].s) climbs = false;
+    if(climbs) got.escalation = 1;
+  }
   /* A join either carries tension or it does not; three in a row reading
      A-B-A is the shape the word chiasmus names. */
+  /* "Four words whose pairs read the same backwards as forwards" - the WHOLE
+     line, not a window of three joins inside it. The old test fired on any
+     A-B-A anywhere, which is 90% of optimal plays; a mirror is a line you
+     built to be a mirror. Three joins minimum, because two the same is not a
+     shape, and it has to hold end to end. */
+  /* The pairs have to mirror, not merely their kinds: a line of four Rs read
+     backwards is also four Rs, which is why a kind-only palindrome still
+     fired on 87% of optimal plays. Each join must match its opposite number
+     in what it IS and in how much the two words share. */
   const k = joins.map(function(j){ return j.t ? "T" : "R"; });
-  for(let i = 0; i + 2 < k.length; i++)
-    if(k[i] === k[i + 2] && k[i] !== k[i + 1]) got.chiasmus = 1;
+  if(k.length >= 3 && k.some(function(x){ return x !== k[0]; })){
+    let mirrors = true;
+    for(let i = 0; i < joins.length; i++){
+      const o = joins[joins.length - 1 - i];
+      if(k[i] !== k[joins.length - 1 - i] || joins[i].s !== o.s) mirrors = false;
+    }
+    if(mirrors) got.chiasmus = 1;
+  }
   return FIGURES.filter(function(f){ return got[f.id]; }).map(function(f){
     return { id:f.id, n:f.n, d:f.d, chips:FIG_PAY[f.id].chips, mult:FIG_PAY[f.id].mult };
   });
@@ -3121,9 +3178,9 @@ function lineWorth(line){
   const want = G && G.demand ? G.demand.tags : [];
   for(let i = 0; i < jr.scored; i++){
     chips += line[i].base;
-    chips += 25 * line[i].t.filter(function(t){
-      return want.indexOf(t) >= 0 && !dull[t];
-    }).length;
+    const dh = demandHits(line[i]);
+    chips += DEMAND_CHIPS * dh;
+    mult += DEMAND_MULT * dh;
   }
   return chips * mult;
 }
@@ -4116,12 +4173,14 @@ function resolve(cards){
        overtones used to print MATCH +25 and then MATCH +25 again, 210ms apart,
        in the same spot — so the second was invisible and the player had no way
        to see that the card had paid twice. */
-    const hits = c.t.filter(function(t){ return G.demand.tags.includes(t) && !dull[t]; });
-    if(hits.length){
-      chips += 25 * hits.length;
+    const nhits = demandHits(c);
+    if(nhits){
+      const dc = DEMAND_CHIPS * nhits, dm = DEMAND_MULT * nhits;
+      chips += dc;
+      mult = Math.round((mult + dm) * 100) / 100;
       events.push({ k:"card", i:i, cls:"r",
-                    txt: hits.length > 1 ? hits.length + " MATCHES +" + (25 * hits.length)
-                                         : "MATCH +25",
+                    txt: (nhits > 1 ? nhits + " MATCHES +" + dc : "MATCH +" + dc)
+                         + " and +" + dm + " mult",
                     chips:chips, mult:mult });
     }
 
@@ -4130,10 +4189,17 @@ function resolve(cards){
     roundRules().forEach(function(rule){
       if(!rule.card) return;
       const o = rule.card(c, i, cards.slice(0, scored), ctx);
-      if(o && o.chips){
-        chips += o.chips;
-        events.push({ k:"card", i:i, cls:"c",
-                      txt: rule.n + " " + (o.label || "") + " " + Math.round(o.chips),
+      if(o && (o.chips || o.mult)){
+        /* mult as well as chips: a rule that says a word scores nothing has to
+           be able to take back the multiplier the round's overtones just
+           handed it, or "scores nothing" is not true. */
+        if(o.chips) chips += o.chips;
+        if(o.mult) mult = Math.round((mult + o.mult) * 100) / 100;
+        const bits = [];
+        if(o.chips) bits.push(String(Math.round(o.chips)));
+        if(o.mult) bits.push((o.mult > 0 ? "+" : "") + o.mult + " mult");
+        events.push({ k:"card", i:i, cls: o.mult ? "m" : "c",
+                      txt: rule.n + " " + (o.label || "") + " " + bits.join(" "),
                       chips:chips, mult:mult });
       }
     });
@@ -4504,7 +4570,13 @@ function discardSel(){
 /* ---------- round win + shop ---------- */
 function winRound(){
   say("Round cleared. " + G.roundScore.toLocaleString() + " against " + G.target.toLocaleString() + ".");
-  let reward = 4 + G.plays + G.discards;
+  /* Was 4 + whatever you had left, which measured 7 or 8 every round of every
+     run: every shop was "buy the one thing you can afford", never save, never
+     rich, never priced out. Beating the target is worth money now, so a round
+     you broke open funds the Lens you could not reach before. */
+  const over = G.target > 0 ? (G.roundScore / G.target) - 1 : 0;
+  const bonus = Math.max(0, Math.min(6, Math.floor(over * 4)));
+  let reward = 4 + G.plays + G.discards + bonus;
   G.lenses.forEach(function(l){ if(l.onReward) reward = l.onReward(reward); });
   reward = Math.max(0, Math.round(reward));
   G.bank += reward;

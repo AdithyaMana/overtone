@@ -137,6 +137,8 @@ function load(){
     /* kept lines have their own shelf now, and the line floor is a
        function because two Lenses are bought to play a single word. */
     KEEP_SLOTS, keepsUsed, keepsFull, slotsUsed, slotsLeft, slotsFull,
+    /* the round's Demand pays multiplier as well as points now */
+    DEMAND_CHIPS, DEMAND_MULT, JOIN_RESONANCE, JOIN_TENSION, demandHits, LINE_MIN,
     minPlay, SOLO_LENSES, FIG_PAY,
     FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue, arrangeForTutorial,
     lineWorth, bestLineFrom, OPPOSED, sharedTags, tensionPairs, joinOf, joinsOf, figuresFromJoins,

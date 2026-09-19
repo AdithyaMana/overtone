@@ -109,7 +109,12 @@ describe("scoring", () => {
     assert.strictEqual(short.base, three.base, "a shorter word with the same overtones is worth the same");
   });
 
-  test("each matching overtone pays +25", () => {
+  test("each matching overtone pays points AND multiplier", () => {
+    /* It was 25 points flat, which measured a median 5.4% of a line - so the
+       round's Demand, named in the header and on the death screen, did not
+       change which line you played. It pays DEMAND_CHIPS and DEMAND_MULT per
+       matching overtone now, which is what makes choosing the words a
+       decision rather than a formality. */
     api.newRun("score-1");
     api.G.lenses = [];
     api.G.demand = { n: "TEST", tags: ["HEA", "DAN"] };
@@ -119,8 +124,13 @@ describe("scoring", () => {
     const two = api.makeCard({ w: "OAK", t: ["HEA", "DAN"] }, false);
 
     assert.strictEqual(api.resolve([none]).chips, none.base);
-    assert.strictEqual(api.resolve([one]).chips, one.base + 25);
-    assert.strictEqual(api.resolve([two]).chips, two.base + 50);
+    assert.strictEqual(api.resolve([none]).mult, 1);
+
+    assert.strictEqual(api.resolve([one]).chips, one.base + api.DEMAND_CHIPS);
+    assert.strictEqual(api.resolve([one]).mult, 1 + api.DEMAND_MULT);
+
+    assert.strictEqual(api.resolve([two]).chips, two.base + 2 * api.DEMAND_CHIPS);
+    assert.strictEqual(api.resolve([two]).mult, 1 + 2 * api.DEMAND_MULT);
   });
 
   test("order changes the score — CARNIVORE eats leftward", () => {

@@ -174,6 +174,8 @@ describe("Lenses that add to the multiplier", () => {
   });
 
   test("RESONATOR adds 2, once, on the first word that matches the round", () => {
+    /* compare() reads the DELTA the Lens makes, so the Demand's own
+       multiplier - which both of these words now earn - cancels out. */
     const r = compare("reso", [card("EMBER", ["HEA"]), card("FORGE", ["HEA"])], ["HEA"]);
     assert.strictEqual(r.add, 2, "+2, and only once");
     const none = compare("reso", [card("MOSS", ["PLA"])], ["HEA"]);

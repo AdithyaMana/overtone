@@ -1017,7 +1017,10 @@ test.describe("the end of a run", () => {
       G.target = 9999999;
       G.total = 4321;
       G.lenses = [LENSES.find(l => l.id === "pyro")];
-      G.best = { word: "AVALANCHE", mult: 12, score: 1800 };
+      /* Keyed on score now rather than on multiplier, so this has to be a
+         total the hand below cannot beat, or the run's best play is simply
+         the last one it played and the share text says so. */
+      G.best = { word: "AVALANCHE", mult: 12, score: 9999999 };
       render();
     });
     await playAHand(page);
@@ -1652,10 +1655,12 @@ test.describe("Ordeals", () => {
       const clear = resolve([c]).chips;
       G.ordeal = ORDEALS.find(o => o.id === "fog");
       const fogged = resolve([c]).chips;
-      return { clear, fogged, base: c.base };
+      return { clear, fogged, base: c.base, pay: DEMAND_CHIPS };
     });
-    expect(r.clear).toBe(r.base + 25);
-    expect(r.fogged, "the matching tag should still pay").toBe(25);
+    /* DEMAND_CHIPS, not a literal: the round's overtones used to pay 25 flat,
+       which measured about a twentieth of a line. */
+    expect(r.clear).toBe(r.base + r.pay);
+    expect(r.fogged, "the matching tag should still pay").toBe(r.pay);
   });
 
   test("THE MIRROR pays only words with two matching tags", async ({ page }) => {

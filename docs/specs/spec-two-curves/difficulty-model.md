@@ -72,7 +72,7 @@ is why almost nothing ever ended there.
 
 ### Steep mode — `rank: 1`, named SCHOLAR
 
-`curve: [1.22, 1.08, 1.15, 1.05, 1.12, 1.04]` → absolute targets
+`curve: [0.95, 0.94, 1.02, 0.97, 1.08, 1.02]` → absolute targets
 `[6948, 8029, 11090, 13230, 18301, 22071]`. It steps ~38% on ordinary rounds and
 19–21% on its two Ordeal rounds, so an Ordeal round's difficulty is its rule
 rather than its number — restoring an intent the file already described in a
@@ -213,3 +213,56 @@ see the spec's non-goals.
 merely in the four Lenses that read `w.length`. Base is `6 + 5 × overtones`
 now, scaled to leave the lexicon's mean base unchanged at 22, and the
 card-face letter-count badge is gone with the figures that needed it.
+
+
+## The four deferred items, closed
+
+The review left four findings that were design calls rather than defects. All
+four are now measured rather than argued.
+
+| | before | after |
+|---|---|---|
+| The Demand's share of a line's chips | 5.4% | **19.0%** |
+| Figures in an arbitrary five-word line | ~3.8 | **0.71** |
+| Figures in the line the search picks | ~3.8 | **2.12** |
+| Optimal lines using the full 5-card cap | 100% | **46%** |
+| Round reward | 7 or 8, always | **$7–$13**, on overshoot |
+
+**The Demand** pays `DEMAND_MULT` (0.5) per matching overtone as well as
+`DEMAND_CHIPS` (55). A half is exact in binary and 0.4 is not — at 0.4 a hand
+that should have read ×2 resolved to 1.9999999999999998.
+
+**Figures** were not retuned so much as made to match their own card text.
+THE BUILD reads *"each pair with more in common than the pair before it"* and
+fired if any adjacent pair happened to rise; THE MIRROR reads *"four words
+whose pairs read the same backwards as forwards"* and fired on any A-B-A
+window. Both now require what they say. The gap between an arbitrary line
+(0.71) and a line built for figures (2.12) is what makes a figure an
+achievement rather than a participation bonus.
+
+**Line length** needed no separate lever. Once figures were rare and the
+Demand had weight, the search stopped always filling the cap.
+
+**Income** adds up to $6 for beating the target, so a round broken open funds
+a Lens that was out of reach.
+
+### A defect this pass introduced, and caught
+
+Raising the Demand broke two rules that claim to cancel a word. THE MIRROR
+subtracted `c.base + 25*hits` — 25 being the Demand's *old* rate — so under a
+rule whose entire text is *"a word scores nothing"*, a one-match word still
+scored +30 chips and +0.5 mult. THE ORACLE had the same hole. Both now read a
+single shared `demandHits()`, and the Ordeal card hook gained `mult` support
+so a rule can take back a multiplier it did not grant.
+
+### Final
+
+| mode | win rate (n=500) | band | worst round before the last | cap |
+|---|---|---|---|---|
+| APPRENTICE | 55.8% | 48–62 ✓ | 7.2% | 15% ✓ |
+| SCHOLAR | 28.8% | 25–38 ✓ | 16.8% | 20% ✓ |
+
+SCHOLAR was reshaped rather than rescaled. At `[1.22, …]` round 1 asked 9,418
+of a bare deck and the final/first ratio was 3.2 — a wall at the front with
+little arc behind it. It is 4.0 now, and the wall sits at round 3 where a deck
+exists to answer it.
