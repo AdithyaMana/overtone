@@ -460,6 +460,32 @@ button{ font-family: inherit; color: inherit; }
    it is the one thing on the board you can still fix by picking differently. */
 .stage-hint .hand-name.none{ color:#93A6B3; box-shadow: 0 3px 0 var(--edge); }
 .stage-hint .hand-name{ cursor:pointer; }
+/* The hand's options, under the line they would change. Quiet enough to skip
+   once a player has stopped needing it, and legible enough to lean on before
+   they have. */
+.stage-hint .nxt{
+  margin-top: 8px; padding-top: 7px; font-size: 12px; font-weight: 600;
+  line-height: 2; color: var(--text-dim);
+  border-top: 1px solid var(--edge);
+}
+.stage-hint .nxt .nxl{
+  display: block; margin-bottom: 3px; font-size: 10px; font-weight: 700;
+  letter-spacing: .11em; text-transform: uppercase; color: var(--text-faint);
+  line-height: 1.4;
+}
+.stage-hint .nxt .jn{ font-size: 9.5px; padding: 1px 5px; letter-spacing: .08em; }
+.stage-hint .nxt .nw{ color: #C9D7E0; letter-spacing: .02em; }
+.stage-hint .nxt .jnx{ margin: 0 4px; }
+@media (max-width: 620px){
+  .stage-hint .nxt{ font-size: 11px; line-height: 1.85; margin-top: 6px; padding-top: 5px; }
+  .stage-hint .nxt .jn{ font-size: 8.5px; padding: 1px 4px; }
+}
+/* The portrait board is laid out to the pixel on a 667px screen - the same
+   budget that already hides .dc-fig here. This row appears the moment a second
+   card is picked, which is every turn, and up to four categories of it would
+   push the hand's bottom row under the pinned controls. The board's beads
+   still say what the laid words are doing. */
+@media (max-height: 700px){ .stage-hint .nxt{ display: none; } }
 .dc-fig{ display:block; margin-top: 4px; }
 /* The portrait board is laid out to the pixel on a 667px screen — the hand's
    bottom row clears the controls by one. A second line on the idle board is
@@ -782,28 +808,6 @@ button{ font-family: inherit; color: inherit; }
   font-variant-numeric: tabular-nums; line-height: 1.1;
   opacity: .8;
 }
-/* Bottom left, opposite the value, in the same strip - so it costs the card
-   no room it was using and cannot land on a tag. Smaller and quieter than the
-   value because it is not a score: it is the one number on the card you read
-   ACROSS cards rather than on one, and what it has to do is make three equal
-   lengths, or a run of them, visible without being read one at a time. */
-.card .len{
-  /* Sits a couple of pixels lower than the value and on a tighter line box.
-     Tags fill from the LEFT, so the last row of them reaches this corner where
-     it never reaches the value's - at the same offset the two boxes touched by
-     a pixel on a phone. Nothing was visible, but the strip is supposed to be
-     clear and now it is. */
-  position: absolute; left: 7px; bottom: 3px; z-index: 3;
-  font-size: 11px; font-weight: 700; color: var(--card-ink);
-  font-variant-numeric: tabular-nums; line-height: 1;
-  opacity: .55;
-}
-/* Sharing a length with something already picked. The same gold a tag wears
-   when it answers the round: both of them mean this one counts. */
-.card .len.same{
-  opacity: 1; background: var(--gold); color: #12181C;
-  left: 5px; bottom: 2px; padding: 1px 4px; border-radius: 3px;
-}
 /* Tags fill the band from the top and stop at its edge. Three rows fit
    exactly; the handful of words carrying a fifth overtone lose their last row
    rather than pushing the plate around, and the plate is still showing every
@@ -1100,6 +1104,10 @@ button{ font-family: inherit; color: inherit; }
 .stat .k{ font-size:11.5px; color:var(--text-faint); }
 .stat .v{ font-size:22px; font-weight:700; text-shadow: var(--drop); font-variant-numeric:tabular-nums; line-height:1.2; }
 .stat.gold .v{ color: var(--gold); }
+/* The multiplier that hand ran at, beside what it scored. The record used to
+   be the multiplier alone, which picked a thin line with a freak multiplier
+   over the run's actual best hand. */
+.stat .v .bh{ font-size: 13px; font-weight: 700; color: var(--mult); margin-left: 7px; }
 
 .unlock{
   background: var(--lens); border-radius:8px; padding:12px 14px; margin:14px 0;
@@ -1264,7 +1272,7 @@ button{ font-family: inherit; color: inherit; }
 .worked.join{ flex-wrap: wrap; }
 .worked.join .card.static{ margin-right: 8px; }
 
-/* ---------- what two words are doing ----------
+/* ---------- what two words are doing ---------- */
 .jn{
   font-style: normal; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
   font-weight: 700; padding: 2px 7px; border-radius: 4px;
@@ -1492,7 +1500,6 @@ button{ font-family: inherit; color: inherit; }
 .opening .card .art .ms{ font-size: 16px; }
 .opening .card .w{ font-size: 15px; }
 .opening .card .base{ font-size: 13px; right: 7px; bottom: 5px; }
-.opening .card .len{ font-size: 11px; left: 7px; bottom: 3px; }
 .opening .card .tags{ flex: initial; height: auto; gap: 3px; }
 .opening .card .tg{ font-size: 10px; padding: 2px 5px; letter-spacing: .02em; line-height: normal; }
 
@@ -1755,7 +1762,6 @@ button{ font-family: inherit; color: inherit; }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   #app:not(.resolving) #stageCards .card .tags,
-  #app:not(.resolving) #stageCards .card .len,
   #app:not(.resolving) #stageCards .card .base{ display: none; }
   #app:not(.resolving) #stageCards .card .pos{
     width: 14px; height: 14px; font-size: 9px; top: -5px; left: -4px;
@@ -2142,7 +2148,7 @@ button{ font-family: inherit; color: inherit; }
 
       <section class="stage" id="stage">
         <div class="stage-cards" id="stageCards"></div>
-        <div class="stage-hint" id="stageHint">Tap up to 3 words. They score left to right.</div>
+        <div class="stage-hint" id="stageHint">Lay two or more words. They score left to right.</div>
       </section>
 
       <div class="handwrap">
@@ -2522,14 +2528,18 @@ const LENSES = [
     onCard:function(c,i,all,ctx){ return c.t.includes("ABS") ? {chips:40+ctx.lv("meta")} : null; } },
   { id:"prosp", n:"PROSPECTOR", d:"Each MONEY word: +40 points, +190 more each round you keep it.", cost:5, grows:190,
     onCard:function(c,i,all,ctx){ return c.t.includes("MON") ? {chips:40+ctx.lv("prosp")} : null; } },
-  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words of 7 letters or more: +60 points, +95 more each round you keep it.", cost:5, grows:95,
-    onCard:function(c,i,all,ctx){ return c.w.length>=7 ? {chips:60+ctx.lv("sesq")} : null; } },
+  /* Was "7 letters or more". Re-keyed onto the tag matrix: a word that means
+     several things at once is the one this Lens is for. */
+  { id:"sesq", n:"SESQUIPEDALIAN", d:"Words carrying 3 or more overtones: +60 points, +95 more each round you keep it.", cost:5, grows:95,
+    onCard:function(c,i,all,ctx){ return c.t.length>=3 ? {chips:60+ctx.lv("sesq")} : null; } },
 
   /* ---- flat chips: cheap, immediate, and honest about not scaling ---- */
   { id:"poly", n:"POLYGLOT", d:"Words carrying 4 or more tags: +90 points, +75 more each round you keep it.", cost:4, grows:75,
     onCard:function(c,i,all,ctx){ return c.t.length>=4 ? {chips:90+ctx.lv("poly")} : null; } },
-  { id:"lexi", n:"LEXICOGRAPHER", d:"+22 points for each letter of your LEFTMOST word, +14 more per letter each round you keep it.", cost:4, grows:14,
-    onCard:function(c,i,all,ctx){ return i===0 ? {chips:(22+ctx.lv("lexi"))*c.w.length} : null; } },
+  { id:"lexi", n:"LEXICOGRAPHER", d:"+44 points for your LEFTMOST word, and +44 for each overtone it carries. +28 more each round you keep it.", cost:4, grows:14,
+    /* Paid (22+lv) x LETTERS of the first word. Same shape, counted in
+       overtones: the head of a line is chosen for what it means. */
+    onCard:function(c,i,all,ctx){ return i===0 ? {chips:(22+ctx.lv("lexi"))*(2+2*c.t.length)} : null; } },
   { id:"alch", n:"ALCHEMIST", d:"If NATURE and TECH both appear: +250 points, +240 more each round you keep it.", cost:5, grows:240,
     onPlay:function(all,ctx){
       const n=all.some(function(c){return c.t.includes("NAT");}), t=all.some(function(c){return c.t.includes("TEC");});
@@ -2571,17 +2581,26 @@ const LENSES = [
       const p=all[i-1];
       const a=c.t.includes("HEA")&&p.t.includes("COL"), b=c.t.includes("COL")&&p.t.includes("HEA");
       return (a||b) ? {chips:180, xmult:2} : null; } },
-  { id:"brut", n:"BRUTALIST", d:"Words of 4 letters or fewer: multiplier ×1.6 each", cost:7,
-    onCard:function(c){ return c.w.length<=4 ? {xmult:1.6} : null; } },
+  /* Was "4 letters or fewer" - and on the blind curve, where the overtones
+     are hidden, letter-counting was the one thing a player could still do
+     with certainty. The mode built to make you read the words was paying you
+     not to. A word that means one thing is the blunt instrument now. */
+  { id:"brut", n:"BRUTALIST", d:"Words carrying a single overtone: multiplier ×1.6 each", cost:7,
+    onCard:function(c){ return c.t.length<=1 ? {xmult:1.6} : null; } },
   { id:"asc", n:"ASCETIC", d:"Play exactly 1 word: multiplier ×5", cost:6,
     onPlay:function(all){ return all.length===1 ? {xmult:5} : null; } },
-  { id:"entropy", n:"ENTROPY", d:"Play 3 words, each shorter than the last: multiplier ×2.5. Any other hand: multiplier ×0.5.", cost:7,
+  /* Two things wrong at once. It read spelling, and it was a strict downgrade
+     that the shop did not mark: the best line achievable while holding it
+     measured 0.658x the best line without it, on a $7 card with the same
+     neutral face as ALCHEMIST. Re-keyed onto overtone count, and flagged, so
+     the shop's promise - a card that can cost you is marked - holds. */
+  { id:"entropy", n:"ENTROPY", d:"Play 3+ words, each carrying fewer overtones than the last: multiplier ×2.5. Any other hand: multiplier ×0.5.", cost:7, flaw:true,
     onPlay:function(all){
       if(all.length<3) return {xmult:0.5, label:"unbalanced"};
-      for(let j=1;j<all.length;j++) if(all[j].w.length >= all[j-1].w.length) return {xmult:0.5, label:"unbalanced"};
+      for(let j=1;j<all.length;j++) if(all[j].t.length >= all[j-1].t.length) return {xmult:0.5, label:"unbalanced"};
       return {xmult:2.5}; } },
-  { id:"glut", n:"GLUTTON", d:"Play exactly 3 words: multiplier ×2.5. You get one less discard each round.", cost:6,
-    onPlay:function(all){ return all.length===3 ? {xmult:2.5} : null; },
+  { id:"glut", n:"GLUTTON", d:"Play exactly 3 words: multiplier ×3.2. You get one less discard each round.", cost:6,
+    onPlay:function(all){ return all.length===3 ? {xmult:3.2} : null; },
     onRound:function(g){ g.discards -= 1; } },
 
   /* ---- flawed. The biggest numbers in the game, and every one takes
@@ -2607,7 +2626,7 @@ const LENSES = [
     d:"Your FIRST word: multiplier ×4. Every word after it scores no points.",
     onCard:function(c,i){
       if(i===0) return {xmult:4};
-      return {chips:-c.base, label:"silenced"}; } },
+      return {chips:-c.base, label:"paid nothing"}; } },
   { id:"famine", n:"THE FAMINE", flaw:true, cost:6, hand:-3,
     d:"Each word: +150 points. Your hand is three cards smaller and you get one less discard.",
     onCard:function(){ return {chips:150}; },
@@ -2633,18 +2652,41 @@ const LENSES = [
 const ORDEALS = [
   { id:"drought", n:"THE DROUGHT", d:"No discards. Play the hand you are dealt.",
     round:function(g){ g.discards = 0; } },
-  { id:"clock", n:"THE CLOCK", d:"Three plays this round instead of four.",
-    round:function(g){ g.plays = 3; } },
-  { id:"lean", n:"THE LEAN YEAR", d:"Your hand is four cards, not seven.", hand:-3 },
+  /* Written when a round was four plays, where "three" was the rule taking one
+     away. A round is two plays now, so this SET IT TO THREE - an Ordeal that
+     handed you a play, above a description that named a number the game had
+     not used in a long time. It takes one, the way it always meant to, and
+     never below one because a round you cannot play is not a round. */
+  { id:"clock", n:"THE CLOCK", d:"One play fewer this round.",
+    /* THE WAGER already takes plays to the floor of 1, so holding it this
+       Ordeal was free. Same trade as THE LEAN YEAR: if the play cannot be
+       taken, a discard goes instead. */
+    round:function(g){
+      const was = g.plays;
+      g.plays = Math.max(1, g.plays - 1);
+      if(g.plays === was) g.discards = Math.max(0, g.discards - 1);
+    } },
+  /* THE FAMINE already takes the hand to the floor of 4, so against that deck
+     this Ordeal changed nothing while the board still posted it in the warning
+     colour. It takes a discard instead when the hand cannot shrink further. */
+  { id:"lean", n:"THE LEAN YEAR", d:"Your hand is four cards, not seven.", hand:-3,
+    round:function(g){ if(handSize() <= 4) g.discards = Math.max(0, g.discards - 1); } },
   /* A discard you have to spend, on words you would rather have kept. It hands
      back a discard first so it can never meet THE DROUGHT and leave a player
      with a play they are not allowed to make and no way to earn it. */
   { id:"forfeit", n:"THE FORFEIT", d:"Give a word up before you play. Discard at least once, then the round is yours.",
     round:function(g){ g.discards = Math.max(1, g.discards); g.mustForfeit = true; } },
-  { id:"vice", n:"THE VICE", d:"Two words at a time, at most.", maxPlay:2 },
+  /* At two words it collapsed chips AND multiplier at once: forced onto the
+     schedule it measured 22.0% against a 73.0% no-Ordeal ceiling on the
+     gentle curve, and 15.3% against 44.0% on the steep one - three times the
+     bite of the next worst rule. Three words is a squeeze; two was a wall. */
+  { id:"vice", n:"THE VICE", d:"Three words at a time, at most.", maxPlay:3 },
   { id:"fog", n:"THE FOG", d:"Words are worth nothing on their own. Only matching tags pay.",
     card:function(c){ return {chips:-c.base, label:"fogged"}; } },
-  { id:"toll", n:"THE TOLL", d:"Every word you play costs 90 points.",
+  /* "costs 90 points" read as 90 off the score. It comes off the CHIPS, which
+     are then multiplied - so at x12 a five-word line pays 5,400 for it, not
+     450. Measured on identical cards: x4 cost 1,800, x12 cost 5,400. */
+  { id:"toll", n:"THE TOLL", d:"Every word you play costs 90 points before the multiplier.",
     card:function(){ return {chips:-90, label:"toll"}; } },
   { id:"mirror", n:"THE MIRROR", d:"A word scores nothing unless two of its tags match the round.",
     card:function(c,i,all,ctx){
@@ -2653,43 +2695,36 @@ const ORDEALS = [
   { id:"halflight", n:"THE HALF-LIGHT", d:"Every hand begins at half a multiplier.",
     play:function(){ return {xmult:0.5}; } }
 ];
-/* Which rounds are Ordeals. Round 8 always is, so a run ends on a wall rather
-   than on a slightly larger number. */
-/* Every other round from the middle, and always the last, so a run ends on a
-   wall rather than on a bigger number. These are indices into a six-round
-   run: they used to read [3, 5, 7] for eight rounds, which at six meant the
-   last Ordeal never fired and APPRENTICE met none at all. */
-const ORDEAL_ROUNDS = [1, 3, 5];
-
-/* APPRENTICE meets one, at the end.
-
-   Round 6 killed 14.4% of APPRENTICE runs against round 5's 2.6%, and rounds
-   4, 6 and 8 are the Ordeals — so what was ending those runs was never the
-   size of the number. An Ordeal does not ask a new player to think harder; it
-   takes away the tool they have just learned to use, and then asks the same
-   question with one hand tied. That is a different game every third round, to
-   somebody still learning the first one.
-
-   The decisions all survive. Which words, in which order, for which figure,
-   against which Lens — every one of those is untouched, and the targets go up
-   to pay for the Ordeals that are gone. It is not a smaller game. It is the
-   same game with nothing taken out of your hands mid-run. */
-const APPRENTICE_ORDEAL_ROUNDS = [5];
-
-/* And the ones it meets are the ones that squeeze rather than disarm.
-   THE DROUGHT takes discards, THE LEAN YEAR takes three cards, THE FOG makes
-   words worth nothing on their own: each deletes something the tutorial spent
-   a step teaching. THE CLOCK, THE VICE, THE TOLL, THE MIRROR, THE FORFEIT and
-   THE HALF-LIGHT all leave the game intact and make it cost more. */
-const APPRENTICE_ORDEAL_BAN = ["drought", "lean", "fog"];
-
+/* Which rounds carry an Ordeal, and which Ordeals a mode will deal, are both
+   properties of the difficulty now rather than constants named after one of
+   them. See DIFFICULTIES below and docs/specs/spec-two-curves/. */
 function ordealRoundsFor(diffId){
-  return diffId === "apprentice" ? APPRENTICE_ORDEAL_ROUNDS : ORDEAL_ROUNDS;
+  const d = DIFF_BY_ID[diffId];
+  return (d && d.ordealRounds) || [];
 }
 function ordealPoolFor(diffId){
-  return diffId === "apprentice"
-    ? ORDEALS.filter(function(o){ return APPRENTICE_ORDEAL_BAN.indexOf(o.id) < 0; })
-    : ORDEALS.slice();
+  const ban = (DIFF_BY_ID[diffId] && DIFF_BY_ID[diffId].ordealBan) || [];
+  return ORDEALS.filter(function(o){ return ban.indexOf(o.id) < 0; });
+}
+/* (DISARMING is declared above the DIFFICULTIES table, which reads it.)
+   An Ordeal that DISARMS - takes away discards, cards, or the worth of a word
+   on its own - is a different rule early than it is late. Measured: wherever
+   the steeper mode's first Ordeal was put, that round became the one runs ended
+   on, at 32%, 30% and 26% for rounds 2, 3 and 4. Flattening its target moved
+   the win rate and barely moved the wall, so the target was never the thing.
+   A player two shops in has nothing to answer a disarming rule WITH.
+   So the last scheduled Ordeal may be anything, and the ones before it squeeze
+   rather than disarm - the same distinction the gentler mode's ordealBan
+   already draws, applied to the slot instead of the mode. */
+/* THE CLOCK counts as disarming now for the same reason it had to be rewritten:
+   against four plays "one fewer" was a squeeze, against two it means clearing
+   the whole round in a single hand. */
+const DISARMING = ["drought", "lean", "fog", "vice", "clock"];
+function ordealPoolAt(diffId, slot, total){
+  const pool = ordealPoolFor(diffId);
+  if(slot >= total - 1) return pool;
+  const kind = pool.filter(function(o){ return DISARMING.indexOf(o.id) < 0; });
+  return kind.length ? kind : pool;
 }
 
 /* ---------- Demands ---------- */
@@ -2761,41 +2796,88 @@ const DEMANDS = [
 const TARGETS = [7720, 10036, 13047, 16961, 22049, 28664];
 
 /* ---------- difficulty ----------
-   Eight targets that outrun any deck which is not multiplying is the game, and
-   it loses four runs in five on purpose. That is right for a roguelite and
-   wrong for somebody who has lost six in a row and has not yet seen a Lens do
-   anything — they are not being taught a lesson, they are being shown a wall.
+   A mode used to be a name and two numbers, and everything that actually made
+   one mode different from the other was a hardcoded test of that name: twenty-
+   four of them, across the ordeal schedule, the target curve, the reckoning,
+   the unlock gate, the storage keys and the run-end offers. Which mode was the
+   gentle one was an assumption baked into two dozen branches.
 
-   So: lower targets and one more discard. Nothing else moves. Every Lens, every
-   Ordeal, every figure and the whole deck are identical, because the interesting
-   part of this game is the decision and an easier mode that removes the decision
-   is not an easier version of the same game. The extra discard is deliberate —
-   what actually ends an early run is a dead draw, not a wrong choice. */
+   So a mode declares itself. Every difference between the two is a property in
+   this table, and nothing outside it knows an id. Changing which mode is gentle
+   is a data edit; adding a third needs no new branches anywhere.
+
+     rank            0 is the gentlest. "Offer the easier one" and "unlock the
+                     harder one" read this, never a name.
+     curve           per-round multiplier on TARGETS. ROUNDS entries, no
+                     fallback - a short array is a bug, not a default.
+     discards        added to the three a round starts with.
+     ordealRounds    0-based round indices that carry an Ordeal.
+     ordealBan       Ordeal ids this mode never deals.
+     reckon          whether THE RECKONING may draft a second rule.
+     bestKey         where this mode's record lives. One per curve: a total
+                     from one curve is not a better run than a total from
+                     the other.
+     lockedUntilRun  finished runs needed before it can be chosen.
+
+   Both curves are MEASURED, not chosen. tools/balance.js drives the real engine
+   and the numbers below are what it reported; docs/specs/spec-two-curves/ holds
+   the bands they have to stay inside and the protocol that decides them. */
 const DIFFICULTIES = [
-  { id:"apprentice", n:"APPRENTICE", scale:0.6, discards:1,
-    d:"A fourth discard, lower targets, and one Ordeal instead of three. Same words, same Lenses." },
-  { id:"scholar", n:"SCHOLAR", scale:1, discards:0,
-    d:"The balanced game. Three discards, and a curve only a multiplying deck keeps up with." }
+  { id:"apprentice", n:"APPRENTICE", rank:0,
+    curve:[0.73, 0.73, 0.78, 0.84, 0.89, 0.95],
+    /* Deliberately NOT the DISARMING list, though the two overlap. This ban is
+       about what a rule DELETES: no discards, a four-card hand, and words worth
+       nothing on their own each remove something the tutorial spent a step
+       teaching, which is the wrong lesson for the mode a beginner starts on.
+       DISARMING is about WHEN a rule lands - it guards early slots from rules a
+       two-shop deck cannot answer. This mode has one Ordeal and it is the last
+       round, so DISARMING never applies to it; a squeeze there, with a built
+       deck and five rounds of practice behind it, is the wall the run should
+       end on. Setting this to DISARMING was measured at 65.6% - out of band,
+       and a last round with nothing in it. */
+    /* Measured, n=500 each: this list (drought/lean/fog) gave 53.4%, banning
+       NOTHING gave 55.6%, and banning vice instead of fog gave 64.4%. It was
+       banning the harmless rule - THE FOG costs 0.7 points of win rate - and
+       permitting the lethal one, and because banning shrinks the pool it
+       raised THE VICE's odds from 1-in-9 to 1-in-6. The gentle mode has a
+       single Ordeal slot, so ordealPoolAt's "not the last slot" guard is
+       0 >= 0 and never fires; this list is the only guard it has. */
+    discards:1, ordealRounds:[5], ordealBan:["drought", "lean", "vice"],
+    reckon:false, bestKey:"best:gentle", lockedUntilRun:0,
+    d:"The easier game. Lower targets, a fourth discard, and one Ordeal instead of two. Same words, same Lenses." },
+  { id:"scholar", n:"SCHOLAR", rank:1,
+    curve:[1.22, 1.08, 1.15, 1.05, 1.12, 1.04],
+    discards:0, ordealRounds:[3, 5], ordealBan:[],
+    reckon:true, bestKey:"best:steep", lockedUntilRun:1,
+    d:"The harder game. Three discards, two Ordeals, and a curve only a multiplying deck keeps up with." }
 ];
 const DIFF_BY_ID = {};
 DIFFICULTIES.forEach(function(d){ DIFF_BY_ID[d.id] = d; });
+/* Gentlest first, so "the easier one" and "the harder one" are positions in a
+   list rather than two names this code has to already know. */
+const DIFF_BY_RANK = DIFFICULTIES.slice().sort(function(a, b){ return a.rank - b.rank; });
+function easiestDiff(){ return DIFF_BY_RANK[0]; }
+/* One step gentler / one step steeper than the one given, or null at the end. */
+function diffBelow(d){ const i = DIFF_BY_RANK.indexOf(d); return i > 0 ? DIFF_BY_RANK[i - 1] : null; }
+function diffAbove(d){ const i = DIFF_BY_RANK.indexOf(d); return i >= 0 && i < DIFF_BY_RANK.length - 1 ? DIFF_BY_RANK[i + 1] : null; }
 /* The setting, which is what the NEXT run will use. */
-function difficulty(){ return DIFF_BY_ID[prefs.difficulty] || DIFF_BY_ID.scholar; }
-/* SCHOLAR is the game as balanced, and four runs in five end early on it.
-   Offering that on the first screen somebody ever sees is how a first session
-   becomes their only one — so it is shut until they have finished a run, won
-   or lost. One run is enough: what it buys is knowing what the curve feels
-   like before choosing to stand in front of it. */
-function scholarOpen(){ return store.get("runs", 0) > 0; }
+function difficulty(){ return DIFF_BY_ID[prefs.difficulty] || easiestDiff(); }
+/* The steeper curve loses most of its runs on purpose. Offering that on the
+   first screen somebody ever sees is how a first session becomes their only
+   one - so a mode can ask for finished runs before it will open. One is
+   enough: what it buys is knowing what a curve feels like before choosing to
+   stand in front of it. */
+function modeOpen(d){ return store.get("runs", 0) >= (d.lockedUntilRun || 0); }
 
 /* Flawed Lenses are the only thing in the shop that can make a run worse while
    looking like the best thing on the shelf: THE CURSE reads "multiplier x3.5"
    and doubles every target you have left. A player who has not yet worked out
-   what a multiplier is worth cannot price that, so APPRENTICE keeps them off
-   the shelf until the player has actually met one.
+   what a multiplier is worth cannot price that, so the gentler curve keeps
+   them off the shelf until the player has actually met one.
 
-   They meet one in SCHOLAR, where the game is the game. From that moment the
-   drawer is open everywhere, APPRENTICE included: taking a mechanic back off
+   They meet one on the steeper curve, where the game is the game. From that
+   moment the drawer is open everywhere, the gentler curve included: taking a
+   mechanic back off
    somebody who has already learned it would be the worse of the two mistakes. */
 /* Whether this player has been introduced to the Lenses that cost something.
    They are on the shelf either way — hiding them was tried and it made the
@@ -2804,34 +2886,24 @@ function scholarOpen(){ return store.get("runs", 0) > 0; }
    needs is the explanation, not the absence. */
 function flawsSeen(){ return store.get("sawFlaw", false); }
 
-/* APPRENTICE pays for its missing Ordeals where they were missing from.
-   A flat raise would have made rounds 1 to 3 harder to buy back rounds 4 and
-   6, which is exactly backwards: the opening is the part a new player is
-   actually struggling with, and by round 5 they have a deck. So the opening
-   stays where it was and the curve closes on SCHOLAR through the middle,
-   easing again at round 8 because that one is still an Ordeal.
+/* One place a target is scaled, so the shop and the round can never disagree.
 
-   These are per-round fractions of SCHOLAR, so when SCHOLAR moved they all
-   had to be re-derived or APPRENTICE would have inherited the new curve at
-   the old ratios - round 2 went from 800 to 2,900, which at 0.60 would have
-   asked a first-time player for 1,740 against a floor whose 80th percentile
-   is 842. The numbers they produce are held close to what APPRENTICE was
-   already tested at, because the mode was not what the playtester was
-   complaining about and it was not what changed.
-
-   What did change is round 2, which moves from 480 to 900. It is not a round
-   a beginner should lose and it still is not; the problem was that 480 could
-   be cleared with one hand out of four, so the round was over before it had
-   asked anything. 900 needs two or three, which is where the decisions are.
-   Round 1 stays at 210 for the reason SCHOLAR's stays at 350. */
-const APPRENTICE_CURVE = [0.60, 0.31, 0.58, 0.65, 0.72, 0.86, 0.79, 0.87];
-
-/* One place a target is scaled, so the shop and the round can never disagree. */
+   The old gentle curve carried eight entries for a six-round run - two of them
+   dead since the day the run got shorter - and dipped: its round 2 multiplier
+   of 0.31 made round 2 EASIER in points than round 1, which is why almost
+   nothing ever died there. Both curves climb now. */
 function curveScale(round){
   const d = runDifficulty();
-  if(d.id !== "apprentice") return d.scale;
-  const r = typeof round === "number" ? round : 0;
-  return APPRENTICE_CURVE[r] !== undefined ? APPRENTICE_CURVE[r] : d.scale;
+  const v = d.curve[round];
+  /* No fallback. A curve with the wrong number of entries is a bug, and the
+     last one that had it - eight entries for a six-round run, with a dip at
+     round 2 - survived a change of run length precisely because something
+     downstream quietly supplied a plausible number for the rounds it had no
+     entry for. */
+  if(typeof v !== "number"){
+    throw new Error(d.n + " has no curve entry for round " + round);
+  }
+  return v;
 }
 /* What the run in progress was started under. Switching mid-run would let a
    player take the hard curve's shop money into the easy curve's round 7. */
@@ -2840,6 +2912,15 @@ function runDifficulty(){
 }
 const ROUNDS = TARGETS.length;
 const HAND_SIZE = 7, LINE_MIN = 2, MAX_PLAY = 5, LENS_SLOTS = 5;
+/* Lines you kept do not compete with Lenses for the five slots any more - see
+   slotsUsed() - so this is the whole bound on them. Two, because they are
+   free: at five they beat every purchase in the shop and the purse stopped
+   meaning anything. */
+const KEEP_SLOTS = 2;
+/* What a round hands you before a mode, a Lens or an Ordeal has touched it.
+   These were literals in three places, which is how a comparison against "3
+   discards" survived a mode that starts every round with four. */
+const PLAYS_PER_ROUND = 2, DISCARDS_PER_ROUND = 3;
 /* What a join is worth. Resonance is safe and small, tension is large and
    risky, and a kept line pays again every time its figure returns. */
 const JOIN_RESONANCE = 40, JOIN_TENSION = 1;
@@ -2922,6 +3003,26 @@ function tensionPairs(a, b){
            (a.t.indexOf(p[1]) >= 0 && b.t.indexOf(p[0]) >= 0);
   });
 }
+/* What each join is CALLED, in words somebody can read once and keep.
+
+   These were RESONANCE, TENSION, PARADOX and SILENCE - accurate, thematic, and
+   four pieces of vocabulary to learn before the first decision. A playtester
+   put it plainly: "what i found confusing is the resonance, pull and silent
+   and this whole stuff". The mechanic was never the problem. The names were.
+
+   The ids underneath are unchanged, so nothing about the engine moves. */
+const JOIN_NAME = {
+  resonance: "ALIKE",
+  tension:   "OPPOSITE",
+  paradox:   "BOTH",
+  silence:   "NOTHING"
+};
+const JOIN_SAID = {
+  resonance: "mean something of the same thing",
+  tension:   "mean opposite things",
+  paradox:   "are alike AND opposite at once",
+  silence:   "have nothing in common"
+};
 function joinOf(a, b, dull){
   const s = sharedTags(a, b, dull).length, t = tensionPairs(a, b).length;
   return { s: s, t: t,
@@ -2938,16 +3039,20 @@ function joinsOf(line, dull){
   return { joins: joins, scored: Math.min(line.length, joins.length + 1) };
 }
 
-/* ---------- Figures, which are now figures of speech ----------
+/* ---------- Figures, which are now turns of meaning ----------
    In rhetoric a figure IS a turn of meaning. The code used the word for
    spelling patterns, which was a pun nobody had noticed. These read the join
    list and nothing else — no length, no letters. */
+/* Named for what they look like, not for what rhetoric calls them. They were
+   THE CHIASMUS, THE PARADOX, THE ESCALATION, THE SYNONYMY and THE ANTITHESIS,
+   which is five more words to learn on top of the four above - and the whole
+   point of a hand's name is that you can say it to somebody. */
 const FIGURES = [
-  { id:"chiasmus",   n:"THE CHIASMUS",   d:"Three joins that read the same backwards as forwards" },
-  { id:"paradox",    n:"THE PARADOX",    d:"Two words that agree and disagree at once" },
-  { id:"escalation", n:"THE ESCALATION", d:"Each join sharing more than the one before it" },
-  { id:"synonymy",   n:"THE SYNONYMY",   d:"Two words that share three overtones or more" },
-  { id:"antithesis", n:"THE ANTITHESIS", d:"Two words that carry opposite overtones" }
+  { id:"chiasmus",   n:"THE MIRROR", d:"Four words whose pairs read the same backwards as forwards" },
+  { id:"paradox",    n:"THE TWIST",  d:"Two words that are alike and opposite at the same time" },
+  { id:"escalation", n:"THE BUILD",  d:"Each pair with more in common than the pair before it" },
+  { id:"synonymy",   n:"THE CHORUS", d:"Two words with three things or more in common" },
+  { id:"antithesis", n:"THE CLASH",  d:"Two words that mean opposite things" }
 ];
 /* Priced off how often each one can actually be made, the same way the old
    ladder was. Settled by tools/join-sim.js, not by instinct. */
@@ -3092,13 +3197,39 @@ const store = {
    people mute in public, sound effects are the one people mute at work, and
    vibration is the one that eats a battery. Lumping them behind a single
    mute button makes at least two of those a worse trade than they need to be. */
-/* Somebody opening this for the first time has no idea that four runs in five
-   end early on purpose, and finding out by losing six of them is not a lesson.
-   They start on APPRENTICE. Written down on the first boot rather than derived
-   every time, or the default would flip to SCHOLAR the moment their run counter
-   ticked past zero and the game would have changed difficulty behind them. */
+/* Each curve keeps its own record now - best:gentle and best:steep - where
+   before there was one unlabelled "best" for the steep curve and
+   "best:apprentice" for the gentle one. A total is only a record against the
+   curve it was set on, so the old keys are copied to the new ones by CURVE.
+   Those two old names are frozen history: they say which curve that storage
+   key held in the build that wrote it, not which mode is gentle today.
+
+   Nobody's chosen difficulty is touched. APPRENTICE has meant the gentler
+   curve since the first build and still does.
+
+   Flagged so it runs exactly once: a second pass could copy a stale old total
+   over a better new one. */
+if(!store.get("curvesMigrated", false)){
+  /* Nothing stored, but runs behind them: the old code defaulted a returning
+     player to the STEEP curve, so that is the curve they were playing and the
+     one they keep. Without this they are quietly moved onto the gentle one by
+     the first-boot default below - which is the exact thing this block exists
+     to prevent. A profile with no runs is a new player and is left alone. */
+  if(store.get("difficulty", null) === null && store.get("runs", 0) > 0){
+    store.set("difficulty", DIFF_BY_RANK[DIFF_BY_RANK.length - 1].id);
+  }
+  const gentleBest = store.get("best:apprentice", 0);   /* the old gentle curve */
+  const steepBest  = store.get("best", 0);              /* the old steep curve  */
+  if(gentleBest) store.set("best:gentle", gentleBest);
+  if(steepBest)  store.set("best:steep", steepBest);
+  store.set("curvesMigrated", true);
+}
+/* A profile with nothing stored starts on the gentler curve. Written down on
+   the first boot rather than derived every time, or the default would move the
+   moment their run counter ticked and the game would change difficulty behind
+   them. */
 if(store.get("difficulty", null) === null){
-  store.set("difficulty", store.get("runs", 0) === 0 ? "apprentice" : "scholar");
+  store.set("difficulty", easiestDiff().id);
 }
 /* Anyone with a run behind them has been playing a game where the flawed
    Lenses were always on the shelf, so they have met one whether or not anybody
@@ -3115,10 +3246,12 @@ const prefs = {
      these are the levels under them. 1 is the level every sound in the
      game was mixed at, so a player who never opens this hears what the
      mix intended. */
+  /* Off by default: see blindMode(). A player opts into it. */
+  blind:    store.get("blind", false),
   musicVol: store.get("musicVol", 1),
   sfxVol:   store.get("sfxVol", 1),
   carryMemory: store.get("carryMemory", true),
-  difficulty: store.get("difficulty", "scholar")
+  difficulty: store.get("difficulty", easiestDiff().id)
 };
 /* One number, read by every beat in a hand, so no two parts of a hand can
    disagree about how fast the game is. This was a switch with a slow side
@@ -3133,16 +3266,26 @@ function setPref(k, v){ prefs[k] = v; store.set(k, v); }
    the player its own answer and then asked them to choose. There was no
    judgement left in it and no way to be cleverer than the person beside you.
 
-   On SCHOLAR they are hidden until you have played the word once, and what you
-   have learned is kept between runs. A human already knows FURNACE is hot and
-   FROST is cold; that knowledge is the skill the game is finally testing, and
-   the 249-word lexicon stops being a thin library and becomes the thing you
-   are learning. APPRENTICE shows everything, so nobody meets this blind.
+   Turned on, they are hidden until you have played the word once, and what
+   you have learned is kept between runs. A human already knows FURNACE is hot
+   and FROST is cold; that knowledge is the skill the game is finally testing,
+   and the 249-word lexicon stops being a thin library and becomes the thing
+   you are learning. It is off until it is chosen, so nobody meets this blind.
 
    Learned on being PLAYED rather than on scoring, because a word you risked
    and got nothing from is exactly the one you should be told about. */
 const LEARNED = store.get("learned", {});
-function wordKnown(w){ return difficulty().id !== "scholar" || !!LEARNED[w]; }
+/* Hiding the overtones was tied to a difficulty, and that was wrong in a way
+   no simulation could have caught. Anybody who had played before already had
+   that mode selected and the tutorial marked seen, and the learned store did not
+   exist until the day it shipped - so a returning player opened the game to
+   seven blank cards, no tutorial, and a coach line telling them to tap the
+   gold tags that had just been made invisible. The game asked them to do
+   something it had made impossible.
+
+   So it is a choice now, off until it is made, and it says what it does. */
+function blindMode(){ return !!prefs.blind; }
+function wordKnown(w){ return !blindMode() || !!LEARNED[w]; }
 function learnWord(w){
   if(LEARNED[w]) return;
   LEARNED[w] = 1;
@@ -3457,7 +3600,12 @@ function makeCard(entry, interpreted){
     id: Math.random().toString(36).slice(2,9),
     w: entry.w,
     t: entry.t.slice(),
-    base: 5 + 3*entry.w.length,
+    /* Was 5 + 3 x LETTERS - so spelling was not merely leaking through a few
+       Lenses, it was the base currency of every card in the game, against a
+       spec whose first constraint is that nothing in scoring reads spelling.
+       Keyed to overtones instead, and scaled to land on the same range the
+       lexicon used to produce (17-32) so the curves stay comparable. */
+    base: 6 + 5*entry.t.length,
     interpreted: !!interpreted
   };
 }
@@ -3479,13 +3627,26 @@ function newRun(seedStr, fresh){
   /* Shuffle the WHOLE list and filter after, never the other way round. The
      shuffle draws once per element, so shuffling a shorter list consumes fewer
      numbers from the seeded stream and every draw after it — the deck
-     included — comes out different. APPRENTICE is a different curve, not
+     included — comes out different. A mode is a different curve, not
      different words, and the daily is the same words for everybody. */
-  const ordealPool = shuffle(ORDEALS.slice())
-    .filter(function(o){ return ordealPoolFor(dealtDiff).indexOf(o) >= 0; });
+  const shuffled = shuffle(ORDEALS.slice());
   const ordealOrder = {};
-  ordealRoundsFor(dealtDiff).forEach(function(r, i){
-    ordealOrder[r] = ordealPool[i % ordealPool.length];
+  const rounds = ordealRoundsFor(dealtDiff);
+  const used = [];
+  rounds.forEach(function(r, i){
+    /* Drawn from the pool this SLOT allows, in the shuffled order, skipping
+       anything an earlier slot already took. */
+    const pool = ordealPoolAt(dealtDiff, i, rounds.length)
+      .filter(function(o){ return used.indexOf(o) < 0; });
+    /* Widening to the mode's whole pool keeps the de-duplication: dropping it
+       is how a schedule longer than the slot pool deals the same rule twice. */
+    const from = pool.length ? pool
+      : ordealPoolFor(dealtDiff).filter(function(o){ return used.indexOf(o) < 0; });
+    const pickFrom = shuffled.filter(function(o){ return from.indexOf(o) >= 0; });
+    const o = pickFrom[0] || from[0];
+    if(!o) return;              /* more scheduled rounds than there are rules */
+    used.push(o);
+    ordealOrder[r] = o;
   });
 
   /* Build the deck knowing what this run will ask for. Some overtones are
@@ -3542,7 +3703,7 @@ function newRun(seedStr, fresh){
     lenses: [],
     bank: 4,
     selected: [],
-    plays: 2, discards: 3,
+    plays: PLAYS_PER_ROUND, discards: DISCARDS_PER_ROUND,
     roundScore: 0,
     total: 0,
     demandOrder: demandOrder,
@@ -3566,6 +3727,8 @@ function newRun(seedStr, fresh){
     openLens: null,
     /* a round result deferred while the opening tutorial finishes */
     heldResult: null,
+    /* the opening tutorial's play is given back once, per run */
+    tutRefunded: false,
     interpreterUsed: false,
     interpretedWord: null,
     animating: false,
@@ -3584,6 +3747,8 @@ function newRun(seedStr, fresh){
   }
 
   for(const k in SEEN) delete SEEN[k];
+  /* Same reason as in startTutorial(): a new board owes the lesson nothing. */
+  tutSpentPlay = false;
   G.coachStep = coachDone() ? null : "pick";
   startRound();
 }
@@ -3602,6 +3767,16 @@ function handSize(){
   return Math.max(4, n);
 }
 
+/* A Lens and a kept line cost the same thing: one of the five slots. Three
+   call sites used to count only the Lenses, so a rail holding two Lenses and
+   three kept lines read as "two of five" - and the offers stayed clickable
+   while buy() silently refused them. One answer, read everywhere. */
+function slotsUsed(){ return G ? G.lenses.length : 0; }
+function slotsLeft(){ return LENS_SLOTS - slotsUsed(); }
+function slotsFull(){ return slotsLeft() <= 0; }
+function keepsUsed(){ return G && G.kept ? G.kept.length : 0; }
+function keepsFull(){ return keepsUsed() >= KEEP_SLOTS; }
+
 /* Every rule in force this round: the one the round was dealt, and the one
    THE RECKONING drafted onto it if your deck had outgrown the target. */
 function roundRules(){
@@ -3617,9 +3792,15 @@ function roundRules(){
    you own THE CURSE: it said 11,500 and the round demanded 23,000. You cannot
    ask someone to shop wisely against a number that is not true. */
 function shapeFor(round, rules){
+  /* The guard belongs where the read is. deckCeiling had one and this did not,
+     so TARGETS[ROUNDS] * curveScale(ROUNDS) came out NaN and survived every
+     clamp below - the Bookseller rendered the string "NaN" as next round's
+     target. */
+  if(!(round >= 0) || round >= ROUNDS || TARGETS[round] === undefined) return null;
   const diff = runDifficulty();
   const probe = { target: Math.round(TARGETS[round] * curveScale(round)),
-                  plays: 2, discards: 3 + diff.discards, round: round };
+                  plays: PLAYS_PER_ROUND,
+                  discards: DISCARDS_PER_ROUND + diff.discards, round: round };
   if(G && G.lenses) G.lenses.forEach(function(l){ if(l.onRound) l.onRound(probe); });
   /* The rules take their cut after the Lenses, so a Lens can never hand back
      what the round has taken. */
@@ -3646,7 +3827,7 @@ function shapeFor(round, rules){
    measured against this one, so measuring it can never depend on itself. */
 function baseShape(round){
   const o = G && G.ordealOrder ? G.ordealOrder[round] : null;
-  return shapeFor(round, o ? [o] : []);
+  return shapeFor(round, o ? [o] : []);   /* null past the end of the run */
 }
 
 /* The round you will actually face, reckoning included. */
@@ -3674,13 +3855,18 @@ function roundShape(round){
    round 3 on. So the rule starts at round 3, where being ahead means anything
    at all.
 
-   The bar is three times rather than twice. At twice, a deck that was merely
-   doing well called down a second rule: it fired on 5-18% of later rounds and
-   took 4.2 points off the win rate, 20.8% to 16.6%, which is a tax rather than
-   an answer. At three times it fires on the 0-5% of rounds where a build has
-   genuinely broken the round open, and costs 2.6 — 18.2% against 20.8% with no
-   reckoning at all. Being strong is the point of the game; running away with
-   it is what this is for. */
+   MEASURED AGAIN, n=400 SCHOLAR runs, after the levy was made to obey the
+   slot rule: it now fires on 39.2%, 43.1%, 57.1% and 47.8% of rounds 3 to 6.
+   The paragraph below claimed "0-5% of rounds where a build has genuinely
+   broken the round open", and that has not been true for a long time - the
+   threshold is read against a curve that has moved twice since. It is left at
+   three because the curves either side of it are measured WITH it firing at
+   that rate, and because what made it dangerous was never the frequency: it
+   was that the drafted rule ignored the slot guard. 280 of 495 drafted rules
+   used to be disarming ones landing on rounds 3 and 4, where a two-shop deck
+   has nothing to answer them with. That is 0 of 367 now.
+
+   The bar is three times rather than twice. At twice, a deck that was merely*/
 const RECKON_AT = 3, RECKON_FROM = 2;
 
 /* Ordeals that cannot both be obeyed. THE FORFEIT makes you spend a discard;
@@ -3695,18 +3881,33 @@ function clashes(a, b){
 function reckonFor(round){
   if(!G || !G.demandOrder || round < RECKON_FROM) return null;
   /* THE RECKONING answers a player who has broken the round open by stacking a
-     second rule on the first. APPRENTICE meets one rule at all, at the end;
-     doubling it is the thing this mode exists not to do. */
-  if(runDifficulty().id === "apprentice") return null;
+     second rule on the first. The gentler mode meets one rule at all, at the
+     end; doubling it is the thing that mode exists not to do. */
+  if(!runDifficulty().reckon) return null;
   const base = baseShape(round);
+  /* shapeFor returns null past the end of the run now, rather than a NaN
+     target that made `can < base.target * RECKON_AT` false and quietly drafted
+     a rule onto a round that does not exist. */
+  if(!base) return null;
   const can = deckCeiling(round, base);
   if(can < base.target * RECKON_AT) return null;
   const own = (G.ordealOrder && G.ordealOrder[round]) || null;
-  const pool = ORDEALS.filter(function(o){
+  /* The levy drafted out of the WHOLE table with no slot check, so the rule
+     that keeps disarming Ordeals away from a player who cannot answer them
+     was bypassed on every run that triggered it. Measured before this: 280 of
+     495 drafted rules were disarming ones, THE VICE among them 41 times, on
+     rounds 3 and 4. A drafted rule obeys the same slot rule as a dealt one. */
+  const src = round >= ROUNDS - 1
+    ? ORDEALS
+    : ORDEALS.filter(function(o){ return DISARMING.indexOf(o.id) < 0; });
+  const pool = src.filter(function(o){
     if(!own) return true;
     if(o.id === own.id) return false;
     return !clashes(own.id, o.id);
   });
+  /* Every candidate can clash with the round's own rule. Without this the
+     index arithmetic lands on undefined and the levy silently vanishes. */
+  if(!pool.length) return null;
   const pick = mulberry32(hashStr(G.seed + ":reckon:" + round))();
   return pool[Math.floor(pick * pool.length) % pool.length];
 }
@@ -3733,6 +3934,11 @@ function reckoning(round){
    the point is to look forward from the shop. Restores everything it borrows. */
 function deckCeiling(round, shape){
   if(!G) return 0;
+  /* A round that does not exist has no demand to score against, and reading
+     one used to throw out of the shop and take the board with it. The run
+     length has changed once already; a guard costs nothing and means the next
+     change cannot crash anything. */
+  if(!(round >= 0) || round >= ROUNDS || !G.demandOrder || !G.demandOrder[round]) return 0;
   const keepDemand = G.demand, keepOrdeal = G.ordeal,
         keepLevy = G.levy, keepDiscards = G.discards;
   shape = shape || roundShape(round);
@@ -3809,7 +4015,7 @@ function startRound(){
   const diff = runDifficulty();
   G.target = Math.round(TARGETS[G.round] * curveScale(G.round));
   G.roundScore = 0;
-  G.plays = 2; G.discards = 3 + diff.discards;
+  G.plays = PLAYS_PER_ROUND; G.discards = DISCARDS_PER_ROUND + diff.discards;
   G.roundLines = [];
   G.mustForfeit = false; G.forfeited = false;
   /* Lenses that cost you something take it here, before the round starts, so
@@ -3877,12 +4083,12 @@ function resolve(cards){
     if(j.s) bits.push("+" + pts);
     if(j.t) bits.push("+" + (JOIN_TENSION * j.t) + " mult");
     events.push({ k:"join", i:i, cls:j.t ? "m" : "c", kind:j.kind,
-                  txt: j.kind.toUpperCase() + " " + bits.join(" "),
+                  txt: JOIN_NAME[j.kind] + " " + bits.join(" "),
                   chips:chips, mult:mult });
   });
   if(scored < cards.length)
     events.push({ k:"join", i:jr.joins.length, cls:"r", kind:"silence",
-                  txt:"SILENCE \u00b7 the line stops here", chips:chips, mult:mult });
+                  txt:"NOTHING IN COMMON \u00b7 the line stops here", chips:chips, mult:mult });
 
   figuresFromJoins(jr.joins).forEach(function(fig){
     chips += fig.chips;
@@ -3986,7 +4192,12 @@ let skipAnim = false;
 function sleep(ms){ return new Promise(function(r){ if(skipAnim) r(); else setTimeout(r, ms); }); }
 
 async function play(){
-  if(G.animating || G.selected.length===0 || G.plays<=0) return;
+  /* LINE_MIN existed in two copy strings and nowhere else: the tutorial said
+     "a line is two to five words" and the engine took one. Enforced here, so
+     the rule the board states is the rule - and so ASCETIC and THE ORACLE are
+     selling something real when they say "play exactly 1 word", rather than
+     describing a play everybody already had. */
+  if(G.animating || G.selected.length < minPlay() || G.plays<=0) return;
   if(G.mustForfeit && !G.forfeited){
     toast("THE FORFEIT: give a word up first. Pick one and DISCARD.");
     SFX.deny(); buzz([8,45,8]);
@@ -4004,6 +4215,14 @@ async function play(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.plays--;
+  /* A play spent inside the lesson is given back when the lesson ends - ONE of
+     them. PLAY stays enabled while the overlay is up, so a player who hits it
+     twice spent two and would come out ahead of somebody who skipped. See
+     refundTutorialPlay(). */
+  if(tutActive()){
+    if(tutSpentPlay) tutRefundable = false;
+    tutSpentPlay = true;
+  }
   /* After resolve(), never before: the line is paid at the overtones it had
      when the player laid it, and they tire for the next one. An overtone that
      just scored is dull, and pays nothing until it recovers - so the strongest
@@ -4012,12 +4231,24 @@ async function play(){
   /* A line that made a figure is a line worth keeping, so the Bookseller can
      offer it back at the end of the round. Lines that made nothing are not
      offered: there would be nothing for them to pay out on. */
+  /* roundLines only keeps lines that made a figure, and the hand a run dies
+     on very often did not. The death screen needs THIS one. */
+  G.lastLine = { ws: cards.slice(0, res.scored).map(function(c){ return c.w; }),
+                 total: res.total };
   if(res.figs && res.figs.length){
     G.roundLines = G.roundLines || [];
+    /* figs[0] is whichever figure sits first in the FIGURES table, not the one
+       that earned the most - and chiasmus is first, so 74 of 80 optimal lines
+       bound to it and every kept line in the game was the same card wearing
+       different words. Bind to the figure that actually paid. */
+    const lead = res.figs.slice().sort(function(x, y){
+      const px = FIG_PAY[x.id], py = FIG_PAY[y.id];
+      return (py.chips + 250 * py.mult) - (px.chips + 250 * px.mult);
+    })[0];
     G.roundLines.push({
       ws: cards.slice(0, res.scored).map(function(c){ return c.w; }),
-      fig: res.figs[0].id,
-      figName: res.figs[0].n,
+      fig: lead.id,
+      figName: lead.n,
       total: res.total
     });
   }
@@ -4098,7 +4329,10 @@ async function play(){
     if(ev.k === "lens"){ flashLens(ev.lens); buzz(11); }
     /* the number leaves the word that earned it and lands on the counter */
     chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, Math.max(120, gap * 2));
-    setTally(ev.chips, ev.mult);
+    /* THE FOG, THE TOLL, THE MIRROR and THE ORACLE all subtract chips, and a
+       line can run below zero part-way through. The payout floors at zero, so
+       the counter showed a number the game was never going to honour. */
+    setTally(Math.max(0, ev.chips), ev.mult);
     if(ev.k === "lens") SFX.lens(); else SFX.score(e, ev.cls === "m");
     await sleep(ev.fig ? figStep : gap);
   }
@@ -4106,7 +4340,10 @@ async function play(){
   await sleep(Math.round(180 * sp));
   G.roundScore += res.total;
   G.total += res.total;
-  if(res.mult > G.best.mult || (res.mult === G.best.mult && res.total > G.best.score)){
+  /* Was keyed on the MULTIPLIER, so a thin line that happened to catch a big
+     multiplier outranked the run's actual best hand - and that line is what
+     the share text invites the player to show somebody. */
+  if(res.total > G.best.score){
     G.best = { word: cards.map(function(c){return c.w;}).join(" · "), mult: Math.round(res.mult*10)/10, score: res.total };
   }
 
@@ -4343,11 +4580,21 @@ function openShop(reward){
     + '<p class="nextup">Next: <b>' + nextDemand.n + '</b> wants '
     + nextDemand.tags.map(function(t){ return '<b>'+TAGS[t][0]+'</b>'; }).join(" or ")
     + ' \u00b7 <b>' + next.target.toLocaleString() + '</b> points'
-    + (next.target !== TARGETS[G.round]
-        ? ' \u00b7 <b class="gold">' + (next.target / TARGETS[G.round]).toFixed(1)
-          + '\u00d7 the usual</b>, from what you hold' : '')
+    + (function(){
+        /* What this round asks on this mode's own curve, before anything the
+           player is holding has touched it. */
+        const par = Math.round(TARGETS[G.round] * curveScale(G.round));
+        if(next.target === par || !par) return '';
+        return ' \u00b7 <b class="gold">' + (next.target / par).toFixed(1)
+             + '\u00d7 the usual</b>, from what you hold';
+      })()
     + '</p>'
-    + (next.plays !== 2 || next.discards !== 3 || next.hand !== HAND_SIZE || next.maxPlay !== MAX_PLAY
+    /* Against the MODE's untouched round, not baseShape - baseShape runs the
+       Lenses too, so comparing to it hid this line exactly when a Lens had
+       changed the shape, which is when it is worth reading. */
+    + (next.plays !== PLAYS_PER_ROUND
+       || next.discards !== DISCARDS_PER_ROUND + runDifficulty().discards
+       || next.hand !== HAND_SIZE || next.maxPlay !== MAX_PLAY
         ? '<p class="shape"><b>' + next.plays + '</b> play'
           + (next.plays === 1 ? '' : 's') + ' \u00b7 <b>' + next.discards + '</b> discard'
           + (next.discards === 1 ? '' : 's') + ' \u00b7 hand of <b>' + next.hand + '</b>'
@@ -4365,10 +4612,15 @@ function openShop(reward){
         return '<div class="ordeal-warn reckon"><div class="on">THE RECKONING: '
           + escapeHtml(r.n) + '</div><div class="od">Your deck outgrew this round. ' + escapeHtml(r.d) + '</div></div>';
       })()
-    + '<p class="stakes">Round ' + ROUNDS + ' asks <b>'
-    + roundShape(ROUNDS-1).target.toLocaleString() + '</b> \u00b7 <b>'
-    + (function(){ const r = roundShape(ROUNDS-1).target / next.target;
-        return (r < 3 ? r.toFixed(1) : Math.round(r)); })() + '\u00d7</b> this one. Words add points, Lenses multiply them.</p>'
+    /* On the last visit "this one" IS the final round, so this printed
+       "Round 6 asks 22,071 - 1.0x this one." Nothing to compare it against. */
+    + (G.round < ROUNDS - 1
+        ? '<p class="stakes">Round ' + ROUNDS + ' asks <b>'
+          + roundShape(ROUNDS-1).target.toLocaleString() + '</b> \u00b7 <b>'
+          + (function(){ const r = roundShape(ROUNDS-1).target / next.target;
+              return (r < 3 ? r.toFixed(1) : Math.round(r)); })()
+          + '\u00d7</b> this one. Words add points, Lenses multiply them.</p>'
+        : '<p class="stakes">This is the last round. Words add points, Lenses multiply them.</p>')
     + (function(){
         /* Perfect draws and perfect ordering, against what the round will
            really ask.
@@ -4415,7 +4667,7 @@ function openShop(reward){
           return c >= shape.target;
         };
         let fix = null;
-        const room = LENS_SLOTS - G.lenses.length;
+        const room = slotsLeft();
         for(let i = 0; room >= 1 && !fix && i < buyable.length; i++){
           if(reaches([buyable[i].lens])) fix = { n: buyable[i].lens.n, cost: buyable[i].cost };
         }
@@ -4437,9 +4689,17 @@ function openShop(reward){
           + '</b>. <b>' + gap.toLocaleString() + '</b> short.'
           + (fix
               ? ' <b>' + escapeHtml(fix.n) + '</b> ($' + fix.cost + ') covers it.'
-              : (G.lenses.length + (G.kept || []).length >= LENS_SLOTS
+              /* Only suggest a move the player can actually make. At $0 with
+                 nothing owned this used to say "Reroll, or sell a Lens" with
+                 the reroll disabled and no sell box on the screen - two dead
+                 ends offered to somebody already at one. */
+              : (slotsFull()
                   ? ' Slots are full. Sell one and buy louder, or reroll.'
-                  : ' Reroll, or sell a Lens costing you more than it pays.'))
+                  : G.bank >= 1 && G.lenses.length
+                    ? ' Reroll, or sell a Lens costing you more than it pays.'
+                    : G.bank >= 1 ? ' Reroll and see what else there is.'
+                    : G.lenses.length ? ' Sell a Lens costing you more than it pays.'
+                    : ' Nothing on this shelf can close it. Play the round out.'))
           + '</div></div>';
       })()
     + (function(){
@@ -4447,7 +4707,7 @@ function openShop(reward){
            list. It costs nothing but a slot, and it pays every time the figure
            it made comes back - so what carries the run is a line they wrote. */
         const lines = (G.roundLines || []).filter(function(l){ return l.fig; });
-        if(!lines.length || G.lenses.length + (G.kept || []).length >= LENS_SLOTS) return '';
+        if(!lines.length || keepsFull()) return '';
         return '<div class="sub" style="margin:16px 0 7px">Keep a line \u00b7 free</div>'
           + '<div class="keeps" id="keeps"></div>';
       })()
@@ -4466,8 +4726,7 @@ function openShop(reward){
     + (G.lenses.length
         ? '<div class="sub" style="margin:16px 0 7px">Your Lenses \u00b7 '
           + G.lenses.length + ' of ' + LENS_SLOTS
-          + (G.lenses.length + (G.kept || []).length >= LENS_SLOTS
-              ? ' slots full. Sell one to make room.' : ' slots used')
+          + (slotsFull() ? ' slots full. Sell one to make room.' : ' slots used')
           + '</div><div class="owned" id="owned"></div>'
         : '')
     + '<div class="rowend">'
@@ -4483,8 +4742,8 @@ function openShop(reward){
   G.offers.forEach(function(o, idx){
     const b = document.createElement("button");
     b.className = "offer"; b.type = "button";
-    b.disabled = o.bought || G.bank < o.cost || (o.kind==="lens" && G.lenses.length>=LENS_SLOTS);
-    if(!o.bought && o.kind === "lens" && G.lenses.length + (G.kept || []).length >= LENS_SLOTS) b.title = "No slots left. Sell one below.";
+    b.disabled = o.bought || G.bank < o.cost || (o.kind === "lens" && slotsFull());
+    if(!o.bought && o.kind === "lens" && slotsFull()) b.title = "No slots left. Sell one below.";
     else if(!o.bought && G.bank < o.cost) b.title = "You cannot afford this yet";
     if(o.kind === "lens"){
       /* An honest nudge: say when a Lens actually has words to fire on. */
@@ -4510,13 +4769,18 @@ function openShop(reward){
     (G.roundLines || []).filter(function(l){ return l.fig; }).forEach(function(l){
       const b = document.createElement("button");
       b.className = "offer keep"; b.type = "button";
+      /* It used to render enabled with the rail full and do nothing on click -
+         no toast, no sound, no reason given. The last thing a player does with
+         a line they wrote is the worst place in the game for a dead click. */
+      b.disabled = keepsFull();
+      if(b.disabled) b.title = "You are already keeping " + KEEP_SLOTS + " lines.";
       b.innerHTML = '<div class="on">' + escapeHtml(l.ws.join(" \u00b7 ")) + '</div>'
         + '<div class="od">' + escapeHtml(l.figName) + ' &middot; it scored '
         + l.total.toLocaleString() + '</div>'
-        + '<div class="oc">keep it</div>';
+        + '<div class="oc">' + (b.disabled ? "no room" : "keep it") + '</div>';
       b.onclick = function(){
         G.kept = G.kept || [];
-        if(G.lenses.length + G.kept.length >= LENS_SLOTS) return;
+        if(keepsFull()) return;
         G.kept.push({ n: l.ws.join(" \u00b7 "), fig: l.fig, figName: l.figName });
         SFX.buy();
         toast("Kept " + l.ws.join(" \u00b7 "));
@@ -4601,7 +4865,7 @@ function buy(idx, reward){
   const o = G.offers[idx];
   if(o.bought || G.bank < o.cost) return;
   if(o.kind === "lens"){
-    if(G.lenses.length + (G.kept || []).length >= LENS_SLOTS) return;
+    if(slotsFull()) return;
     G.lenses.push(o.lens);
     G.shopSeen.push(o.lens.id);
   } else {
@@ -4804,9 +5068,10 @@ function chooseOvertones(word, suggested, note, src){
 function endRun(won){
   G.over = true;
   const rd = runDifficulty();
-  /* Scholar keeps the plain key so nobody's existing best disappears; anything
-     else gets its own, because a total from a lower curve is not a better run. */
-  const bestKey = rd.id === "scholar" ? "best" : "best:" + rd.id;
+  /* One key per curve, named for the curve rather than the mode, because a
+     total from a lower curve is not a better run than a total from a higher
+     one - and the names moved once already. */
+  const bestKey = rd.bestKey;
   const runs = store.get("runs", 0) + 1;
   store.set("runs", runs);
   const bestEver = store.get(bestKey, 0);
@@ -4841,30 +5106,60 @@ function endRun(won){
     + '<div class="stat-row">'
     +   '<div class="stat gold"><div class="k">Total</div><div class="v">' + G.total.toLocaleString() + '</div></div>'
     +   '<div class="stat"><div class="k">Reached</div><div class="v">' + Math.min(G.round+1, ROUNDS) + ' / ' + ROUNDS + '</div></div>'
-    +   '<div class="stat"><div class="k">Best mult</div><div class="v">×' + (G.best.mult||1) + '</div></div>'
+    +   '<div class="stat"><div class="k">Best hand</div><div class="v">'
+    +     (G.best.score || 0).toLocaleString()
+    +     '<span class="bh">×' + (G.best.mult || 1) + '</span></div></div>'
     + '</div>'
+    /* It named the Demand and then three stats, none of which was the number
+       that ended the run. A player could not say which decision killed them,
+       so there was nothing to do differently - and the only thing offered was
+       an easier difficulty, which tells somebody who misplayed one ordering
+       that the game was too hard for them. */
+    + (!won
+        ? '<div class="reality short"><div class="rk">WHAT ENDED IT</div>'
+          + '<div class="rv">Round ' + (G.round + 1) + ' wanted <b>'
+          + G.target.toLocaleString() + '</b>. You made <b>'
+          + G.roundScore.toLocaleString() + '</b> \u2014 <b>'
+          + Math.max(0, G.target - G.roundScore).toLocaleString() + '</b> short.'
+          + (G.lastLine && G.lastLine.ws.length
+              ? ' Your last hand was <b>' + escapeHtml(G.lastLine.ws.join(" \u00b7 "))
+                + '</b> for ' + G.lastLine.total.toLocaleString() + '.'
+              : '')
+          + '</div></div>'
+        : '')
     + (isRecord ? '<p style="color:var(--gold)"><b>That is a personal best.</b></p>' : '')
     /* Three runs in and still falling in the first third: that is the curve
        winning, not a lesson landing. Offered once it is true, never before,
        and never to somebody already playing the gentler one. */
-    + (!won && runs >= 3 && G.round < 3 && rd.id === 'scholar'
-        ? '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
-          + '<p>Four runs in five end early, played perfectly. <b>APPRENTICE</b> lowers '
-          + 'every target, hands you a fourth discard, and drops two of the three '
-          + 'Ordeals. Same words, same Lenses.</p>'
-          + '<button class="btn" id="goEasy" type="button">Try APPRENTICE →</button></div>'
-        : '')
+    + (function(){
+        const easier = diffBelow(rd);
+        if(won || runs < 3 || G.round >= 3 || !easier) return '';
+        /* It used to spell out "a fourth discard, and drops two of the three
+           Ordeals" beside the mode's own description, which says one of two.
+           Two statements on one screen disagreeing about the same mode. The
+           mode already describes itself; let it. */
+        return '<div class="softer"><div class="k">THIS IS A STEEP GAME</div>'
+          + '<p>' + escapeHtml(easier.d) + '</p>'
+          + '<button class="btn" id="goEasy" type="button">Try '
+          + escapeHtml(easier.n) + ' \u2192</button></div>';
+      })()
     + (unlocked ? '<div class="unlock"><div class="k">Yours next run</div><div class="v">'
         + unlocked.n + '</div><div class="d">' + unlocked.d + '</div></div>' : '')
     /* Their first finished run, whichever way it went, opens the real curve.
        Said here because it is the screen they are already reading, and not as
        a question — they carry on with whatever they were doing. */
-    + (runs === 1
-        ? '<div class="unlock open"><div class="k">Unlocked</div><div class="v">SCHOLAR</div>'
-          + '<div class="d">The game as it is balanced: the targets it was tuned to and one '
-          + 'discard fewer. Four runs in five end early on it.</div>'
-          + '<button class="btn" id="goHard" type="button">Play SCHOLAR \u2192</button></div>'
-        : '')
+    + (function(){
+        /* The run that opens the steeper curve is whichever run its own
+           lockedUntilRun names, not run 1 - the gate is a property now and this
+           was still counting to one by hand. Said here because it is the screen
+           they are already reading, and not as a question. */
+        const harder = diffAbove(rd);
+        if(!harder || runs !== (harder.lockedUntilRun || 0)) return '';
+        return '<div class="unlock open"><div class="k">Unlocked</div><div class="v">'
+          + escapeHtml(harder.n) + '</div><div class="d">' + escapeHtml(harder.d)
+          + '</div><button class="btn" id="goHard" type="button">Play '
+          + escapeHtml(harder.n) + ' \u2192</button></div>';
+      })()
     + '<div class="share" id="shareBox">' + escapeHtml(share) + '</div>'
     + '<div class="rowend">'
     +   '<button class="btn" id="copyShare" type="button">Copy result</button>'
@@ -4873,20 +5168,19 @@ function endRun(won){
     + '</div>';
   showPanel(html, true);
 
+  function switchTo(d, line){
+    setPref("difficulty", d.id);
+    hidePanel();
+    newRun("free-" + Math.random().toString(36).slice(2,8), true);
+    toast(d.n + ". " + line);
+  }
   const hard = document.getElementById("goHard");
   if(hard) hard.onclick = function(){
-    setPref("difficulty", "scholar");
-    hidePanel();
-    newRun("free-" + Math.random().toString(36).slice(2,8), true);
-    toast("SCHOLAR. The targets it was tuned to.");
+    switchTo(diffAbove(rd), "The curve it was tuned to.");
   };
-
   const easy = document.getElementById("goEasy");
   if(easy) easy.onclick = function(){
-    setPref("difficulty", "apprentice");
-    hidePanel();
-    newRun("free-" + Math.random().toString(36).slice(2,8), true);
-    toast("APPRENTICE. Lower targets, one more discard.");
+    switchTo(diffBelow(rd), "Lower targets, one more discard.");
   };
 
   document.getElementById("copyShare").onclick = function(){
@@ -4905,7 +5199,7 @@ function shareText(won){
   const lines = [];
   const rd = runDifficulty();
   lines.push("OVERTONE  ·  " + (G.isDaily ? "Daily " + G.seed : "seed " + G.seed)
-             + (rd.id === "scholar" ? "" : "  ·  " + rd.n));
+             + (rd.rank === 0 ? "" : "  \u00b7  " + rd.n));
   lines.push((won ? "Cleared all " + ROUNDS + " Demands" : "Fell at " + G.demand.n + " (" + (G.round+1) + "/" + ROUNDS + ")")
              + "  ·  " + G.total.toLocaleString() + " pts");
   if(G.best.word) lines.push("Best play: " + G.best.word + "  ×" + G.best.mult + "  (" + G.best.score.toLocaleString() + ")");
@@ -5265,43 +5559,10 @@ function cardEl(c, staticCard){
   const base = document.createElement("div");
   base.className = "base"; base.textContent = c.base;
 
-  /* How many letters, in the corner opposite the value. Three of the five
-     figures - COLUMN, STAIR and PAIR - are defined on the length of a word,
-     so finding one meant counting letters across seven words before you
-     could make a decision. A playtester called it what it is: arithmetic
-     homework in the middle of a card game.
-
-     The number was always on the card. A word is worth 5 + 3 per letter, so
-     the value IS the length, linearly transformed and unreadable as one.
-     Printing the length itself changes nothing about the game and turns
-     spotting a figure from counting into looking. */
-  const len = document.createElement("div");
-  len.className = "len";
-  len.textContent = c.w.length;
-  /* The label already reads the word, and a screen reader counting it out
-     is the one place this number is noise. */
-  len.setAttribute("aria-hidden", "true");
-  /* And the number answers back. Printing the length stops you counting, but
-     it still leaves you comparing seven digits to find three that match, and
-     a figure is a thing you should be able to SEE. So once a word is picked,
-     every word in the hand that shares its length lights up - COLUMN and PAIR
-     stop being a search and become the cards that went gold.
-
-     Nothing about scoring moves. It marks what was already true, and it is
-     the same gold a tag uses when it answers the round, because it means the
-     same thing: this one counts for what you are building. */
-  if(!staticCard && G && G.selected && G.selected.length){
-    /* Every picked card EXCEPT this one. Counting itself would light a lone
-       first pick against its own length, which is a match with nothing and
-       reads as a figure that is not there. */
-    const others = G.selected.filter(function(id){ return id !== c.id; })
-      .map(function(id){
-        const f = G.hand.find(function(x){ return x.id === id; });
-        return f ? f.w.length : -1;
-      });
-    if(others.indexOf(c.w.length) >= 0) len.classList.add("same");
-  }
-  el.appendChild(len);
+  /* The letter-count badge stood here. It existed for COLUMN, STAIR and PAIR
+     - three figures defined on the length of a word - and those went when the
+     verb became JOIN. With spelling out of scoring it highlighted a match
+     that pays nothing, on the one surface a player reads before deciding. */
 
   const w = document.createElement("div");
   w.className = "w";
@@ -5367,8 +5628,13 @@ function cardEl(c, staticCard){
        not decoration here; it is the state. */
     el.setAttribute("aria-pressed", pos >= 0 ? "true" : "false");
     if(pos >= 0){
+      /* The unselected label already honours blind mode; this one did not, so
+         picking a card up and putting it down again read out every overtone
+         the mode exists to hide. */
       el.setAttribute("aria-label",
-        c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", ")
+        (wordKnown(c.w)
+          ? c.w + ", " + c.t.map(function(t){ return TAGS[t][0]; }).join(", ")
+          : c.w + ", overtones not yet known")
         + ". Picked, word " + (pos + 1) + " of " + G.selected.length + ".");
     }
     const toggle = function(){ toggleSel(c.id); };
@@ -5431,7 +5697,7 @@ const TUT = [
     text: function(){
       return "<b>" + G.demand.n + "</b> wants "
            + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-           + ". Every word you lay that rings of either pays <b>+25</b> a tag."
+           + ". Every word you lay that means either one pays <b>+25</b>."
            + '<span class="do">Reach ' + G.target.toLocaleString() + '.</span>'; } },
 
   { sel: "#hand", pos: "top", label: "Lay a word",
@@ -5445,13 +5711,14 @@ const TUT = [
      everything after it is detail. */
   { sel: "#hand", pos: "top", label: "The word beside it",
     text: function(){
-      return "Now lay another. What you score is not the two words \u2014 it is what "
-           + "happens <b>between</b> them.<br><br>"
-           + "Share an overtone and they <b>ring</b>. Carry opposite ones \u2014 heat "
-           + "against cold, dark against bright \u2014 and they <b>pull</b>, which is "
-           + "worth far more. Have nothing in common and the line falls "
-           + "<b>silent</b> and stops there."
-           + '<span class="do">Tap a second word.</span>'; },
+      return "Now lay another. What you score is not the two words \u2014 it is how "
+           + "they go <b>together</b>.<br><br>"
+           + "Two words that mean something of the same thing are <b>ALIKE</b>. Two "
+           + "that mean opposite things \u2014 hot and cold, dark and bright \u2014 are "
+           + "<b>OPPOSITE</b>, and that is worth far more. Two with nothing in common "
+           + "are <b>NOTHING</b>, and the line stops dead there."
+           + '<span class="do">Tap a second word. The board will name what the '
+           + 'rest of your hand would do.</span>'; },
     done: function(){ return G.selected.length >= 2; } },
 
   /* Reads the board rather than guessing at it, so it can never tell a player
@@ -5465,11 +5732,11 @@ const TUT = [
       const said = jr.joins.map(function(j, i){
         const a = cards[i].w, b = cards[i + 1].w;
         if(j.kind === "paradox")
-          return "<b>" + a + "</b> and <b>" + b + "</b> agree and disagree at once. "
-               + "That is the rare one.";
+          return "<b>" + a + "</b> and <b>" + b + "</b> are alike AND opposite at "
+               + "the same time. That is the rare one.";
         if(j.kind === "tension")
-          return "<b>" + a + "</b> pulls against <b>" + b + "</b>.";
-        return "<b>" + a + "</b> rings with <b>" + b + "</b>.";
+          return "<b>" + a + "</b> and <b>" + b + "</b> mean opposite things.";
+        return "<b>" + a + "</b> and <b>" + b + "</b> mean something of the same thing.";
       }).join(" ");
       const quiet = jr.scored < cards.length
         ? " Then it falls silent, and everything after that is a word you wrote "
@@ -5481,29 +5748,40 @@ const TUT = [
            + "line is worth \u2014 that is yours to judge."
            + '<span class="do">Swap the order and watch it change.</span>'; } },
 
-  { sel: "#stageHint", pos: "bottom", label: "Figures of speech",
+  { sel: "#stageHint", pos: "bottom", label: "The hands",
     text: function(){
-      return "Two words pulling against each other make an <b>ANTITHESIS</b>. Two that "
-           + "agree and disagree at once make a <b>PARADOX</b>. Three joins reading the "
-           + "same backwards as forwards make a <b>CHIASMUS</b>.<br><br>"
-           + "Those are the figures, they set your multiplier, and <b>every one your "
-           + "line makes pays</b>. Not one of them counts a letter."
+      return "Two opposite words make <b>THE CLASH</b>. Two that are alike and "
+           + "opposite at once make <b>THE TWIST</b>. Four whose pairs read the same "
+           + "backwards as forwards make <b>THE MIRROR</b>.<br><br>"
+           + "Those are the hands, the way a flush is a hand. They set your "
+           + "multiplier, and <b>every one your line makes pays</b>."
            + '<span class="do">A longer line finds more of them \u2014 and has further '
            + 'to fall.</span>'; } },
 
   { sel: "#playBtn", pos: "top", label: "Play it",
     text: function(){
-      return "Two plays a round, and a line is two to five words. <b>Discard</b> swaps "
-           + "words instead, three times a round."
-           + '<span class="do">Hit PLAY.</span>'; },
-    done: function(){ return G.plays < 2; } },
+      /* Read off the round rather than written down. Both numbers move with
+         the difficulty, and both used to be spelled out in words. */
+      const WORDS = ["no", "one", "two", "three", "four", "five"];
+      const cap1 = function(w){ return String(w).charAt(0).toUpperCase() + String(w).slice(1); };
+      /* The round's budget, not what is left of it. Read live it said "One
+         plays a round" the moment a play had been spent. */
+      const budget = (roundShape(G.round) || { plays: G.plays }).plays;
+      return cap1(WORDS[budget] || budget) + (budget === 1 ? " play" : " plays")
+           + " a round, and a line is "
+           + (WORDS[LINE_MIN] || LINE_MIN) + " to " + (WORDS[maxPlay()] || maxPlay())
+           + " words. <b>Discard</b> swaps words instead, "
+           + (WORDS[(roundShape(G.round) || G).discards] || G.discards) + " times a round."
+           + '<span class="do">Hit PLAY. This one is on the house \u2014 you get '
+           + 'the play back when the lesson ends.</span>'; },
+    done: function(){ return tutSpentPlay; } },
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
       return "An overtone you just used goes <b>dull</b> for two plays, so the best line "
            + "this turn is never the best line next turn.<br><br>"
            + "Clear the round and the <b>Bookseller</b> offers back a line you actually "
-           + "played. Keep it, and it pays again every time its figure comes round. "
+           + "played. Keep it, and it pays again every time that hand comes round. "
            + "That is your engine, and you wrote it."
            + '<span class="do">'
            + (G.roundScore >= G.target
@@ -5560,12 +5838,55 @@ function restoreHandOrder(){
 }
 
 let tutStep = -1, tutWatch = null;
+/* Whether the lesson has spent one of the round's plays, and whether this
+   lesson is one the game owes a play for at all. */
+let tutSpentPlay = false, tutRefundable = false;
 
 function tutActive(){ return tutStep >= 0; }
+
+/* The tutorial asks the player to actually PLAY a hand, because a tutorial you
+   can finish without touching the game has taught nothing. But a round is two
+   plays. So a first-timer who did exactly as they were told reached round 1
+   with one play to make the target, while anybody who pressed Skip had two -
+   being taught was a penalty, on the only screen in the game that teaches.
+
+   The hand was real and it scored and the player keeps every point of it. The
+   PLAY is on the house: it was not a play they chose, it was one the lesson
+   asked for. That leaves them exactly level with somebody who skipped, which
+   is the bar - not ahead of them, and no longer behind. */
+function refundTutorialPlay(){
+  const owed = tutSpentPlay;
+  tutSpentPlay = false;
+  if(!G || !owed) return;
+  /* Not a lesson the game owes for, or this run has already been paid. */
+  if(!tutRefundable || G.tutRefunded) return;
+  /* A round the taught hand already cleared is not short of a play, and the
+     shop pays 4 + plays + discards - so refunding here would hand a taught
+     player a dollar a skipper never sees. */
+  if(G.heldResult === "won" || G.roundScore >= G.target) return;
+  G.tutRefunded = true;
+  G.plays++;
+  /* A round that was held "lost" because the plays ran out has not run out of
+     plays any more, so the held result is no longer true. */
+  if(G.heldResult === "lost" && G.roundScore < G.target) G.heldResult = null;
+}
 function tutorialSeen(){ return store.get("tutorial", false); }
 
 function startTutorial(force){
   if(!force && tutorialSeen()) return;
+  /* A fresh lesson has spent nothing yet. Without this a player who starts a
+     new run mid-tutorial carries the old run's debt into it and is handed back
+     a play the new round never spent. */
+  tutSpentPlay = false;
+  /* And the play is only on the house when the lesson is the OPENING one.
+     Help always offers "Run the tutorial", so without this a player could open
+     it in any round, play a hand, press Skip, and be handed the play straight
+     back - as many times as they liked. Measured: four cycles left G.plays at
+     2 every time. A run the player can opt out of makes every balance number
+     in docs/specs/spec-two-curves/ describe a game nobody has to play.
+
+     So: the first round, nothing scored in it yet, and once per run. */
+  tutRefundable = !!G && G.round === 0 && G.roundScore === 0 && !G.tutRefunded;
   tutStep = 0;
   arrangeForTutorial();
   renderHand();
@@ -5595,7 +5916,10 @@ function endTutorial(completed){
   document.getElementById("tut").hidden = true;
   store.set("tutorial", true);
   restoreHandOrder();
-  if(G) renderHand();
+  /* Before the held result is read below: the refund can be what decides
+     whether the round is over at all. */
+  refundTutorialPlay();
+  if(G){ renderHand(); renderControls(); }
   /* Finishing the tutorial makes the coach redundant. SKIPPING it does not —
      a player who dismisses a six-step overlay has not necessarily learned
      anything, and the coach is one unobtrusive line. Leave them the net. */
@@ -5752,9 +6076,6 @@ function pointTut(){
    A modal explains the game to someone who hasn't seen it yet, which is the
    worst possible moment. This instead says one short thing at a time, on the
    board, while they're doing the thing. It runs once, during round 1.      */
-/* The stage itself now states the +25 rule, so this carries the one players
-   actually miss: order is a decision. */
-const IDLE_HINT = "Pick up to 3 words, then hit PLAY.";
 /* "Three words beat one" is true of a bare deck and false of half the Lenses
    in the shop. Holding ASCETIC it is the exact opposite of the right play, and
    the board was still saying it — the game telling you to undo your own build.
@@ -5765,23 +6086,53 @@ const HAND_SHAPE = {
   glut:    "GLUTTON wants exactly three.",
   entropy: "ENTROPY wants three, each shorter than the last."
 };
+/* The floor on a line's length. LINE_MIN for everybody, except that two
+   Lenses exist to be played one word at a time - and the engine has always
+   allowed it. */
+const SOLO_LENSES = ["asc", "oracle"];
+function minPlay(){
+  if(G && G.lenses && G.lenses.some(function(l){ return SOLO_LENSES.indexOf(l.id) >= 0; })) return 1;
+  return LINE_MIN;
+}
+
 function idleHint(){
+  /* Read, never written down. This named three words through the whole of the
+     JOIN rebuild, which moved the cap to five - and it only bothered to work
+     the number out when a rule had pushed it BELOW three, so the one case it
+     got wrong was the ordinary board. */
   const cap = maxPlay();
-  const lead = cap < 3
-    ? "Pick up to " + cap + " words, then hit PLAY."
-    : IDLE_HINT;
+  const WORDS = ["", "one", "two", "three", "four", "five"];
+  /* LINE_MIN is 2 and play() has never enforced it - ASCETIC and THE ORACLE
+     are both bought to play a single word. So the board said "two to five"
+     while the shop sold you a Lens for one. Say the real minimum. */
+  const lo = minPlay();
+  const lead = "Lay " + (WORDS[lo] || lo) + " to "
+             + (WORDS[cap] || cap) + " words, then hit PLAY.";
   if(orderMatters()) return lead + " Your Lenses read left to right, so the order changes the score.";
-  if(cap < 3) return lead + " " + capper() + " is holding you to " + cap + ".";
+  if(cap < MAX_PLAY) return lead + " " + capper() + " is holding you to " + cap + ".";
   for(let i = 0; i < G.lenses.length; i++){
     const s = HAND_SHAPE[G.lenses[i].id];
     if(s) return lead + " " + s;
   }
-  return lead + " Three words beat one.";
+  /* Not "three beat one": under JOIN a longer line finds more hands AND has
+     further to fall, which is the whole decision. */
+  return lead + " A longer line pays more and risks more.";
 }
 const COACH = {
-  pick:  "Gold tags are what this round wants. Tap two or three words that have one.",
-  play:  "Hit PLAY. The board has already worked out what you'd get.",
-  score: "That's points × multiplier. Your figure and your tags add the points; Lenses multiply them."
+  get pick(){
+    /* Named what it could see: with the overtones hidden there are no gold tags
+       to point at, and a line telling a player to tap them was the game giving
+       an instruction it had made impossible to follow. */
+    return blindMode()
+      ? "Lay two words side by side and see what they do to each other."
+      : "Gold tags are what this round wants. Tap two or three words that have one.";
+  },
+  /* This used to promise that the board had done the arithmetic for you. The
+     JOIN rebuild deliberately took the score preview away - judging the line
+     before you commit to it is the game - so the coach was telling a first-time
+     player to trust a number that is not on the screen. */
+  play:  "Hit PLAY. You find out what it was worth when you commit.",
+  score: "That's points × multiplier. Your hand and your tags add the points; Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -5825,7 +6176,7 @@ function renderPreview(){
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
       + '. Every matching tag you play is <b>+25 points</b>.'
       + '<span class="dc-fig">The shape of your hand pays too. '
-      + '<button class="figlink" type="button">see the figures</button>.</span>';
+      + '<button class="figlink" type="button">see the five hands</button>.</span>';
     call.appendChild(icons);
     call.appendChild(txt);
     sc.appendChild(call);
@@ -5847,10 +6198,20 @@ function renderPreview(){
     el.appendChild(p);
     sc.appendChild(el);
   });
-  setTally(res.chips, res.mult);
+  /* Not res.chips and res.mult. The beads say what the line IS; the counters
+     say what it is WORTH, and that is the thing PLAY is for. */
+  setTally(0, 1);
 
-  const hits = cards.reduce(function(s, c){
-    return s + c.t.filter(function(t){ return G.demand.tags.indexOf(t) >= 0; }).length;
+  /* The engine pays for a matching overtone only if the overtone is not
+     already spent this round, and only for words up to where the line stops.
+     This counted every tag on every selected card, so from the second play of
+     a round the board promised matches that were never coming. */
+  const pvDull = dullTags();
+  const jr = joinsOf(cards, pvDull);
+  const hits = cards.slice(0, jr.scored).reduce(function(s, c){
+    return s + c.t.filter(function(t){
+      return G.demand.tags.indexOf(t) >= 0 && !pvDull[t];
+    }).length;
   }, 0);
   /* Say the number, then say the one thing that would make it bigger. A
      player holding two words when a third is free should be told so. */
@@ -5863,7 +6224,6 @@ function renderPreview(){
      yours to change, and the thing a player reading only the tag strip would
      never find on their own. The match count drops a line — it is already
      spelled out in gold on every card. */
-  const jr = joinsOf(cards);
   const figs = figuresIn(cards);
   const fig = figs.length ? figs[0] : null;
   const better = figureByReorder(cards);
@@ -5876,11 +6236,38 @@ function renderPreview(){
      it can see: what each pair of words is doing to the one beside it. The
      player does the adding, or does not, and finds out on PLAY. */
   const beads = jr.joins.map(function(j){
-    const said = j.kind === "paradox" ? "agrees and disagrees at once"
-               : j.kind === "tension" ? "pulls against it"
-               : "rings with it";
-    return '<i class="jn ' + j.kind + '" title="' + said + '">' + j.kind + '</i>';
+    return '<i class="jn ' + j.kind + '" title="These two words '
+      + JOIN_SAID[j.kind] + '">' + JOIN_NAME[j.kind] + '</i>';
   }).join('<b class="jnx">&middot;</b>');
+
+  /* What the rest of the hand would do to the last word laid.
+
+     This was a badge stamped on every card, and a seven-card hand is then
+     seven things to read before one decision. Said once, in the middle of the
+     board, it is one thing to read - and it is already where the player is
+     looking, next to the beads saying what the laid words are doing. Same
+     information, a sixth of the noise, and the cards go back to being words.
+
+     Best-first, so the rare thing is read before the common one. */
+  const tip = cards[cards.length - 1];
+  const nextBy = { paradox: [], tension: [], resonance: [], silence: [] };
+  /* Blind mode hides what you have not played YET, and keeps what you have
+     learned between runs. Gating the whole row on the mode threw the second
+     half of that promise away: a player who had met every word in the hand
+     still got nothing. It is per word now, the same test the cards use. */
+  if(room > 0){
+    G.hand.forEach(function(h){
+      if(G.selected.indexOf(h.id) >= 0) return;
+      if(!wordKnown(h.w) || !wordKnown(tip.w)) return;
+      nextBy[joinOf(tip, h).kind].push(h.w);
+    });
+  }
+  const nextRow = ["paradox", "tension", "resonance", "silence"]
+    .filter(function(k){ return nextBy[k].length; })
+    .map(function(k){
+      return '<i class="jn ' + k + '">' + JOIN_NAME[k] + '</i> '
+           + '<span class="nw">' + nextBy[k].join(", ") + '</span>';
+    }).join('<b class="jnx">&middot;</b>');
 
   hint.innerHTML =
       '<span class="hand-name' + (solo || fig ? '' : ' none') + '">'
@@ -5891,20 +6278,34 @@ function renderPreview(){
     + '<br>'
     + (solo
         ? 'One word rings on its own. Lay another beside it.'
-        : (beads || '<i class="jn silence">silence</i>')
+        : (beads || '<i class="jn silence">' + JOIN_NAME.silence + '</i>')
           + (stops
               ? '<span class="stops"> &middot; the line stops after '
                 + jr.scored + (jr.scored === 1 ? ' word' : ' words') + '</span>'
               : (spare ? '<span class="room"> &middot; room for ' + room + ' more</span>' : '')))
     + (better
         ? '<br><span class="ord">The same words say more as <b>' + better.n + '</b> in another order.</span>'
+        : '')
+    + (nextRow
+        ? '<div class="nxt"><span class="nxl">Lay next to ' + tip.w + '</span>'
+          + nextRow + '</div>'
         : '');
   const nm = hint.querySelector(".hand-name");
   if(nm && !solo) nm.onclick = function(){ showFigures(); };
+  /* It read out the raw ids - resonance, tension, paradox, silence - beside
+     chips that say ALIKE, OPPOSITE, BOTH, NOTHING. Somebody listening was
+     given the exact four words the rename existed to retire. And the row
+     naming what the rest of the hand would do was not announced at all. */
+  const saidNext = ["paradox", "tension", "resonance", "silence"]
+    .filter(function(k){ return nextBy[k].length; })
+    .map(function(k){ return JOIN_NAME[k] + ": " + nextBy[k].join(", "); })
+    .join(". ");
   say((solo ? resonanceName(hits) : (fig ? fig.n : "Nothing yet"))
-      + ". " + (solo ? "One word." : jr.joins.map(function(j){ return j.kind; }).join(", "))
+      + ". " + (solo ? "One word."
+                     : jr.joins.map(function(j){ return JOIN_NAME[j.kind]; }).join(", "))
       + (stops ? ". The line stops after " + jr.scored + "." : "")
-      + (better ? " In another order these make " + better.n + "." : ""));
+      + (better ? " In another order these make " + better.n + "." : "")
+      + (saidNext ? " Lay next to " + tip.w + ". " + saidNext + "." : ""));
 }
 
 /* ---------- the figures, written down ----------
@@ -5924,15 +6325,29 @@ function showFigures(back){
       + '<td>+' + FIG_PAY[f.id].chips + '</td>'
       + '<td>' + (FIG_PAY[f.id].mult ? '+' + FIG_PAY[f.id].mult + ' mult' : '&mdash;') + '</td></tr>';
   }).join("");
+  /* The panel a player opens when they have stopped following, reached from
+     the board, the menu and the help card. The plain-words pass renamed the
+     joins and the hands everywhere else and missed this one, so the four words
+     a playtester named as the thing they could not follow - resonance, pull,
+     silence, figure - all survived in the one place somebody goes to look them
+     up. */
   showPanel(''
-    + '<h2>The figures</h2>'
+    + '<h2>The five hands</h2>'
     + '<div class="sub">What your words do to each other</div>'
-    + '<p>Lay two words side by side and they either <b>ring together</b> \u2014 they share an overtone \u2014 or they <b>pull against each other</b>, or they have nothing to say at all. A line is read left to right, and the first <b>silence</b> stops it: the words before it pay, the words after it are wasted.</p>'
-    + '<p class="gold"><b>These are figures of speech.</b> Not one of them reads a letter or a length. They read what the words mean, which is the only thing this game has ever claimed to be about.</p>'
+    + '<p>Lay two words side by side and they are one of three things. Two that '
+    + 'mean something of the same thing are <b>' + JOIN_NAME.resonance + '</b>. '
+    + 'Two that mean opposite things are <b class="gold">' + JOIN_NAME.tension
+    + '</b>, worth far more. Two with <b>' + JOIN_NAME.silence + '</b> in common '
+    + 'stop the line dead: a line is read left to right, and the words before '
+    + 'the stop pay while the words after it are wasted.</p>'
+    + '<p class="gold"><b>These are hands, the way a flush is a hand.</b> Not one '
+    + 'of them reads a letter or a length. They read what the words mean, which '
+    + 'is the only thing this game has ever claimed to be about.</p>'
     + '<table class="figtab">'
-    +   '<thead><tr><th>Figure</th><th>Points</th><th>Multiplier</th></tr></thead>'
+    +   '<thead><tr><th>Hand</th><th>Points</th><th>Multiplier</th></tr></thead>'
     +   '<tbody>' + rows + '</tbody></table>'
-    + '<p>Every figure your line makes pays, not only the best one. And a line you keep at the end of a round pays again, every time its figure comes back.</p>'
+    + '<p>Every hand your line makes pays, not only the best one. And a line you '
+    + 'keep at the end of a round pays again, every time that hand comes back.</p>'
     + '<div class="rowend' + (back === "title" ? ' end' : '') + '">'
     + (back ? '<button class="btn' + (back === "title" ? ' primary' : '')
               + '" id="figsBack" type="button">Back to '
@@ -6060,16 +6475,24 @@ function renderControls(){
   document.getElementById("discardsLeft").textContent = G.discards;
   const pips = document.getElementById("playPips");
   pips.innerHTML = "";
-  for(let i=0;i<4;i++){
+  /* Hardcoded 4, from the era when a round had four plays. A round has two,
+     so every player saw two lit pips and two grey ones and read it as "two of
+     four left" - and budgeted a round they did not have. It also hid the whole
+     cost of THE WAGER and THE CLOCK, which is one play. */
+  const budget = Math.max(G.plays, (roundShape(G.round) || { plays: G.plays }).plays);
+  for(let i = 0; i < budget; i++){
     const s = document.createElement("span");
     s.className = "pip" + (i < G.plays ? "" : " off");
     pips.appendChild(s);
   }
   const owed = G.mustForfeit && !G.forfeited;
+  const tooShort = G.selected.length > 0 && G.selected.length < minPlay();
   document.getElementById("playBtn").disabled =
-    G.animating || G.selected.length===0 || G.plays<=0 || owed;
+    G.animating || G.selected.length===0 || tooShort || G.plays<=0 || owed;
+  /* Say which of the two it is, rather than greying out without a reason. */
   document.getElementById("playBtn").title = owed
-    ? "THE FORFEIT: give a word up first" : "";
+    ? "THE FORFEIT: give a word up first"
+    : tooShort ? "A line is " + minPlay() + " words or more" : "";
   document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
   document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";
@@ -6077,7 +6500,7 @@ function renderControls(){
   const rd = runDifficulty();
   document.getElementById("seedLabel").textContent =
     (G.isDaily ? "DAILY " : "SEED ") + G.seed.toUpperCase()
-    + (rd.id === "scholar" ? "" : " \u00b7 " + rd.n);
+    + (rd.rank === 0 ? "" : " \u00b7 " + rd.n);
 }
 
 function render(){
@@ -6169,10 +6592,9 @@ function showTitle(){
     return '<button class="tnav" type="button" id="' + id + '">' + label + '</button>';
   }
 
-  /* Never lock the one they are standing on, whatever storage says. */
-  const shut = !scholarOpen() && now.id !== "scholar";
   const pills = DIFFICULTIES.map(function(d){
-    const locked = shut && d.id === "scholar";
+    /* Never lock the one they are standing on, whatever storage says. */
+    const locked = !modeOpen(d) && d.id !== now.id;
     return '<button class="diffopt" type="button" data-diff="' + d.id + '"'
       + (locked ? ' disabled aria-disabled="true"' : '')
       + ' aria-pressed="' + (d.id === now.id ? "true" : "false") + '">' + d.n
@@ -6207,19 +6629,19 @@ function showTitle(){
     + '<p class="setnote" id="titleNote"></p>'
     + '<div class="shelf">'
     +   shelf("titleHelp", "How to play") + '<i aria-hidden="true">\u00b7</i>'
-    +   shelf("titleFigs", "The figures") + '<i aria-hidden="true">\u00b7</i>'
+    +   shelf("titleFigs", "The five hands") + '<i aria-hidden="true">\u00b7</i>'
     +   shelf("titleTut", "Tutorial") + '<i aria-hidden="true">\u00b7</i>'
     +   shelf("titleSound", "Sound &amp; feel")
     + '</div>';
 
   /* A roguelite that keeps your record in localStorage and never shows it to
      you is keeping a secret for no reason. One line — and only the numbers
-     that exist, because BEST · APPRENTICE none is an empty stat taking up
+     that exist, because BEST · SCHOLAR none is an empty stat taking up
      room on the one screen with nothing to spare. The difficulty is named
      only when there are two of them to tell apart. */
-  const bests = [{ n: "scholar", v: store.get("best", 0) },
-                 { n: "apprentice", v: store.get("best:apprentice", 0) }]
-    .filter(function(b){ return b.v > 0; });
+  const bests = DIFFICULTIES.map(function(d){
+    return { n: d.n.toLowerCase(), v: store.get(d.bestKey, 0) };
+  }).filter(function(b){ return b.v > 0; });
   document.getElementById("titleStats").innerHTML = runs
     ? '<b>' + runs.toLocaleString() + '</b> run' + (runs === 1 ? '' : 's')
       + bests.map(function(b){
@@ -6320,12 +6742,12 @@ function paintDiff(){
   const now = difficulty();
   const live = titleFromGame && G && !G.over;
   const inRun = G ? runDifficulty() : now;
-  /* never lock the one they are standing on, whatever storage says */
-  const shut = !scholarOpen() && now.id !== "scholar";
 
   Array.prototype.forEach.call(el.querySelectorAll(".diffopt"), function(btn){
     const on = btn.dataset.diff === now.id;
-    const locked = shut && btn.dataset.diff === "scholar";
+    const d = DIFF_BY_ID[btn.dataset.diff];
+    /* never lock the one they are standing on, whatever storage says */
+    const locked = !!d && !modeOpen(d) && !on;
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.disabled = locked;
     if(locked) btn.setAttribute("aria-disabled", "true");
@@ -6339,9 +6761,18 @@ function paintDiff(){
     } else if(!locked && tag) tag.remove();
   });
 
+  const shut = DIFFICULTIES.filter(function(d){ return !modeOpen(d) && d.id !== now.id; });
+  /* Reads the gate rather than restating it: "once you finish a run" was
+     written when one mode was locked behind exactly one run. */
+  const gate = shut.map(function(d){
+    const n = d.lockedUntilRun || 0;
+    return '<b>' + escapeHtml(d.n) + '</b> '
+         + (n === 1 ? 'opens once you finish a run'
+                    : 'opens after ' + n + ' runs');
+  }).join('. ');
   note.innerHTML = live && inRun.id !== now.id
-    ? 'The run on the table is still <b>' + inRun.n + '</b>. A new run picks this up.'
-    : now.d + (shut ? ' <b>SCHOLAR</b> opens once you finish a run.' : '');
+    ? 'The run on the table is still <b>' + escapeHtml(inRun.n) + '</b>. A new run picks this up.'
+    : escapeHtml(now.d) + (gate ? ' ' + gate + '.' : '');
 }
 
 /* The stops, in the order they are read in. The difficulty switch is one stop,
@@ -6531,6 +6962,11 @@ function showMenu(back){
         "sfxVol")
     + row("haptics", "Vibration", "A short buzz as the score lands. Android only, sorry. "
         + "Browsers on iPhone do not allow it.")
+    /* Off until it is chosen. It was tied to a difficulty, which meant anybody who
+       had played before met it without being told. */
+    + row("blind", "Play it blind", "Hide what each word means until you have played it "
+        + "once, and keep what you learn between runs. The game stops telling you which "
+        + "words answer the round and starts asking whether you know.")
     + '<div class="rowend end">'
     + '<button class="btn primary" id="closeSettings" type="button">'
     +   (back === "title" ? 'Back to the menu' : 'Back to the game') + '</button></div>');
@@ -6546,6 +6982,8 @@ function showMenu(back){
       if(k === "music"){ v ? musicStart() : musicStop(); }
       if(k === "sfx" && v) SFX.buy();
       if(k === "haptics" && v) buzz(18);
+      /* the cards have to be redrawn the moment this one moves */
+      if(k === "blind" && typeof G !== "undefined" && G) render();
       /* A level you cannot reach is a level that should not look reachable. */
       const vr = b.parentNode.querySelector(".vol");
       if(vr){
@@ -6622,20 +7060,31 @@ function showHelp(back){
     +     '<b>pair</b> in turn, so where a word sits is as much of the decision as which '
     +     'word it is.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div>'
-    +     '<p>Two words that share an overtone <b>ring</b> \u2014 <b>+'
-    +     JOIN_RESONANCE + '</b> each. Two carrying opposite ones <b class="gold">pull</b> '
-    +     '\u2014 <b>+' + JOIN_TENSION + ' to the multiplier</b>, which is worth far more. '
-    +     'Two with nothing in common fall <b>silent</b>, and the line stops there: the '
-    +     'words after it score nothing at all.</p></div>'
+    +     '<p>Two words that mean something of the same thing are <b>ALIKE</b> \u2014 <b>+'
+    +     JOIN_RESONANCE + '</b> for each thing they share. Two that mean opposite things '
+    +     'are <b class="gold">OPPOSITE</b> \u2014 <b>+' + JOIN_TENSION + ' to the '
+    +     'multiplier</b>, which is worth far more. Two with <b>NOTHING</b> in common '
+    +     'stop the line dead: the words after them score nothing at all.</p>'
+    +     '<p>Once a word is laid, the board names which of those every other card '
+    +     'in your hand would be, so you never have to work it out.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div><div>'
-    +     '<p>What your joins add up to is a <b>figure</b>, and every figure your line '
-    +     'makes pays. Not one of them counts a letter. '
-    +     '<button class="figlink" id="helpFigs" type="button">All five figures</button></p>'
+    +     '<p>What those add up to is a <b>hand</b>, the way a flush is a hand \u2014 '
+    +     'THE CLASH, THE TWIST, THE CHORUS, THE BUILD, THE MIRROR \u2014 and every one '
+    +     'your line makes pays. '
+    +     '<button class="figlink" id="helpFigs" type="button">All five hands</button></p>'
     +     '</div></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
+    /* These used to quote TARGETS raw, which is the steepest curve's numbers
+       read out to a player standing on a gentler one. Scale them the same way
+       the round itself does. */
+    /* runDifficulty(), not difficulty(): the setting is what the NEXT run
+       uses, and a player who changed it mid-run was being quoted the other
+       curve's numbers for the round on their own table. */
     +     '<p>Your score is <b>points &times; multiplier</b>. Round 1 wants '
-    +     TARGETS[0].toLocaleString() + ', round ' + ROUNDS + ' wants '
-    +     TARGETS[ROUNDS-1].toLocaleString() + '. The board <b>never</b> tells you the '
+    +     Math.round(TARGETS[0] * runDifficulty().curve[0]).toLocaleString()
+    +     ', round ' + ROUNDS + ' wants '
+    +     Math.round(TARGETS[ROUNDS-1] * runDifficulty().curve[ROUNDS-1]).toLocaleString()
+    +     '. The board <b>never</b> tells you the '
     +     'total before you commit \u2014 judging it is the game.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">5</div>'
     +     '<p>An overtone you just used goes <b>dull</b> for ' + FATIGUE_SPAN + ' plays. '
@@ -6647,7 +7096,7 @@ function showHelp(back){
         /* Count them rather than spell them out. This paragraph has said "round
            8" and "rounds 4, 6 and 8" through two different round counts, and
            both times it was the copy that went stale rather than the rule. */
-        const at = ordealRoundsFor(difficulty().id);
+        const at = ordealRoundsFor(runDifficulty().id);
         const WORDS = ["no", "One", "Two", "Three", "Four", "Five", "Six"];
         return at.length === 1
           ? '<b>The last round is an Ordeal.</b> Round ' + ROUNDS + ' changes a rule '
@@ -6661,10 +7110,10 @@ function showHelp(back){
     + '<div class="worked join">'
     +   cardHTML(exA) + cardHTML(exB)
     +   '<div class="worked-sum">'
-    +     '<b>' + exA.w + '</b> and <b>' + exB.w + '</b> both ring of '
-    +     '<b>NATURE</b>, and they pull twice over \u2014 heat against cold, and wet '
-    +     'against heat. Sharing and opposing at once is <b class="gold">'
-    +     (exFig ? exFig.n : "a join") + '</b>, the rarest join there is.'
+    +     '<b>' + exA.w + '</b> and <b>' + exB.w + '</b> are both of <b>NATURE</b>, '
+    +     'and they are opposite twice over \u2014 hot against cold, and wet against '
+    +     'hot. Alike and opposite at the same time is <b class="gold">'
+    +     (exFig ? exFig.n : "a hand") + '</b>, the rarest thing two words can do.'
     +     '<span class="worked-tot">' + exChips.toLocaleString() + ' \u00d7 '
     +     exMult + ' = ' + (exChips * exMult).toLocaleString() + ' points</span>'
     +   '</div>'

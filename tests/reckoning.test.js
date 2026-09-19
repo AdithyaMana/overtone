@@ -61,7 +61,7 @@ describe("THE RECKONING", () => {
   test("never drafts the rule the round already has", () => {
     const api = fresh();
     monster(api);
-    api.ORDEAL_ROUNDS.forEach(r => {
+    api.ordealRoundsFor(api.runDifficulty().id).forEach(r => {
       const own = api.G.ordealOrder[r];
       const drafted = api.reckonFor(r);
       if (!own || !drafted) return;

@@ -1,8 +1,12 @@
-/* APPRENTICE: the same game with room to be wrong in.
+/* Two curves, and which name carries which.
  *
- * The rules that matter are the ones that keep it honest — a run cannot change
- * difficulty underneath itself, and a score from the gentler curve never gets
- * compared to one from the steeper.
+ * SCHOLAR is the gentler curve and APPRENTICE the steeper one — the roles moved
+ * once, so nothing below names a mode. Every test reads the ROLES off the
+ * game's own DIFFICULTIES table and asserts the contract: the gentlest mode is
+ * what a first run starts on, the steepest is what a finished run unlocks, a
+ * run cannot change difficulty underneath itself, and a score from one curve is
+ * never compared to a score from another. Relabelling the modes must not
+ * require touching this file.
  */
 const { test, expect } = require("@playwright/test");
 
@@ -11,10 +15,10 @@ const GAME = "/index.html";
 
 /* The game opens on a main menu now. Every spec starts on the board, so this
    is the one place that knows how to get there. */
-/* The overtones are hidden on SCHOLAR until a word has been played, and nearly
-   every spec here runs on SCHOLAR while testing something else entirely. Teach
-   the profile the lexicon so the cards read the way these tests assume. The
-   specs about hiding do their own thing and never call this. */
+/* Hiding the overtones is an opt-in preference now rather than a property of a
+   difficulty, but a profile that has one set still reads its cards differently.
+   Teach the profile the lexicon so the cards read the way these tests assume.
+   The specs about hiding do their own thing and never call this. */
 async function learnEverything(page) {
   await page.evaluate(() => {
     if (typeof LEXICON === "undefined") return;
@@ -54,6 +58,20 @@ async function open(page) {
    then wrote its defaults over the top. Over http the same measurement was
    thirty for thirty. The specs serve the game now (playwright.config.js), so
    there is nothing left to sleep for. */
+/* The gentlest and steepest modes, by rank, as the running game reports them.
+   Every assertion about "the easy one" or "the hard one" resolves through here
+   rather than spelling a name. */
+async function roles(page) {
+  return page.evaluate(() => {
+    const byRank = DIFFICULTIES.slice().sort((a, b) => a.rank - b.rank);
+    const g = byRank[0], s = byRank[byRank.length - 1];
+    return { gentle: g.id, gentleName: g.n, gentleDesc: g.d,
+             steep: s.id, steepName: s.n, steepDesc: s.d,
+             gentleOrdeals: g.ordealRounds.length, steepOrdeals: s.ordealRounds.length };
+  });
+}
+const pill = id => `#title .diffopt[data-diff="${id}"]`;
+
 async function reloadKeeping(page, key, value) {
   /* First that the page really wrote what the test thinks it wrote. */
   await expect.poll(async () =>
@@ -64,17 +82,24 @@ async function reloadKeeping(page, key, value) {
 
 
 test.describe("choosing how hard", () => {
-  /* Everything below asserts the game as balanced, so it pins SCHOLAR. The two
-     tests about what a NEW player gets clear that themselves. */
+  /* Everything below asserts the steeper curve, so it pins the steepest mode by
+     rank rather than by name. The two tests about what a NEW player gets clear
+     that themselves. curvesMigrated is set so the one-time role swap does not
+     rewrite what a test just stored. */
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       /* Only when nothing is stored, so a test can make a choice, reload, and
          still find it there. */
       try {
+        localStorage.setItem("overtone:curvesMigrated", "true");
         if (localStorage.getItem("overtone:difficulty") === null)
+          /* A literal, unavoidably: addInitScript runs before the page loads,
+             so DIFFICULTIES does not exist yet to be read. */
           localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
         if (localStorage.getItem("overtone:sawFlaw") === null)
           localStorage.setItem("overtone:sawFlaw", "true");
+        if (localStorage.getItem("overtone:runs") === null)
+          localStorage.setItem("overtone:runs", "9");
       } catch (e) {}
     });
   });
@@ -85,33 +110,34 @@ test.describe("choosing how hard", () => {
       await expect(page.locator("#title")).toBeVisible();
       const opts = page.locator("#title .diffopt");
       await expect(opts).toHaveCount(2);
-      await expect(page.locator('#title .diffopt[data-diff="scholar"]'))
-        .toHaveAttribute("aria-pressed", "true");
-      /* it has to say what it does, not just its name */
-      await expect(page.locator("#title .setnote")).toContainText("multiplying");
-      await page.click('#title .diffopt[data-diff="apprentice"]');
-      await expect(page.locator("#title .setnote")).toContainText("discard");
+      const r = await roles(page);
+      await expect(page.locator(pill(r.steep))).toHaveAttribute("aria-pressed", "true");
+      /* It has to say what it DOES, not just its name — the names run against
+         their ordinary sense, so the description is what a player reads. */
+      await expect(page.locator("#title .setnote")).toContainText("harder");
+      await page.click(pill(r.gentle));
+      await expect(page.locator("#title .setnote")).toContainText("easier");
     });
 
-  test("a first run starts on APPRENTICE, and cannot start anywhere else",
+  test("a first run starts on the gentlest mode, and cannot start anywhere else",
     async ({ page }) => {
       /* nothing stored at all: somebody opening this for the first time */
       await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
       await page.goto(GAME);
       await expect(page.locator("#title")).toBeVisible();
-      await expect(page.locator('#title .diffopt[data-diff="apprentice"]'))
-        .toHaveAttribute("aria-pressed", "true");
-      /* SCHOLAR ends four runs in five; handing it to somebody on their first
-         screen is how a first session becomes their only one */
-      const scholar = page.locator('#title .diffopt[data-diff="scholar"]');
-      await expect(scholar).toBeDisabled();
-      await expect(scholar.locator(".tip")).toHaveText("Locked");
+      const r = await roles(page);
+      await expect(page.locator(pill(r.gentle))).toHaveAttribute("aria-pressed", "true");
+      /* The steeper curve loses most of its runs; handing it to somebody on
+         their first screen is how a first session becomes their only one. */
+      const steep = page.locator(pill(r.steep));
+      await expect(steep).toBeDisabled();
+      await expect(steep.locator(".tip")).toHaveText("Locked");
       await expect(page.locator("#title .setnote")).toContainText("opens once you finish a run");
-      expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
+      expect(await page.evaluate(() => difficulty().id)).toBe(r.gentle);
 
       /* and pressing it changes nothing */
-      await scholar.click({ force: true }).catch(() => {});
-      expect(await page.evaluate(() => difficulty().id)).toBe("apprentice");
+      await steep.click({ force: true }).catch(() => {});
+      expect(await page.evaluate(() => difficulty().id)).toBe(r.gentle);
     });
 
   test("finishing one run opens it, and says so where they are looking",
@@ -120,30 +146,36 @@ test.describe("choosing how hard", () => {
       await page.goto(GAME);
       await page.click("#titlePlay");
       if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
+      const r = await roles(page);
       await page.evaluate(() => { G.plays = 0; endRun(false); });
-      await expect(page.locator("#panel .unlock.open")).toContainText("SCHOLAR");
+      await expect(page.locator("#panel .unlock.open")).toContainText(r.steepName);
 
       /* and it is live on the menu from then on, with the run they just
          finished left where it was */
       await page.click("#againNew");
       await page.click("#homeBtn");
-      const scholar = page.locator('#title .diffopt[data-diff="scholar"]');
-      await expect(scholar).toBeEnabled();
-      await expect(scholar.locator(".tip")).toHaveCount(0);
-      await scholar.click();
-      expect(await page.evaluate(() => difficulty().id)).toBe("scholar");
+      const steep = page.locator(pill(r.steep));
+      await expect(steep).toBeEnabled();
+      await expect(steep.locator(".tip")).toHaveCount(0);
+      await steep.click();
+      expect(await page.evaluate(() => difficulty().id)).toBe(r.steep);
     });
 
-  test("somebody who has played before is left where they were", async ({ page }) => {
+  test("somebody who has played before has both curves open", async ({ page }) => {
     await page.addInitScript(() => {
-      try { localStorage.clear(); localStorage.setItem("overtone:runs", "9"); } catch (e) {}
+      try {
+        localStorage.clear();
+        localStorage.setItem("overtone:runs", "9");
+        localStorage.setItem("overtone:curvesMigrated", "true");
+      } catch (e) {}
     });
     await page.goto(GAME);
     await expect(page.locator("#title")).toBeVisible();
-    expect(await page.evaluate(() => difficulty().id), "a returning player was moved to the easy curve")
-      .toBe("scholar");
-    await expect(page.locator(".diffopt .tip")).toHaveCount(0);
-    await expect(page.locator('#title .diffopt[data-diff="scholar"]')).toBeEnabled();
+    await expect(page.locator(".diffopt .tip"), "a finished run did not open everything")
+      .toHaveCount(0);
+    const r = await roles(page);
+    await expect(page.locator(pill(r.gentle))).toBeEnabled();
+    await expect(page.locator(pill(r.steep))).toBeEnabled();
   });
 
   test("picking it sticks, and says it lands on the next run", async ({ page }) => {
@@ -152,110 +184,132 @@ test.describe("choosing how hard", () => {
        masthead, not a line inside a panel */
     await page.click("#homeBtn");
     await expect(page.locator("#title")).toBeVisible();
-    await page.click('#title .diffopt[data-diff="apprentice"]');
-    await expect(page.locator('#title .diffopt[data-diff="apprentice"]'))
-      .toHaveAttribute("aria-pressed", "true");
+    const r = await roles(page);
+    await page.click(pill(r.gentle));
+    await expect(page.locator(pill(r.gentle))).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("#title .setnote")).toContainText("still");
     /* the run on the table is untouched, and resuming it does not re-deal */
-    expect(await page.evaluate(() => runDifficulty().id)).toBe("scholar");
+    expect(await page.evaluate(() => runDifficulty().id)).toBe(r.steep);
     await page.click("#titleResume");
     await expect(page.locator("#title")).toBeHidden();
-    expect(await page.evaluate(() => runDifficulty().id)).toBe("scholar");
+    expect(await page.evaluate(() => runDifficulty().id)).toBe(r.steep);
 
-    await reloadKeeping(page, "overtone:difficulty", "apprentice");
+    await reloadKeeping(page, "overtone:difficulty", r.gentle);
     await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     expect(await page.evaluate(() => difficulty().id), "the choice did not survive a reload")
-      .toBe("apprentice");
+      .toBe(r.gentle);
   });
 
-  test("a new run under it asks for less and hands you another discard", async ({ page }) => {
+  test("a new run under the gentler curve asks for less at every round, and hands you another discard",
+    async ({ page }) => {
     await open(page);
+    const r = await roles(page);
     const before = await page.evaluate(() => {
       newRun("diff-test", true);
-      return { targets: [0, 3, 7].map(r => roundShape(r).target), discards: roundShape(0).discards };
+      const rounds = [...Array(ROUNDS).keys()];
+      return { targets: rounds.map(i => roundShape(i).target), discards: roundShape(0).discards };
     });
-    const after = await page.evaluate(() => {
-      setPref("difficulty", "apprentice");
+    const after = await page.evaluate(gentle => {
+      setPref("difficulty", gentle);
       newRun("diff-test", true);
-      return { targets: [0, 3, 7].map(r => roundShape(r).target), discards: roundShape(0).discards,
+      const rounds = [...Array(ROUNDS).keys()];
+      return { targets: rounds.map(i => roundShape(i).target), discards: roundShape(0).discards,
                pinned: G.diff };
-    });
-    expect(after.pinned).toBe("apprentice");
+    }, r.gentle);
+    expect(after.pinned).toBe(r.gentle);
     expect(after.discards, "no extra discard").toBe(before.discards + 1);
     after.targets.forEach((t, i) => {
-      expect(t, "round " + i + " is not easier").toBeLessThan(before.targets[i]);
+      expect(t, "round " + (i + 1) + " is not easier on the gentler curve")
+        .toBeLessThan(before.targets[i]);
+    });
+    /* and the curve climbs — the old gentle curve DIPPED at round 2, which is
+       why nothing ever died there */
+    after.targets.forEach((t, i) => {
+      if (i === 0) return;
+      expect(t, "round " + (i + 1) + " asks for less than round " + i)
+        .toBeGreaterThan(after.targets[i - 1]);
     });
     /* the same deck, though — an easier curve, not a different game */
-    const sameDeck = await page.evaluate(() => {
+    const sameDeck = await page.evaluate(steep => {
       const easy = G.deck.concat(G.hand, G.discard).map(c => c.w).sort().join(",");
-      setPref("difficulty", "scholar");
+      setPref("difficulty", steep);
       newRun("diff-test", true);
       const hard = G.deck.concat(G.hand, G.discard).map(c => c.w).sort().join(",");
       return easy === hard;
-    });
-    expect(sameDeck, "APPRENTICE changed the deck, not just the curve").toBe(true);
+    }, r.steep);
+    expect(sameDeck, "the gentler curve changed the deck, not just the numbers").toBe(true);
   });
 
   test("a run cannot change difficulty underneath itself", async ({ page }) => {
     await open(page);
-    const held = await page.evaluate(() => {
-      setPref("difficulty", "scholar");
+    const r = await roles(page);
+    const held = await page.evaluate(([steep, gentle]) => {
+      setPref("difficulty", steep);
       newRun("pin-test", true);
-      const was = roundShape(6).target;
-      /* a player switching at round 7 to duck the wall */
-      setPref("difficulty", "apprentice");
-      return { was, now: roundShape(6).target, run: runDifficulty().id, setting: difficulty().id };
-    });
+      const was = roundShape(ROUNDS - 1).target;
+      /* a player switching at the last round to duck the wall */
+      setPref("difficulty", gentle);
+      return { was, now: roundShape(ROUNDS - 1).target,
+               run: runDifficulty().id, setting: difficulty().id };
+    }, [r.steep, r.gentle]);
     expect(held.now, "the run's targets moved when the setting did").toBe(held.was);
-    expect(held.run).toBe("scholar");
-    expect(held.setting).toBe("apprentice");
+    expect(held.run, "the run did not keep the curve it started on").toBe(r.steep);
+    expect(held.setting, "the setting did not move").toBe(r.gentle);
   });
 
   test("the board and the share block both name it", async ({ page }) => {
     await open(page);
-    const out = await page.evaluate(() => {
-      setPref("difficulty", "apprentice");
+    const r = await roles(page);
+    const out = await page.evaluate(steep => {
+      setPref("difficulty", steep);
       newRun("name-test", true);
       renderControls();
       G.total = 4321;
       return { label: document.getElementById("seedLabel").textContent, share: shareText(false) };
-    });
-    expect(out.label).toContain("APPRENTICE");
-    expect(out.share).toContain("APPRENTICE");
+    }, r.steep);
+    expect(out.label).toContain(r.steepName);
+    expect(out.share).toContain(r.steepName);
 
-    const scholar = await page.evaluate(() => {
-      setPref("difficulty", "scholar");
+    const dflt = await page.evaluate(gentle => {
+      setPref("difficulty", gentle);
       newRun("name-test", true);
       renderControls();
       return { label: document.getElementById("seedLabel").textContent, share: shareText(false) };
-    });
-    /* the default is not worth saying, so a normal share is unchanged */
-    expect(scholar.label).not.toContain("SCHOLAR");
-    expect(scholar.share).not.toContain("SCHOLAR");
+    }, r.gentle);
+    /* the default curve is not worth saying, so a normal share is unchanged */
+    expect(dflt.label, "the default curve names itself on the board").not.toContain(r.gentleName);
+    expect(dflt.share, "the default curve names itself in the share block").not.toContain(r.gentleName);
   });
 
   test("a gentler total is never a best on the steeper curve", async ({ page }) => {
     await open(page);
-    const keys = await page.evaluate(() => {
+    const r = await roles(page);
+    const keys = await page.evaluate(gentle => {
       localStorage.clear();
-      setPref("difficulty", "apprentice");
+      localStorage.setItem("overtone:curvesMigrated", "true");
+      setPref("difficulty", gentle);
       newRun("best-test", true);
       G.total = 999999; G.round = 2;
       endRun(false);
       hidePanel();
-      return { best: localStorage.getItem("overtone:best"),
-               easy: localStorage.getItem("overtone:best:apprentice") };
-    });
-    expect(keys.easy, "the gentler run was not recorded at all").toBe("999999");
-    expect(keys.best, "a gentler total overwrote the real best").toBeNull();
+      const key = k => localStorage.getItem("overtone:" + k);
+      const byRank = DIFFICULTIES.slice().sort((a, b) => a.rank - b.rank);
+      return { gentleBest: key(byRank[0].bestKey),
+               steepBest:  key(byRank[byRank.length - 1].bestKey) };
+    }, r.gentle);
+    expect(keys.gentleBest, "the gentler run was not recorded at all").toBe("999999");
+    expect(keys.steepBest, "a gentler total overwrote the steeper curve's best").toBeNull();
   });
 });
 
 test.describe("the offer to somebody the curve is beating", () => {
+  /* Dies on the STEEPEST curve, since the offer only exists for somebody who
+     has a gentler one to be offered. */
   const die = (runs, round) => page => page.evaluate(([r, rd]) => {
+    const byRank = DIFFICULTIES.slice().sort((a, b) => a.rank - b.rank);
     localStorage.setItem("overtone:runs", String(r - 1));
-    setPref("difficulty", "scholar");
+    setPref("difficulty", byRank[byRank.length - 1].id);
     newRun("offer-test", true);
     G.round = rd; G.total = 500;
     endRun(false);
@@ -263,13 +317,14 @@ test.describe("the offer to somebody the curve is beating", () => {
 
   test("shows up after a few early losses, and starts the gentler run", async ({ page }) => {
     await open(page);
+    const r = await roles(page);
     await die(3, 1)(page);
     await page.waitForTimeout(400);
     await expect(page.locator(".softer")).toBeVisible();
-    await expect(page.locator(".softer")).toContainText("APPRENTICE");
+    await expect(page.locator(".softer")).toContainText(r.gentleName);
     await page.click("#goEasy");
     await expect(page.locator("#veil")).toBeHidden();
-    expect(await page.evaluate(() => runDifficulty().id)).toBe("apprentice");
+    expect(await page.evaluate(() => runDifficulty().id)).toBe(r.gentle);
   });
 
   test("stays quiet on a first run, on a deep run, and once you took it",
@@ -287,7 +342,8 @@ test.describe("the offer to somebody the curve is beating", () => {
       await page.evaluate(() => hidePanel());
       await page.evaluate(() => {
         localStorage.setItem("overtone:runs", "5");
-        setPref("difficulty", "apprentice");       // already taking it
+        const byRank = DIFFICULTIES.slice().sort((a, b) => a.rank - b.rank);
+        setPref("difficulty", byRank[0].id);       // already taking it
         newRun("offer-test", true);
         G.round = 1; G.total = 500;
         endRun(false);
@@ -307,6 +363,9 @@ test.describe("the rules describe the game you are in", () => {
         localStorage.setItem("overtone:coached", "true");
         localStorage.setItem("overtone:sawFlaw", "true");
         localStorage.setItem("overtone:runs", "3");
+        /* Before the difficulty: clear() wiped the migration flag, so the
+           one-time role swap would otherwise flip whatever is set here. */
+        localStorage.setItem("overtone:curvesMigrated", "true");
         localStorage.setItem("overtone:difficulty", JSON.stringify(d));
       } catch (e) {}
     }, id);
@@ -316,8 +375,11 @@ test.describe("the rules describe the game you are in", () => {
     await expect(page.locator("#panel h2")).toContainText("How Overtone works");
   };
 
-  test("APPRENTICE is told it meets one Ordeal, at the end", async ({ page }) => {
-    await onDiff("apprentice")(page);
+  test("the gentler mode is told it meets one Ordeal, at the end", async ({ page }) => {
+    await page.goto(GAME);
+    const r = await roles(page);
+    expect(r.gentleOrdeals, "the gentler mode no longer meets exactly one").toBe(1);
+    await onDiff(r.gentle)(page);
     const panel = page.locator("#panel");
     await expect(panel).toContainText("The last round is an Ordeal");
     /* and never named the ones it cannot be dealt */
@@ -325,13 +387,21 @@ test.describe("the rules describe the game you are in", () => {
     await expect(panel).not.toContainText("four-card hand");
   });
 
-  test("SCHOLAR is told it meets three", async ({ page }) => {
-    await onDiff("scholar")(page);
-    await expect(page.locator("#panel")).toContainText("Three rounds are Ordeals");
+  test("the steeper mode is told how many it meets, and it is more", async ({ page }) => {
+    await page.goto(GAME);
+    const r = await roles(page);
+    expect(r.steepOrdeals, "the steeper mode does not meet more Ordeals")
+      .toBeGreaterThan(r.gentleOrdeals);
+    await onDiff(r.steep)(page);
+    const WORDS = ["no", "One", "Two", "Three", "Four", "Five", "Six"];
+    await expect(page.locator("#panel"))
+      .toContainText(WORDS[r.steepOrdeals] + " rounds are Ordeals");
   });
 
-  test("and APPRENTICE actually is dealt one, at the last round", async ({ page }) => {
-    await onDiff("apprentice")(page);
+  test("and the gentler mode actually is dealt one, at the last round", async ({ page }) => {
+    await page.goto(GAME);
+    const r = await roles(page);
+    await onDiff(r.gentle)(page);
     const met = await page.evaluate(() => {
       const out = [];
       for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) out.push(r);
@@ -341,14 +411,19 @@ test.describe("the rules describe the game you are in", () => {
     expect(met).toEqual([5]);
   });
 
-  test("and SCHOLAR three", async ({ page }) => {
-    await onDiff("scholar")(page);
-    const met = await page.evaluate(() => {
-      const out = [];
-      for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) out.push(r);
-      return out;
+  test("and the steeper mode is dealt every one its schedule names", async ({ page }) => {
+    await page.goto(GAME);
+    const r = await roles(page);
+    await onDiff(r.steep)(page);
+    const out = await page.evaluate(() => {
+      const met = [];
+      for (let r = 0; r < ROUNDS; r++) if (G.ordealOrder[r]) met.push(r);
+      return { met, scheduled: runDifficulty().ordealRounds.slice() };
     });
-    expect(met).toEqual([1, 3, 5]);
+    expect(out.met, "the rounds dealt an Ordeal are not the rounds scheduled one")
+      .toEqual(out.scheduled);
+    expect(out.met.length, "the steeper mode is not dealt more than one")
+      .toBeGreaterThan(1);
   });
 });
 
@@ -362,7 +437,7 @@ test.describe("the menu", () => {
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
     await expect(panel.locator("h2")).toHaveText("Sound & feel");
-    await expect(panel.locator(".switch")).toHaveCount(3);
+    await expect(panel.locator(".switch")).toHaveCount(4);
     /* the second copy of the title screen that used to live in here */
     await expect(panel.locator(".diffopt")).toHaveCount(0);
     await expect(panel.locator(".runstat")).toHaveCount(0);
@@ -375,8 +450,9 @@ test.describe("the menu", () => {
       await page.addInitScript(() => {
         try {
           localStorage.setItem("overtone:runs", "14");
-          localStorage.setItem("overtone:best", "41280");
-          localStorage.setItem("overtone:best:apprentice", "88120");
+          localStorage.setItem("overtone:curvesMigrated", "true");
+          localStorage.setItem("overtone:best:steep", "41280");
+          localStorage.setItem("overtone:best:gentle", "88120");
         } catch (e) {}
       });
       await page.goto(GAME);
@@ -463,4 +539,98 @@ test.describe("the menu", () => {
     expect(fit.inView, "the menu runs off the side").toBe(true);
     expect(fit.reachable, "the menu is taller than the screen and cannot be scrolled").toBe(true);
   });
+});
+
+/* ---------- the day the names changed hands ----------
+   SCHOLAR used to be the steeper curve and APPRENTICE the gentler one. Anybody
+   already playing chose a CURVE, not a name, so the migration moves them by
+   ROLE: whoever was on the gentle curve stays on the gentle curve and simply
+   sees its new name. Their record moves with them for the same reason - a total
+   is a total on the curve it was set on. */
+test.describe("migrating a profile from before the names moved", () => {
+  const legacy = state => async page => {
+    await page.addInitScript(s => {
+      try {
+        localStorage.clear();
+        Object.keys(s).forEach(k => localStorage.setItem("overtone:" + k, s[k]));
+      } catch (e) {}
+    }, state);
+    await page.goto(GAME);
+    await expect(page.locator("#title")).toBeVisible();
+  };
+
+  /* The rest of this file reads the roles off DIFFICULTIES, which means it
+     asserts the table against itself: swap the two ranks and every test still
+     passes while every existing player's curve inverts. The migration block is
+     name-specific: two old storage KEYS, frozen as the strings the builds
+     that wrote them used. What it must never do is move somebody between
+     modes, which is what the next two tests are for. */
+  test("the migration does not move anybody off the mode they chose", async ({ page }) => {
+    await legacy({ runs: "7", difficulty: JSON.stringify("apprentice") })(page);
+    expect(await page.evaluate(() => difficulty().id),
+      "the migration moved a player off the mode they picked").toBe("apprentice");
+    await legacy({ runs: "7", difficulty: JSON.stringify("scholar") })(page);
+    expect(await page.evaluate(() => difficulty().id),
+      "the migration moved a player off the mode they picked").toBe("scholar");
+  });
+
+  test("somebody on the gentle curve stays on the gentle curve", async ({ page }) => {
+    /* "apprentice" has meant the gentler one since the first build */
+    await legacy({ runs: "7", difficulty: JSON.stringify("apprentice") })(page);
+    const r = await roles(page);
+    expect(await page.evaluate(() => difficulty().rank),
+      "a player on the gentle curve was moved onto the steep one").toBe(0);
+    expect(await page.evaluate(() => difficulty().id)).toBe(r.gentle);
+  });
+
+  test("somebody on the steep curve stays on the steep curve", async ({ page }) => {
+    /* and "scholar" the steeper one */
+    await legacy({ runs: "7", difficulty: JSON.stringify("scholar") })(page);
+    const r = await roles(page);
+    expect(await page.evaluate(() => difficulty().id)).toBe(r.steep);
+  });
+
+  test("each best score follows the curve it was set on", async ({ page }) => {
+    await legacy({
+      runs: "7",
+      difficulty: JSON.stringify("scholar"),
+      best: "41280",                 // the old STEEP curve's record
+      "best:apprentice": "88120"     // the old GENTLE curve's record
+    })(page);
+    const out = await page.evaluate(() => {
+      const byRank = DIFFICULTIES.slice().sort((a, b) => a.rank - b.rank);
+      const read = d => store.get(d.bestKey, 0);
+      return { gentle: read(byRank[0]), steep: read(byRank[byRank.length - 1]) };
+    });
+    expect(out.gentle, "the gentle curve's record did not follow it").toBe(88120);
+    expect(out.steep, "the steep curve's record did not follow it").toBe(41280);
+  });
+
+  test("it runs once — a reload does not swap them back", async ({ page }) => {
+    await legacy({ runs: "7", difficulty: JSON.stringify("apprentice") })(page);
+    const first = await page.evaluate(() => difficulty().id);
+    await page.reload();
+    await expect(page.locator("#title")).toBeVisible();
+    const second = await page.evaluate(() => difficulty().id);
+    expect(second, "the migration ran twice and swapped the player back").toBe(first);
+    expect(await page.evaluate(() => store.get("curvesMigrated", false))).toBe(true);
+  });
+
+  test("a returning profile that never stored a difficulty keeps the steep curve",
+    async ({ page }) => {
+      /* The old code defaulted a returning player to the steep curve, so that
+         is what they were playing even though nothing was written down. */
+      await legacy({ runs: "7", best: "41280" })(page);
+      const r = await roles(page);
+      expect(await page.evaluate(() => difficulty().id),
+        "a returning player was quietly moved onto the gentle curve").toBe(r.steep);
+    });
+
+  test("a profile with nothing stored is left to the first-boot default",
+    async ({ page }) => {
+      await legacy({})(page);
+      const r = await roles(page);
+      expect(await page.evaluate(() => difficulty().id),
+        "a brand new player did not land on the gentlest curve").toBe(r.gentle);
+    });
 });

@@ -110,7 +110,10 @@ test.describe("the Lens you carry in is yours to decide", () => {
     await page.addInitScript(carrying);
     await page.goto(GAME);
     await enterGame(page);
-    await page.locator("#hand .card").first().click();
+    /* Two cards, not one: a line is LINE_MIN words or more and play() enforces
+       that now - it used to be stated in the tutorial and nowhere else. */
+    await page.locator("#hand .card").nth(0).click();
+    await page.locator("#hand .card").nth(1).click();
     await page.click("#playBtn");
     await page.waitForTimeout(2600);
     await page.click("#newRunBtn");

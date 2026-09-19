@@ -35,14 +35,36 @@ describe("run bookkeeping", () => {
 
   test("a personal best is kept, and only beaten scores replace it", () => {
     const api = fresh();
+    /* One key per CURVE now, named for the curve rather than the mode - a
+       total from one curve is not a better run than a total from another, and
+       the names moved once already. */
+    const key = () => api.runDifficulty().bestKey;
     finishRun(api, { seed: "a", total: 5000 });
-    assert.strictEqual(api.store.get("best", 0), 5000);
+    assert.strictEqual(api.store.get(key(), 0), 5000);
 
     finishRun(api, { seed: "b", total: 900 });
-    assert.strictEqual(api.store.get("best", 0), 5000, "a worse run overwrote the best");
+    assert.strictEqual(api.store.get(key(), 0), 5000, "a worse run overwrote the best");
 
     finishRun(api, { seed: "c", total: 9001 });
-    assert.strictEqual(api.store.get("best", 0), 9001, "a better run did not take the record");
+    assert.strictEqual(api.store.get(key(), 0), 9001, "a better run did not take the record");
+  });
+
+  test("and each curve keeps its own", () => {
+    const api = fresh();
+    const byRank = api.DIFF_BY_RANK;
+    const gentle = byRank[0], steep = byRank[byRank.length - 1];
+
+    api.setPref("difficulty", steep.id);
+    finishRun(api, { seed: "s", total: 5000 });
+    api.setPref("difficulty", gentle.id);
+    finishRun(api, { seed: "g", total: 9001 });
+
+    assert.strictEqual(api.store.get(steep.bestKey, 0), 5000,
+      "the steeper curve's record moved");
+    assert.strictEqual(api.store.get(gentle.bestKey, 0), 9001,
+      "the gentler curve's record was not kept");
+    assert.notStrictEqual(steep.bestKey, gentle.bestKey,
+      "both curves file their record under the same key");
   });
 
   test("the run is marked over so the board stops accepting input", () => {

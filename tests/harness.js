@@ -50,9 +50,14 @@ function load(){
 
   const byId = Object.create(null);
   const store = Object.create(null);
-  /* A brand-new profile now starts on APPRENTICE, which is right for a person
-     and wrong for a test: nearly everything here pins the numbers of the game
-     as balanced. Tests that care about the gentler curve set it themselves. */
+  /* A brand-new profile starts on the GENTLEST curve, which is right for a
+     person and wrong for a test: nearly everything here pins the steeper one.
+     Tests that care about the gentler curve set it themselves.
+
+     curvesMigrated comes with it, so the one-time storage migration does not
+     run on every load() — it would keep copying the old best-score keys over
+     whatever a test had just written. */
+  store["overtone:curvesMigrated"] = JSON.stringify(true);
   store["overtone:difficulty"] = JSON.stringify("scholar");
 
   /* The page starts its spotlight tutorial on a first visit, and that runs a
@@ -124,17 +129,25 @@ function load(){
     makeCard, houseAppraise, deckCount, resonanceName, shareText, endRun, store,
     handSize, maxPlay, roundShape, baseShape, deckCeiling, sellValue, sellLens,
     reckoning, reckonFor, roundRules, RECKON_AT, RECKON_FROM,
-    ORDEALS, ORDEAL_ROUNDS, APPRENTICE_ORDEAL_ROUNDS, APPRENTICE_ORDEAL_BAN,
-    ordealRoundsFor, ordealPoolFor,
+    ORDEALS, ordealRoundsFor, ordealPoolFor,
     buy, openShop, coachDone, coachFinish, coachSet,
     cardEl, artNode, isLightHex, hashStr, mulberry32, todayKey,
     LEXICON, LENSES, DEMANDS, TARGETS, TAGS, TAG_KEYS, ICONS, TAG_COLOR,
     LENS_TAG, ROUNDS, HAND_SIZE, MAX_PLAY, LENS_SLOTS, COACH, RESO_NAMES,
+    /* kept lines have their own shelf now, and the line floor is a
+       function because two Lenses are bought to play a single word. */
+    KEEP_SLOTS, keepsUsed, keepsFull, slotsUsed, slotsLeft, slotsFull,
+    minPlay, SOLO_LENSES, FIG_PAY,
     FIGURES, FIG_PAY, figuresIn, figureFor, figureByReorder, figValue, arrangeForTutorial,
     lineWorth, bestLineFrom, OPPOSED, sharedTags, tensionPairs, joinOf, joinsOf, figuresFromJoins,
     JOIN_RESONANCE, JOIN_TENSION, KEPT_CHIPS, KEPT_MULT, FATIGUE_SPAN, LINE_MIN,
     DIFFICULTIES, difficulty, runDifficulty, prefs, setPref,
-    flawsSeen, curveScale, APPRENTICE_CURVE, scholarOpen, shapeFor, clashes, ORDEAL_CLASH
+    flawsSeen, curveScale, shapeFor, clashes, ORDEAL_CLASH,
+    DIFF_BY_ID, DIFF_BY_RANK, easiestDiff, diffBelow, diffAbove, modeOpen,
+    ordealPoolAt, DISARMING, blindMode, JOIN_NAME, JOIN_SAID,
+    /* let a test read the tutorial's refund bookkeeping without owning it */
+    get tutSpentPlay(){ return tutSpentPlay; },
+    get tutRefundable(){ return tutRefundable; }
   };`, ctx);
 
   return { api: ctx.__api, ctx, byId, storage: store };

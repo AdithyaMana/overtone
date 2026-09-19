@@ -97,9 +97,16 @@ describe("deck construction", () => {
 
 /* ------------------------------------------------------------------ */
 describe("scoring", () => {
-  test("a card is worth 5 + 3 per letter", () => {
-    const c = api.makeCard({ w: "VOLCANO", t: ["NAT"] }, false);
-    assert.strictEqual(c.base, 5 + 3 * 7);
+  test("a card is worth 6 + 5 per overtone, and reads nothing about spelling", () => {
+    /* It was 5 + 3 per LETTER, which made spelling the base currency of every
+       card in a game whose spec says nothing in scoring may read it. Keyed to
+       overtones, scaled so the lexicon's mean base is unchanged at ~22. */
+    const one = api.makeCard({ w: "VOLCANO", t: ["NAT"] }, false);
+    assert.strictEqual(one.base, 6 + 5 * 1);
+    const three = api.makeCard({ w: "VOLCANO", t: ["NAT", "HEA", "DAR"] }, false);
+    assert.strictEqual(three.base, 6 + 5 * 3);
+    const short = api.makeCard({ w: "ASH", t: ["NAT", "HEA", "DAR"] }, false);
+    assert.strictEqual(short.base, three.base, "a shorter word with the same overtones is worth the same");
   });
 
   test("each matching overtone pays +25", () => {

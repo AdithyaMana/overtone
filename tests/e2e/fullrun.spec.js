@@ -113,8 +113,21 @@ test.describe("a full run", () => {
           throw new Error("unexpected panel during the run:\n" + text.slice(0, 200));
         }
 
-        /* play the first three cards */
-        for (const key of ["1", "2", "3"]) await page.keyboard.press(key);
+        /* Pick a line the way the game itself would.
+
+           This used to tap cards 1, 2 and 3 and press Enter. Under PICK that
+           was a fine approximation of a player; under JOIN it is not a player
+           at all - the order is the decision and a silence stops the line, so
+           three cards in dealt order reliably scores too little to clear round
+           1, and the run ended before it had ever seen a shop. The assertions
+           below are about the ARC (a shop opened, a Lens was affordable), and
+           a walk that cannot reach round 2 cannot test any of it. */
+        await page.evaluate(() => {
+          const best = bestLineFrom(G.hand.slice(), maxPlay());
+          G.selected = (best && best.cards.length ? best.cards : G.hand.slice(0, 2))
+            .map(c => c.id);
+          renderHand(); renderControls(); renderPreview();
+        });
         await page.keyboard.press("Enter");
         seen.plays++;
         for (let i = 0; i < 40; i++) {
@@ -127,8 +140,9 @@ test.describe("a full run", () => {
 
       expect(ended, "the run never reached a result screen").not.toBeNull();
 
-      /* the arc actually happened */
-      expect(seen.plays, "no hands were played").toBeGreaterThan(3);
+      /* The arc actually happened. Six rounds of two plays, not the eight of
+         four this was written against, so the floor moves with the run. */
+      expect(seen.plays, "no hands were played").toBeGreaterThan(2);
       expect(seen.shops, "the Bookseller never opened").toBeGreaterThan(0);
       expect(seen.bought, "no Lens was ever affordable").toBeGreaterThan(0);
 

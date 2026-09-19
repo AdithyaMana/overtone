@@ -40,6 +40,10 @@ test.beforeEach(async ({ page }) => {
     /* Only when nothing is stored: a spec starts on the balanced curve, and
        never overrides a choice one of its own tests just made and reloaded. */
     try {
+      /* Pin the STEEP curve, and the migration flag with it so the one-time
+         storage migration does not run underneath these tests. Most of this
+         file asserts the game as balanced. */
+      localStorage.setItem("overtone:curvesMigrated", "true");
       if (localStorage.getItem("overtone:difficulty") === null)
         localStorage.setItem("overtone:difficulty", JSON.stringify("scholar"));
       /* and as somebody who has already met a flawed Lens, so the shop opens on
@@ -238,7 +242,13 @@ test.describe("first visit", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("playing a hand", () => {
-  test("selecting a card lifts it, numbers it, and scores it live", async ({ page }) => {
+  test("selecting a card lifts it and numbers it, and prices nothing", async ({ page }) => {
+    /* It used to assert the opposite - that picking a card moved the counters.
+       spec-the-verb-is-join: "The board never shows the score of an
+       uncommitted line. It may show which relations it has found; the total
+       is only known after PLAY." Both factors were on screen, so the total
+       was one multiplication away and judging the line was arithmetic
+       somebody else had already done. */
     await open(page);
     await expect(page.locator("#chipsV")).toHaveText("0");
 
@@ -247,7 +257,13 @@ test.describe("playing a hand", () => {
     await expect(page.locator("#hand .card.sel")).toHaveCount(1);
     await expect(page.locator("#hand .card.sel .pos")).toHaveText("1");
     await expect(page.locator("#stageCards .card")).toHaveCount(1);
-    await expect(page.locator("#chipsV")).not.toHaveText("0");
+    await expect(page.locator("#chipsV"), "the board priced a line nobody played").toHaveText("0");
+    await expect(page.locator("#multV"), "the board priced a line nobody played").toHaveText("1");
+    /* One word is not a line. LINE_MIN used to live only in the tutorial's
+       copy while play() took a single card, so ASCETIC's "play exactly 1
+       word" was selling a play everybody already had. */
+    await expect(page.locator("#playBtn"), "a one-word line was playable").toBeDisabled();
+    await page.locator("#hand .card").nth(1).click();
     await expect(page.locator("#playBtn")).toBeEnabled();
   });
 
@@ -480,9 +496,11 @@ test.describe("the figure on the board", () => {
     await page.click(".hand-name");
     await expect(page.locator("#veil")).toBeVisible();
     await expect(page.locator(".figtab tbody tr")).toHaveCount(5);
-    for(const n of ["THE CHIASMUS", "THE PARADOX", "THE ESCALATION",
-                    "THE SYNONYMY", "THE ANTITHESIS"])
-      await expect(page.locator(".figtab")).toContainText(n);
+    /* Read the names off the game rather than restating them here — they have
+       been renamed once already, into words a player can keep. */
+    const names = await page.evaluate(() => FIGURES.map(f => f.n));
+    expect(names).toHaveLength(5);
+    for (const n of names) await expect(page.locator(".figtab")).toContainText(n);
   });
   test("the idle board points at the figures before anything is picked", async ({ page }) => {
     await open(page);
@@ -493,52 +511,36 @@ test.describe("the figure on the board", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Three of the five figures - COLUMN, STAIR and PAIR - are defined on how
-   long a word is, so before this the only way to find one was to count the
-   letters of seven words. A playtester called it what it was: arithmetic in
-   the middle of a card game. */
-test.describe("how long a word is", () => {
-  test("every card says it, so nobody counts letters", async ({ page }) => {
+/* COLUMN, STAIR and PAIR - three figures defined on how long a word is - went
+   when the verb became JOIN, and with them the reason to print a letter count
+   on every card. spec-the-verb-is-join: "Nothing in scoring may read spelling.
+   Word length, first letter and last letter stop being mechanical inputs
+   entirely, including in Lenses." */
+test.describe("spelling is not a mechanic", () => {
+  test("no card shows a letter count", async ({ page }) => {
     await open(page);
-    const wrong = await page.evaluate(() =>
-      [...document.querySelectorAll("#hand .card")]
-        .map(c => ({
-          w: c.querySelector(".wt").textContent,
-          n: c.querySelector(".len") ? c.querySelector(".len").textContent : null
-        }))
-        .filter(x => x.n !== String(x.w.length))
-        .map(x => x.w + " says " + x.n));
-    expect(wrong, "a card miscounted its own word").toEqual([]);
+    await expect(page.locator("#hand .card .len"),
+      "the length badge outlived the figures that used it").toHaveCount(0);
   });
 
-  test("picking a word lights what matches it, and never its own", async ({ page }) => {
-    await open(page);
-    /* One deliberate pair in a hand of otherwise distinct lengths, so what
-       should light is known rather than whatever the deal happened to give. */
-    await page.evaluate(() => {
-      G.hand = ["OAK", "KILN", "EMBER", "FURNACE", "MARSHLAND", "TIDE", "INHERITANCE"]
-        .map(w => makeCard({ w, t: ["NAT"] }, false));
-      G.selected = []; render();
+  test("two words of different lengths and the same overtones are worth the same",
+    async ({ page }) => {
+      await open(page);
+      const [short, long] = await page.evaluate(() => {
+        const t = ["NAT", "HEA", "DAR"];
+        return [makeCard({ w: "ASH", t }, false).base,
+                makeCard({ w: "CONFLAGRATION", t }, false).base];
+      });
+      expect(short, "a card's base value still reads its spelling").toBe(long);
     });
-    await expect(page.locator("#hand .card .len.same"),
-      "something lit before anything was picked").toHaveCount(0);
 
-    await page.keyboard.press("2");                 // KILN, four letters
-    const lit = await page.evaluate(() =>
-      [...document.querySelectorAll("#hand .card")]
-        .filter(c => c.querySelector(".len.same"))
-        .map(c => c.querySelector(".wt").textContent).sort());
-    /* TIDE is the other four. KILN is NOT lit: a lone pick matching only
-       itself is a figure that is not there. */
-    expect(lit, "the wrong words lit up").toEqual(["TIDE"]);
-
-    /* and the pair holds itself up once both are in */
-    await page.keyboard.press("6");                 // TIDE
-    const both = await page.evaluate(() =>
-      [...document.querySelectorAll("#hand .card")]
-        .filter(c => c.querySelector(".len.same"))
-        .map(c => c.querySelector(".wt").textContent).sort());
-    expect(both, "the pair did not hold itself up").toEqual(["KILN", "TIDE"]);
+  test("and nothing in the scoring path reads a word's length", async ({ page }) => {
+    await open(page);
+    const readers = await page.evaluate(() =>
+      LENSES.filter(l => ["onCard", "onPlay", "onRound", "onReward"]
+        .some(h => l[h] && /\.w\.length/.test(String(l[h]))))
+        .map(l => l.n));
+    expect(readers, "these Lenses still score on spelling").toEqual([]);
   });
 });
 
@@ -1103,26 +1105,24 @@ test.describe("the opening tutorial", () => {
     await expect(page.locator("#tutStep")).toContainText(at(4));
   });
 
-  test("answers how many words to take, and makes you take a second", async ({ page }) => {
+  test("teaches what a second word DOES, and makes you lay one", async ({ page }) => {
     await page.goto(GAME);
     await enterGame(page);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
 
+    /* The lesson stopped being "take three" when the verb became JOIN. The step
+       that used to count words now names the three things two words can do. */
     const text = page.locator("#tutText");
     await expect(page.locator("#tutStep")).toContainText(at(4));
-    await expect(text).toContainText("Take three when you can");
-    /* the two reasons, both of which are true of the actual scoring */
-    await expect(text).toContainText("three times as much as one");
-    await expect(text).toContainText("more money");
+    const say = await page.evaluate(() => JOIN_NAME);
+    await expect(text).toContainText(say.resonance);
+    await expect(text).toContainText(say.tension);
+    await expect(text).toContainText(say.silence);
     await expect(page.locator("#tutNext")).toBeHidden();
 
-    /* the step teaches "take three", so two is not enough to clear it */
+    /* and it waits for a SECOND word, because one word does nothing */
     await page.locator("#hand .card").nth(1).click();
-    await expect(page.locator("#hand .card.sel")).toHaveCount(2);
-    await expect(page.locator("#tutStep")).toContainText(at(4));
-
-    await page.locator("#hand .card").nth(2).click();
     await expect(page.locator("#tutStep")).toContainText(at(5));
   });
 
@@ -1137,7 +1137,11 @@ test.describe("the opening tutorial", () => {
     await page.click("#tutNext");                      // -> the score, where PLAY is next
     await page.click("#playBtn");
     await expect(page.locator("#tutStep")).toContainText(at(STEPS));
-    await expect(page.locator("#tutText")).toContainText("ASCETIC");
+    /* The last step names the reason to come back: overtones tire, and the
+       Bookseller hands you back a line you wrote. It used to name a Lens. */
+    const last = page.locator("#tutText");
+    await expect(last).toContainText("dull");
+    await expect(last).toContainText("Bookseller");
   });
 
   test("advances off a real play, then finishes and stays gone", async ({ page }) => {
@@ -1150,7 +1154,9 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
     await expect(page.locator("#tutStep")).toContainText(at(5));
-    await expect(page.locator("#tutText")).toContainText("figure");
+    /* Step 5 reads the board back rather than naming a figure — it says what
+       the words the player actually laid are doing to each other. */
+    await expect(page.locator("#tutText")).toContainText("The board says what it can see");
     await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(6));
     await page.click("#tutNext");
@@ -1246,13 +1252,13 @@ test.describe("the opening tutorial", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("sound, vibration and motion", () => {
-  test("three separate switches, and they stick", async ({ page }) => {
+  test("four separate switches, and they stick", async ({ page }) => {
     await open(page);
     await page.click("#menuBtn");
     const panel = page.locator("#panel");
     /* the board's button is sound; everything else is on the title screen */
     await expect(panel).toContainText("Sound & feel");
-    await expect(panel.locator(".switch")).toHaveCount(3);
+    await expect(panel.locator(".switch")).toHaveCount(4);
     /* the iPhone gap is stated rather than quietly shipped */
     await expect(panel).toContainText("Android only");
 
@@ -1412,7 +1418,12 @@ test.describe("the Bookseller tells the truth", () => {
       if (ordealId) G.ordealOrder[round] = ORDEALS.find(o => o.id === ordealId);
       G.bank = 12; G.offers = null;
       openShop(9);
-      return { raw: TARGETS[round], shape: roundShape(round) };
+      /* `par` is what this round asks on the mode's OWN curve before anything
+         held has touched it. `raw` is the unscaled table entry, which stopped
+         being any mode's target when each one got its own curve. */
+      return { raw: TARGETS[round],
+               par: Math.round(TARGETS[round] * curveScale(round)),
+               shape: roundShape(round) };
     }, { round, ids, ordealId });
   }
 
@@ -1423,7 +1434,7 @@ test.describe("the Bookseller tells the truth", () => {
          straight, so it said 11,500 and the round then demanded 23,000 — the
          game lying at the exact moment you are deciding what to buy. */
       const r = await shopAt(page, 4, ["curse"]);
-      expect(r.shape.target).toBe(r.raw * 2);
+      expect(r.shape.target).toBe(r.par * 2);
       await expect(page.locator("#panel")).toContainText(r.shape.target.toLocaleString());
       await expect(page.locator("#panel")).toContainText("the usual");
     });
@@ -1433,11 +1444,12 @@ test.describe("the Bookseller tells the truth", () => {
     /* THE WAGER takes a play, THE FAMINE three cards and a discard. Buying a
        Lens that costs you a play should show that cost here, before you
        commit, rather than on the board a minute later. */
+    /* two plays a round now, so THE WAGER's toll leaves one */
     const r = await shopAt(page, 4, ["wager", "famine"]);
-    expect(r.shape.plays).toBe(3);
+    expect(r.shape.plays).toBe(1);
     expect(r.shape.hand).toBe(4);
     const shape = page.locator(".panel p.shape");
-    await expect(shape).toContainText("3");
+    await expect(shape).toContainText("1");
     await expect(shape).toContainText("hand of 4");
   });
 
@@ -1448,8 +1460,8 @@ test.describe("the Bookseller tells the truth", () => {
        its own — so the red version has to mean what it says: not "you are
        behind", but "nothing here closes it". */
     await page.evaluate(() => {
-      G.round = 6;                       // a 43,000 target
-      G.lenses = [LENSES.find(l => l.id === "curse")];   // doubled to 86,000
+      G.round = ROUNDS - 1;                              // the last round
+      G.lenses = [LENSES.find(l => l.id === "curse")];   // and THE CURSE doubles it
       G.lensState = {}; G.bank = 0; G.offers = null;     // and nothing affordable
       openShop(9);
     });
@@ -1468,24 +1480,26 @@ test.describe("the Bookseller tells the truth", () => {
          date, which would make this test start failing on a Tuesday for no
          reason anyone could find.
 
-         On this seed a bare deck tops out at 9,615 against 20,000. GLUTTON
-         pays x2.5 for a three-word hand, which covers it.
+         On this seed a bare deck tops out at 16,625 against round 4's
+         17,809. ALCHEMIST pays for NATURE and TECH in the same hand, which
+         takes it to 18,375 and covers it.
 
-         The round moved from 2 to 4 when the figure ledger's discovery
-         bonus went in: a bare deck now finds each of the five shapes once
-         for a flat 150 apiece, which lifted its ceiling past round 3's
-         target on this seed. Same seed, same Lens, same assertions — the
-         round where the gap exists is what changed. */
-      newRun("reality-near", true);
-      G.round = 4; G.lenses = []; G.lensState = {}; G.bank = 20;
-      G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "glut"), cost: 6 }];
+         Seed and round have moved four times now - the figure ledger, the
+         JOIN rebuild, the per-mode curves, and the pass that took spelling
+         out of scoring (a card's base value was its letter count, so every
+         deck ceiling in the game moved). What a deck can reach depends on the
+         scoring and what it is measured against depends on the mode. Found by
+         probing rather than guessed; re-running the probe beats hunting. */
+      newRun("probe4", true);
+      G.round = 3; G.lenses = []; G.lensState = {}; G.bank = 20;
+      G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "alch"), cost: 5 }];
       openShop(9);
       const el = document.querySelector(".reality");
       return { cls: el.className, text: el.textContent };
     });
     expect(named.cls).toContain("near");
     expect(named.text).toContain("YOUR DECK ALONE IS SHORT");
-    expect(named.text).toContain("GLUTTON");
+    expect(named.text).toContain("ALCHEMIST");
     expect(named.text).toMatch(/covers it/);
   });
 
@@ -1493,13 +1507,14 @@ test.describe("the Bookseller tells the truth", () => {
     await open(page);
     const shown = await page.evaluate(() => {
       /* THE CURSE is x3.5 on every hand, the loudest multiplier in the game,
-         and it doubles the target. Against round 5's 24,000 — 48,000 once the
-         Lens is on — x3.5 does not cover it, so the shop must not say it does.
-         The shop has to re-read the SHAPE of the round with the candidate Lens
-         equipped to know that; measuring the cursed ceiling against the target
-         the curse has not applied yet is the version that lies. */
-      newRun("reality-near", true);
-      G.round = 4; G.lenses = []; G.lensState = {}; G.bank = 20;
+         and it doubles the target. On this seed round 4 asks 16,961 and the
+         bare deck reaches 8,236; cursed, the deck reaches 28,825 against a
+         target of 33,922, so x3.5 does NOT cover it and the shop must not say
+         it does. The shop has to re-read the SHAPE of the round with the
+         candidate equipped to know that; measuring the cursed ceiling against
+         the target the curse has not applied yet is the version that lies. */
+      newRun("near-c", true);
+      G.round = 3; G.lenses = []; G.lensState = {}; G.bank = 20;
       G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "curse"), cost: 7 }];
       openShop(9);
       const el = document.querySelector(".reality");
@@ -1533,7 +1548,9 @@ test.describe("the Bookseller tells the truth", () => {
         const before = JSON.stringify({
           demand: G.demand, ordeal: G.ordeal && G.ordeal.id, discards: G.discards
         });
-        deckCeiling(5); deckCeiling(7);
+        deckCeiling(3); deckCeiling(5);
+        /* and a round that does not exist answers 0 rather than throwing */
+        if (deckCeiling(ROUNDS) !== 0) throw new Error("deckCeiling(ROUNDS) should be 0");
         const after = JSON.stringify({
           demand: G.demand, ordeal: G.ordeal && G.ordeal.id, discards: G.discards
         });
@@ -1554,20 +1571,27 @@ test.describe("Ordeals", () => {
     }, id);
   }
 
-  test("three rounds of every run change a rule, not a number", async ({ page }) => {
+  test("the rounds that change a rule are the rounds the mode scheduled",
+    async ({ page }) => {
     await open(page);
-    const shape = await page.evaluate(() => {
-      const out = [];
+    /* The schedule is a property of the difficulty now, and it asserted [3,5,7]
+       here long after the run stopped being eight rounds. Read it. */
+    const out = await page.evaluate(() => {
+      const shape = [];
       for (let r = 0; r < ROUNDS; r++) {
         G.round = r; startRound();
-        out.push(G.ordeal ? G.ordeal.id : null);
+        shape.push(G.ordeal ? G.ordeal.id : null);
       }
-      return out;
+      return { shape, scheduled: runDifficulty().ordealRounds.slice(), rounds: ROUNDS };
     });
-    /* Rounds 4, 6 and 8 — and round 8 always, so a run ends on a wall rather
-       than on a slightly larger number. */
-    expect(shape.map((o, i) => o ? i : null).filter(i => i !== null)).toEqual([3, 5, 7]);
-    expect(new Set(shape.filter(Boolean)).size, "the same Ordeal three times").toBe(3);
+    const dealt = out.shape.map((o, i) => o ? i : null).filter(i => i !== null);
+    expect(dealt, "a rule landed on a round the mode did not schedule one for")
+      .toEqual(out.scheduled);
+    expect(new Set(out.shape.filter(Boolean)).size, "the same Ordeal twice in a run")
+      .toBe(out.scheduled.length);
+    /* and the run still ends on one, so it ends on a wall rather than a bigger
+       number */
+    expect(out.scheduled).toContain(out.rounds - 1);
   });
 
   test("the board states the rule before a card is played", async ({ page }) => {
@@ -1594,20 +1618,27 @@ test.describe("Ordeals", () => {
       await expect(warn).toContainText("THE VICE");
     });
 
-  test("THE VICE actually refuses a third word", async ({ page }) => {
+  test("THE VICE actually refuses a fourth word", async ({ page }) => {
+    /* It capped a line at two, which collapsed chips and multiplier together:
+       forced onto the schedule it measured 22.0% against a 73.0% no-Ordeal
+       ceiling on the gentle curve. Three is a squeeze; two was a wall. */
     await open(page);
     const state = await enterOrdeal(page, "vice");
-    expect(state.cap).toBe(2);
-    for (const k of ["1", "2", "3"]) await page.keyboard.press(k);
-    await expect(page.locator("#hand .card.sel")).toHaveCount(2);
-    await expect(page.locator("#toast")).toContainText("THE VICE allows 2");
+    expect(state.cap).toBe(3);
+    for (const k of ["1", "2", "3", "4"]) await page.keyboard.press(k);
+    await expect(page.locator("#hand .card.sel")).toHaveCount(3);
+    await expect(page.locator("#toast")).toContainText("THE VICE allows 3");
   });
 
   test("THE DROUGHT, THE CLOCK and THE LEAN YEAR take what they say they take",
     async ({ page }) => {
       await open(page);
       expect((await enterOrdeal(page, "drought")).discards).toBe(0);
-      expect((await enterOrdeal(page, "clock")).plays).toBe(3);
+      /* THE CLOCK read `g.plays = 3` under "Three plays this round instead of
+         four" — written when a round WAS four plays. A round is two, so it was
+         handing the player a play. It takes one now, floored at one. */
+      const base = await page.evaluate(() => { newRun("clock-base", true); return G.plays; });
+      expect((await enterOrdeal(page, "clock")).plays).toBe(Math.max(1, base - 1));
       expect((await enterOrdeal(page, "lean")).hand).toBe(4);
     });
 
@@ -1942,14 +1973,16 @@ test.describe("the counters", () => {
     for (const k of ["1", "2"]) await page.keyboard.press(k);
     /* The roll scrambles digits on its way, so the only thing that matters is
        that it settles on the truth rather than on whatever it was showing when
-       the animation stopped. */
+       the animation stopped. Read after PLAY: before it, the counters are
+       deliberately blank - the line is not priced until it is committed. */
     const want = await page.evaluate(() => {
       const cards = G.selected.map(id => G.hand.find(c => c.id === id));
       const r = resolve(cards);
       return { points: String(r.chips), mult: String(Math.round(r.mult * 10) / 10) };
     });
-    await expect(page.locator("#chipsV")).toHaveText(want.points);
-    await expect(page.locator("#multV")).toHaveText(want.mult);
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#chipsV")).toHaveText(want.points, { timeout: 15000 });
+    await expect(page.locator("#multV")).toHaveText(want.mult, { timeout: 15000 });
   });
 
   test("the total counts up and locks on the real score", async ({ page }) => {

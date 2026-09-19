@@ -620,9 +620,9 @@ test.describe("the main menu", () => {
     await page.goto(GAME);
     const line = page.locator("#title .runstat");
     await expect(line).toContainText("31,000");
-    /* BEST · APPRENTICE none was an empty stat holding room on the one
+    /* BEST · SCHOLAR none was an empty stat holding room on the one
        screen with none to spare */
-    await expect(line).not.toContainText("apprentice");
+    await expect(line).not.toContainText("scholar");
     /* with one number there is nothing to tell apart, so it is just "best" */
     await expect(line).toContainText("best");
   });
@@ -697,4 +697,100 @@ test.describe("round over reads as a popup", () => {
     await page.waitForTimeout(1100);
     await expect(page.locator("#stamp")).toBeHidden();
   });
+});
+
+/* ---------- being taught is not a penalty ----------
+   The tutorial asks the player to actually PLAY a hand, because a tutorial you
+   can finish without touching the game has taught nothing. But a round is two
+   plays, so a first-timer who did exactly as they were told reached round 1
+   with one play to make the target while anybody who pressed Skip had two. The
+   play is handed back when the lesson ends. */
+test.describe("the tutorial does not cost the round it teaches in", () => {
+  /* Walk the whole lesson, playing the hand it asks for. */
+  async function walkTutorial(page) {
+    /* endTutorial() writes overtone:tutorial, so a second walk in the same
+       context would find no tutorial to walk. */
+    await page.addInitScript(() => {
+      try { localStorage.removeItem("overtone:tutorial"); } catch (e) {}
+    });
+    await page.goto(GAME);
+    await enterGame(page);
+    await expect(page.locator("#tut")).toBeVisible();
+    for (let guard = 0; guard < 40; guard++) {
+      if (!(await page.locator("#tut").isVisible())) break;
+      const step = await page.evaluate(() => tutStep);
+      const next = page.locator("#tutNext");
+      if (await next.isVisible()) { await next.click(); await page.waitForTimeout(150); continue; }
+      /* a step that waits on the player: give it what it is waiting for */
+      const picked = await page.evaluate(() => G.selected.length);
+      if (picked < 2) {
+        await page.locator("#hand .card").nth(picked).click();
+        await page.waitForTimeout(300);
+        continue;
+      }
+      if (await page.locator("#playBtn").isEnabled()) {
+        await page.click("#playBtn");
+        await page.waitForTimeout(3500);
+        continue;
+      }
+      await page.waitForTimeout(250);
+    }
+  }
+
+  test("a player who finishes it has as many plays as one who skipped it",
+    async ({ page }) => {
+      await page.goto(GAME);
+      await enterGame(page);
+      await page.click("#tutSkip");
+      const skipped = await page.evaluate(() => G.plays);
+
+      /* same seed, same round, the other path through it */
+      await walkTutorial(page);
+      const taught = await page.evaluate(() => G.plays);
+
+      expect(taught, "being taught cost a play that skipping did not").toBe(skipped);
+    });
+
+  test("and keeps every point the hand it was taught with scored",
+    async ({ page }) => {
+      await walkTutorial(page);
+      const out = await page.evaluate(() => ({
+        score: G.roundScore, plays: G.plays, target: G.target, over: G.over
+      }));
+      expect(out.score, "the taught hand scored nothing").toBeGreaterThan(0);
+      expect(out.over, "the tutorial ended the run").toBe(false);
+      /* and round 1 is still there to be won */
+      expect(out.plays).toBeGreaterThan(0);
+    });
+
+  test("the play it spends is given back exactly once", async ({ page }) => {
+    await walkTutorial(page);
+    const after = await page.evaluate(() => ({ spent: tutSpentPlay, plays: G.plays }));
+    expect(after.spent, "the refund flag was left set").toBe(false);
+    expect(after.plays, "more plays came back than went out").toBeLessThanOrEqual(2);
+  });
+
+  test("replaying it from Help mid-run does not hand out free plays",
+    async ({ page }) => {
+      /* Help always offers "Run the tutorial". Without a gate a player could
+         open it in any round, play a hand, press Skip, and get the play back —
+         as often as they liked. */
+      await page.goto(GAME);
+      await enterGame(page);
+      await page.click("#tutSkip");
+      /* spend the round's first play for real, so the run is under way */
+      for (const k of ["1", "2"]) await page.keyboard.press(k);
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => !G.animating, null, { timeout: 20000 });
+      const before = await page.evaluate(() => G.plays);
+
+      for (let i = 0; i < 3; i++) {
+        await page.evaluate(() => { hidePanel(); startTutorial(true); });
+        await expect(page.locator("#tut")).toBeVisible();
+        await page.click("#tutSkip");
+        await expect(page.locator("#tut")).toBeHidden();
+      }
+      expect(await page.evaluate(() => G.plays),
+        "replaying the tutorial handed back plays it never spent").toBe(before);
+    });
 });

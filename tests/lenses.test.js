@@ -54,7 +54,10 @@ describe("Lenses that grow with the run", () => {
     { id: "pyro",  base: 25, grows: 110, hit: card("EMBER", ["HEA"]),        miss: card("GLACIER", ["COL"]) },
     { id: "meta",  base: 40, grows: 120, hit: card("DOUBT", ["ABS"]),        miss: card("ANVIL", ["TOO"]) },
     { id: "prosp", base: 40, grows: 190, hit: card("BULLION", ["MON"]),      miss: card("MOSS", ["PLA"]) },
-    { id: "sesq",  base: 60, grows: 95,  hit: card("AVALANCHE", ["COL"]),    miss: card("OAK", ["PLA"]) },
+    /* SESQUIPEDALIAN was "7 letters or more" and is "3 or more overtones"
+       now, so the fixture is a word that means three things. */
+    { id: "sesq",  base: 60, grows: 95,
+      hit: card("AVALANCHE", ["COL", "MOT", "DAN"]),  miss: card("OAK", ["PLA"]) },
     { id: "poly",  base: 90, grows: 75,
       hit: card("AVALANCHE", ["COL", "MOT", "DAN", "LOU"]), miss: card("OAK", ["PLA", "NAT", "TIM"]) }
   ];
@@ -111,10 +114,13 @@ describe("Lenses that grow with the run", () => {
 
 /* ================================================================== */
 describe("flat chip Lenses", () => {
-  test("LEXICOGRAPHER pays per letter of the leftmost word only", () => {
-    const one = compare("lexi", [card("HAMMER", ["TOO"]), card("EMBER", ["HEA"])]);
-    assert.strictEqual(one.chips, 22 * 6, "should pay 22 a letter for HAMMER alone");
-    const grown = compare("lexi", [card("HAMMER", ["TOO"])], [], { level: 14 });
+  test("LEXICOGRAPHER pays for the overtones of the leftmost word only", () => {
+    /* Was per LETTER. Nothing in scoring reads spelling any more, so it counts
+       what the head word MEANS: 2 + 2 per overtone. */
+    const head = card("HAMMER", ["TOO", "HEA"]);           // two overtones -> x6
+    const one = compare("lexi", [head, card("EMBER", ["HEA"])]);
+    assert.strictEqual(one.chips, 22 * 6, "22 x (2 + 2 per overtone) for HAMMER alone");
+    const grown = compare("lexi", [card("HAMMER", ["TOO", "HEA"])], [], { level: 14 });
     assert.strictEqual(grown.chips, (22 + 14) * 6);
   });
 
@@ -206,11 +212,14 @@ describe("Lenses that multiply the multiplier", () => {
     assert.strictEqual(apart.chips, 0, "the two words must be adjacent");
   });
 
-  test("BRUTALIST multiplies by 1.6 for each word of four letters or fewer", () => {
+  test("BRUTALIST multiplies by 1.6 for each word carrying a single overtone", () => {
+    /* Was "four letters or fewer" - which on the blind curve was the one thing
+       a player could still read off a card with its overtones hidden. */
     assert.strictEqual(compare("brut", [card("OAK", ["PLA"])]).with_.mult, 1.6);
     const two = compare("brut", [card("OAK", ["PLA"]), card("TIDE", ["WET"])]);
     assert.ok(Math.abs(two.with_.mult - 2.56) < 1e-9, "1.6 x 1.6");
-    assert.strictEqual(compare("brut", [card("HAMMER", ["TOO"])]).with_.mult, 1);
+    assert.strictEqual(compare("brut", [card("HAMMER", ["TOO", "HEA"])]).with_.mult, 1,
+      "a word that means two things is not the blunt instrument");
   });
 
   test("ASCETIC multiplies by 5, and only for a single word", () => {
@@ -219,19 +228,31 @@ describe("Lenses that multiply the multiplier", () => {
   });
 
   test("ENTROPY rewards three descending words and punishes everything else", () => {
+    /* Was descending LETTERS. Descending OVERTONES now: three, two, one. */
+    /* Overtones that RESONATE rather than oppose. A tension between two words
+       is itself worth multiplier, which would be folded into the figure under
+       test - the fixture has to leave the bare line at x1. */
+    const wide = ["NAT", "WET", "PLA"], mid = ["NAT", "WET"], thin = ["NAT"];
     const down = compare("entropy",
-      [card("AVALANCHE", ["COL"]), card("EMBER", ["HEA"]), card("OAK", ["PLA"])]);
+      [card("AVALANCHE", wide), card("EMBER", mid), card("OAK", thin)]);
     assert.strictEqual(down.with_.mult, 2.5);
 
     const up = compare("entropy",
-      [card("OAK", ["PLA"]), card("EMBER", ["HEA"]), card("AVALANCHE", ["COL"])]);
+      [card("OAK", thin), card("EMBER", mid), card("AVALANCHE", wide)]);
     assert.strictEqual(up.with_.mult, 0.5, "an ascending hand should be punished");
 
-    const two = compare("entropy", [card("AVALANCHE", ["COL"]), card("OAK", ["PLA"])]);
+    const two = compare("entropy", [card("AVALANCHE", wide), card("OAK", thin)]);
     assert.strictEqual(two.with_.mult, 0.5, "fewer than three words is not a qualifying hand");
   });
 
-  test("GLUTTON multiplies by 2.5 for exactly three words, and costs a discard", () => {
+  test("and ENTROPY is marked as a Lens that can cost you", () => {
+    /* The best line achievable while holding it measured 0.658x the best line
+       without it, on a $7 card the shop presented as pure upside. */
+    assert.ok(api.LENSES.find(l => l.id === "entropy").flaw,
+      "ENTROPY lowers your score and must carry the flaw mark");
+  });
+
+  test("GLUTTON multiplies by 3.2 for exactly three words, and costs a discard", () => {
     const three = compare("glut",
       [card("OAK", ["PLA"]), card("TIDE", ["WET"]), card("EMBER", ["HEA"])]);
     assert.strictEqual(three.mult, 2.5);
@@ -297,8 +318,12 @@ describe("the flawed Lenses take something back", () => {
     const flawed = api.LENSES.filter(l => l.flaw);
     assert.ok(flawed.length >= 5, "the flawed tier should not be a token gesture");
     flawed.forEach(l => {
+      /* A penalty multiplier is a drawback too - ENTROPY's whole cost is the
+         x0.5 it applies to every hand that does not qualify, and the regex
+         did not recognise that shape. */
       const takes = l.onRound || l.onReward || l.hand
-        || /no points|halved|less play|less discard|smaller|pays you half|doubled/.test(l.d);
+        || /no points|halved|less play|less discard|smaller|pays you half|doubled/.test(l.d)
+        || /multiplier ×0?\.[0-9]/.test(l.d);
       assert.ok(takes, l.n + " is flagged as flawed but takes nothing back");
     });
   });

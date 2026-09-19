@@ -33,20 +33,49 @@ describe("everybody gets them", () => {
     });
   });
 
-  test("and the gentler curve is the one it was tuned to", () => {
+  test("every mode's round 1 is its own curve's round 1", () => {
+    /* `scale` was one number for a whole run and is gone; a mode carries a
+       per-round curve now, so the assertion reads the entry rather than
+       multiplying by a flat factor. */
     const api = fresh();
-    api.setPref("difficulty", "apprentice");
-    api.newRun("curve");
-    const d = api.DIFFICULTIES.find(x => x.id === "apprentice");
-    assert.strictEqual(api.G.target, Math.round(api.TARGETS[0] * d.scale),
-      "APPRENTICE round 1 is not its own scale of the curve");
+    api.DIFFICULTIES.forEach(d => {
+      api.setPref("difficulty", d.id);
+      api.newRun("curve");
+      assert.strictEqual(api.G.target, Math.round(api.TARGETS[0] * d.curve[0]),
+        d.n + " round 1 is not its own curve's round 1");
+    });
   });
 
-  test("SCHOLAR is the raw curve", () => {
+  test("the gentler curve asks for less than the steeper one at every round", () => {
     const api = fresh();
-    api.setPref("difficulty", "scholar");
-    api.newRun("curve");
-    assert.strictEqual(api.G.target, api.TARGETS[0]);
+    const byRank = api.DIFF_BY_RANK;
+    const gentle = byRank[0], steep = byRank[byRank.length - 1];
+    for (let r = 0; r < api.ROUNDS; r++) {
+      assert.ok(Math.round(api.TARGETS[r] * gentle.curve[r])
+              < Math.round(api.TARGETS[r] * steep.curve[r]),
+        "round " + (r + 1) + ": the gentler curve does not ask for less");
+    }
+  });
+
+  test("and every curve climbs", () => {
+    /* The curve this replaced DIPPED at round 2 — it asked for fewer points
+       than round 1 — which is why almost nothing ever ended there. */
+    const api = fresh();
+    api.DIFFICULTIES.forEach(d => {
+      for (let r = 1; r < api.ROUNDS; r++) {
+        assert.ok(Math.round(api.TARGETS[r] * d.curve[r])
+                > Math.round(api.TARGETS[r - 1] * d.curve[r - 1]),
+          d.n + " round " + (r + 1) + " asks for less than round " + r);
+      }
+    });
+  });
+
+  test("a curve has exactly one entry per round", () => {
+    const api = fresh();
+    api.DIFFICULTIES.forEach(d => {
+      assert.strictEqual(d.curve.length, api.ROUNDS,
+        d.n + " has " + d.curve.length + " curve entries for " + api.ROUNDS + " rounds");
+    });
   });
 });
 

@@ -4,7 +4,7 @@
  *   node tools/balance.js [runs] [--play optimal|greedy] [--buy value|costly|random]
  *   node tools/balance.js --curve [runs]      what a round can produce
  *   node tools/balance.js --floor [runs]      what a beginner can produce
- *   node tools/balance.js --difficulty apprentice   the gentler curve
+ *   node tools/balance.js --difficulty <id>    which curve to measure
  *   node tools/balance.js --lenses [runs]     per-Lens power ranking
  *   node tools/balance.js --stacks [runs]     the strongest loadouts reachable
  *
@@ -43,10 +43,20 @@ if (ARGS.includes("--nojoins")) ctx.joinsOf = (line) =>
 /* --targets 1400,3300,... scores a candidate curve without editing the game, so
    a sweep can run several curves at once instead of serially rewriting the one
    file they all read from. */
-/* --difficulty apprentice measures the gentler curve. Same engine, same deck,
-   same Lenses; only the targets and one discard differ. */
+/* --difficulty <id> picks which curve to measure. Same engine, same deck, same
+   Lenses; a mode differs only by the properties it declares in DIFFICULTIES. */
 const DIFF = flag("difficulty", null);
-if (DIFF) api.setPref("difficulty", DIFF);
+if (DIFF) {
+  /* An id that is not in the table used to fall through difficulty()'s default
+     and measure the gentlest curve under the name you asked for - so a typo
+     filed a gentle-curve win rate as the steep mode's. */
+  if (!api.DIFF_BY_ID[DIFF]) {
+    console.error("unknown difficulty: " + DIFF + "  (have: "
+      + api.DIFFICULTIES.map(d => d.id).join(", ") + ")");
+    process.exit(1);
+  }
+  api.setPref("difficulty", DIFF);
+}
 
 /* --seenflaw is the player who has already met a flawed Lens in SCHOLAR: the
    drawer is open in APPRENTICE too, and its targets go back up to match. */
@@ -70,9 +80,11 @@ if (ARGS.includes("--noflaw")) {
 }
 
 /* --noordeals scores the same curve with the rule-changing rounds switched
-   off. Rounds 4, 6 and 8 are where APPRENTICE runs actually end, so the
-   question "is the easy mode too hard" is mostly a question about these. */
-if (ARGS.includes("--noordeals")) { api.ORDEAL_ROUNDS.length = 0; }
+   off, which separates "this curve is too steep" from "these rules are".
+   The schedule belongs to each mode now, so every one of them is emptied. */
+if (ARGS.includes("--noordeals")) {
+  api.DIFFICULTIES.forEach(function(d){ d.ordealRounds = []; });
+}
 
 const BUY = flag("buy", "value");
 
@@ -233,6 +245,24 @@ function shop(policy) {
   const G = api.G;
   G.offers = api.rollOffers();
 
+  /* Keep the best lines this round produced, before spending anything.
+     This block did not exist: G.kept was read in lensValue's scoring clone
+     and written nowhere, so the simulator modelled a player who never once
+     pressed "keep it" - free, permanent, and on its own shelf. Every win
+     rate measured before this described somebody nobody will be.
+
+     Keeps are free and capped at KEEP_SLOTS, so the policy is simply: take
+     the highest-scoring line the round made, best first. */
+  G.kept = G.kept || [];
+  (G.roundLines || [])
+    .filter(l => l.fig)
+    .sort((a, b) => b.total - a.total)
+    .forEach(function(l){
+      if (G.kept.length >= api.KEEP_SLOTS) return;
+      if (G.kept.some(k => k.fig === l.fig)) return;   // a second copy pays on the same figure
+      G.kept.push({ n: l.ws.join(" · "), fig: l.fig, figName: l.figName });
+    });
+
   /* A player with spare cash rerolls until something fits. The first version of
      this simulator never rerolled at all, which quietly modelled a player who
      takes whatever the first roll hands them -- and made the game look harder
@@ -391,7 +421,11 @@ function headline() {
   const mults = res.map(r => r.bestMult).sort((a, b) => a - b);
 
   console.log("=".repeat(64));
-  console.log("FULL RUNS  ·  " + RUNS + " runs  ·  play=" + PLAY + "  buy=" + BUY);
+  /* Name the mode that was actually measured. Reading a win rate out of a
+     report that does not say which curve produced it is how the wrong number
+     ends up in a spec. */
+  console.log("FULL RUNS  ·  " + RUNS + " runs  ·  " + api.difficulty().n
+    + "  ·  play=" + PLAY + "  buy=" + BUY);
   console.log("=".repeat(64));
   console.log("\nWin rate (cleared all " + api.ROUNDS + "):  " + pct(wins, RUNS)
     + "   [healthy roguelite: 15-30%]");

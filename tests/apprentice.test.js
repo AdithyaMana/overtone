@@ -28,74 +28,104 @@ function ordealsIn(api) {
   return out;
 }
 
+/* The schedule and the ban are properties of a mode now, so these read the
+   mode rather than naming one — the roles moved once already. */
+const gentleId = () => load().api.DIFF_BY_RANK[0].id;
+const steepId  = () => { const r = load().api.DIFF_BY_RANK; return r[r.length - 1].id; };
+
 describe("one rule, at the end", () => {
-  test("APPRENTICE meets a single Ordeal, and it is round 8", () => {
-    const api = on("apprentice");
+  test("the gentler mode meets a single Ordeal, and it is the last round", () => {
+    const api = on(gentleId());
     const met = ordealsIn(api);
-    assert.strictEqual(met.length, 1,
-      "APPRENTICE was dealt " + met.length + " Ordeals: "
+    const want = api.DIFF_BY_RANK[0].ordealRounds;
+    assert.strictEqual(met.length, want.length,
+      "the gentler mode was dealt " + met.length + " Ordeals: "
       + met.map(m => "round " + (m.round + 1) + " " + m.ordeal.n).join(", "));
     assert.strictEqual(met[0].round, api.ROUNDS - 1,
       "the one Ordeal is not the last round, so a run still ends on a number");
   });
 
-  test("SCHOLAR still meets all three", () => {
-    const api = on("scholar");
-    assert.strictEqual(ordealsIn(api).length, 3,
-      "the game as balanced lost its walls");
+  test("the steeper mode meets more of them", () => {
+    const api = on(steepId());
+    const r = api.DIFF_BY_RANK;
+    const steep = r[r.length - 1], gentle = r[0];
+    assert.strictEqual(ordealsIn(api).length, steep.ordealRounds.length,
+      "the steeper curve lost its walls");
+    assert.ok(steep.ordealRounds.length > gentle.ordealRounds.length,
+      "the steeper mode does not meet more Ordeals than the gentler one");
   });
 
   test("and it is never one that deletes a mechanic", () => {
     /* THE DROUGHT takes discards, THE LEAN YEAR takes three cards, THE FOG
        makes words worth nothing on their own. Each removes something the
-       tutorial taught; the rest make the same game cost more. */
+       tutorial taught; the rest make the same game cost more. The list is
+       DISARMING now, and the mode's ban IS that list. */
     for (let i = 0; i < 300; i++) {
-      const api = on("apprentice", "ban-" + i);
+      const api = on(gentleId(), "ban-" + i);
+      const ban = api.DIFF_BY_RANK[0].ordealBan;
       ordealsIn(api).forEach(m => {
-        assert.ok(api.APPRENTICE_ORDEAL_BAN.indexOf(m.ordeal.id) < 0,
-          "APPRENTICE was dealt " + m.ordeal.n + ", which takes a tool away");
+        assert.ok(ban.indexOf(m.ordeal.id) < 0,
+          "the gentler mode was dealt " + m.ordeal.n + ", which takes a tool away");
       });
     }
   });
 
-  test("SCHOLAR can still be dealt all nine", () => {
+  test("the steeper mode can still be dealt all nine", () => {
     const seen = {};
-    for (let i = 0; i < 80; i++) {
-      ordealsIn(on("scholar", "all-" + i)).forEach(m => { seen[m.ordeal.id] = 1; });
+    for (let i = 0; i < 200; i++) {
+      ordealsIn(on(steepId(), "all-" + i)).forEach(m => { seen[m.ordeal.id] = 1; });
     }
     /* joined, not deepStrictEqual: an array built inside the VM realm has a
        different Array prototype and never compares equal out here, even empty. */
     const missing = load().api.ORDEALS.filter(o => !seen[o.id]).map(o => o.n).join(", ");
-    assert.strictEqual(missing, "", "SCHOLAR stopped dealing: " + missing);
+    assert.strictEqual(missing, "", "the steeper curve stopped dealing: " + missing);
+  });
+
+  test("only the LAST Ordeal of a run may be a disarming one", () => {
+    /* The wall the measurements chased: an Ordeal that takes discards, cards
+       or plays cannot be answered by a player two shops in. */
+    const id = steepId();
+    for (let i = 0; i < 200; i++) {
+      const api = on(id, "slot-" + i);
+      const met = ordealsIn(api);
+      met.slice(0, -1).forEach(m => {
+        assert.ok(api.DISARMING.indexOf(m.ordeal.id) < 0,
+          "round " + (m.round + 1) + " was dealt " + m.ordeal.n
+          + ", which disarms, before the last slot");
+      });
+    }
   });
 });
 
 describe("and no second rule stacked on the one", () => {
-  test("THE RECKONING never fires in APPRENTICE", () => {
+  test("THE RECKONING never fires in a mode that declares reckon:false", () => {
     for (let i = 0; i < 12; i++) {
-      const api = on("apprentice", "reck-" + i);
+      const api = on(gentleId(), "reck-" + i);
+      assert.strictEqual(api.runDifficulty().reckon, false,
+        "the gentler mode now allows a second rule to be drafted");
       /* the runaway build the Reckoning exists to answer, as reckoning.test.js
          defines it — a slice of arbitrary Lenses is not loud enough to fire */
       api.G.lenses = ["curse", "asc", "sesq"].map(id => api.LENSES.find(l => l.id === id));
       api.G.lensState = { sesq: 4000 };
       for (let r = api.RECKON_FROM; r < api.ROUNDS; r++) {
         assert.strictEqual(api.reckonFor(r), null,
-          "APPRENTICE round " + (r + 1) + " stacked a second rule on its only one");
+          "the gentler mode's round " + (r + 1) + " stacked a second rule on its only one");
       }
     }
   });
 
-  test("but still answers a runaway build in SCHOLAR", () => {
+  test("but still answers a runaway build where reckon is on", () => {
     let fired = 0;
     for (let i = 0; i < 12; i++) {
-      const api = on("scholar", "reck-" + i);
+      const api = on(steepId(), "reck-" + i);
       api.G.lenses = ["curse", "asc", "sesq"].map(id => api.LENSES.find(l => l.id === id));
       api.G.lensState = { sesq: 4000 };
       for (let r = api.RECKON_FROM; r < api.ROUNDS; r++) {
         if (api.reckonFor(r)) fired++;
       }
     }
-    assert.ok(fired > 0, "the Reckoning stopped firing for everybody, not just APPRENTICE");
+    assert.ok(fired > 0,
+      "the Reckoning stopped firing for everybody, not just the gentler mode");
   });
 });
 
