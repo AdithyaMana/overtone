@@ -211,7 +211,7 @@ function playRound(optimal) {
     for (let i = 0; i + 1 < paid.length; i++)
       api.sharedTags(paid[i], paid[i + 1], {}).forEach(t => { tired[t] = 1; });
     paid.forEach(c => c.t.forEach(t => { if (G.demand.tags.indexOf(t) >= 0) tired[t] = 1; }));
-    Object.keys(tired).forEach(t => { G.dull[t] = api.FATIGUE_SPAN + 1; });
+    Object.keys(tired).forEach(t => { G.dull[t] = api.FATIGUE_SPAN; });
     G.roundScore += best.total;
     G.total += best.total;
     if (best.mult > G.best.mult) G.best = { word: "", mult: best.mult, score: best.total };

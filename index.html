@@ -283,16 +283,6 @@ button{ font-family: inherit; color: inherit; }
 .tally .chips{ background: var(--chips); color:#06233D; text-shadow:none; box-shadow: 0 3px 0 var(--chips-d); }
 .tally .multv{ background: var(--mult); color:#FFF; box-shadow: 0 3px 0 var(--mult-d); }
 .tally .x{ font-size: 15px; font-weight:700; color: var(--text-faint); text-align:center; padding-bottom: 11px; }
-/* A line that has not been played has no score, and the counters said so by
-   reading 0 and 1 - which looks exactly like a counter that has stopped
-   working. Dashes and a caption say the same thing on purpose. */
-.tally.pending .chips, .tally.pending .multv{ opacity: .45; }
-.tpend{
-  margin-top: 5px; text-align: center; line-height: 1.3;
-  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--text-faint);
-}
-.tpend[hidden]{ display: none !important; }
 .tcell{ min-width: 0; }
 .tk{
   font-size: 9.5px; letter-spacing: .11em; color: var(--text-faint);
@@ -2125,12 +2115,11 @@ button{ font-family: inherit; color: inherit; }
         <div class="tcell"><div class="tk">&nbsp;</div><div class="x">&times;</div></div>
         <div class="tcell"><div class="tk">MULTIPLIER</div><div class="multv" id="multV">1</div></div>
       </div>
-      <div class="tpend" id="tpend" hidden>counted when you hit PLAY</div>
 
       <div class="meters">
         <div class="meter plays slab">
           <div class="k">Plays</div>
-          <div class="v" id="playsLeft">4</div>
+          <div class="v" id="playsLeft">3</div>
         </div>
         <div class="meter disc slab">
           <div class="k">Discards</div>
@@ -2667,11 +2656,11 @@ const LENSES = [
 const ORDEALS = [
   { id:"drought", n:"THE DROUGHT", d:"No discards. Play the hand you are dealt.",
     round:function(g){ g.discards = 0; } },
-  /* Written when a round was four plays, where "three" was the rule taking one
-     away. A round is two plays now, so this SET IT TO THREE - an Ordeal that
-     handed you a play, above a description that named a number the game had
-     not used in a long time. It takes one, the way it always meant to, and
-     never below one because a round you cannot play is not a round. */
+  /* Written when a round was four plays, where "three" was the rule taking
+     one away - so it SET the number rather than subtracting, and when the
+     round shrank it started handing plays out. It takes one, the way it
+     always meant to, and never below one because a round you cannot play is
+     not a round. */
   { id:"clock", n:"THE CLOCK", d:"One play fewer this round.",
     /* THE WAGER already takes plays to the floor of 1, so holding it this
        Ordeal was free. Same trade as THE LEAN YEAR: if the play cannot be
@@ -2737,9 +2726,19 @@ function ordealPoolFor(diffId){
    So the last scheduled Ordeal may be anything, and the ones before it squeeze
    rather than disarm - the same distinction the gentler mode's ordealBan
    already draws, applied to the slot instead of the mode. */
-/* THE CLOCK counts as disarming now for the same reason it had to be rewritten:
-   against four plays "one fewer" was a squeeze, against two it means clearing
-   the whole round in a single hand. */
+/* THE CLOCK went in here when a round was two plays, where "one play fewer"
+   meant clearing the whole round in a single hand. A round is three now, so
+   one fewer leaves two, and on its own that is a squeeze rather than a wall -
+   which argued for taking it back out.
+
+   Measuring said no. What this list governs is not THE CLOCK alone: it is
+   what THE RECKONING may draft ON TOP of a round that already carries a
+   scheduled Ordeal. A play taken off a round that is also capped at three
+   words, or dealt four cards, is a third of the round's capacity gone on top
+   of the rule it was already answering. Letting it into the early slots moved
+   round 4 - SCHOLAR's first Ordeal round, and already the run's wall - from
+   18.7% of runs to 21.0%, past the 20% the difficulty model allows any round
+   before the last. It stays. */
 const DISARMING = ["drought", "lean", "fog", "vice", "clock"];
 function ordealPoolAt(diffId, slot, total){
   const pool = ordealPoolFor(diffId);
@@ -2810,11 +2809,23 @@ const DEMANDS = [
    Ordeal takes a tool away rather than asking for more, so the round gets its
    difficulty from its rule. The Bookseller names it before you spend, which
    is why the number does not have to. */
-/* Six rounds, not eight, and two plays each rather than four: twelve
-   decisions that matter instead of thirty-two that do not. The numbers are the
-   p50 of one perfectly played line (7,720) climbing at 1.30 a round, which
-   tools/join-sim.js puts at a 20.6% win rate over 500 runs, 95% CI 17.1-24.1. */
-const TARGETS = [7720, 10036, 13047, 16961, 22049, 28664];
+/* Six rounds of three plays: eighteen decisions that matter instead of the
+   old thirty-two that did not.
+
+   The curve is one number and one ratio. 10,422 opens, and each round asks
+   1.42 times the last. Both were found by sweeping tools/balance.js rather
+   than reasoned out: at two plays the game sat on 7,720 climbing at 1.30, and
+   a third play does not add half a round's scoring - it adds a play made with
+   a tired hand, out of a deck that has already spent its best overtones. The
+   ratio had to rise as well as the base, because the third play is worth most
+   in the late rounds where a stacked Lens gets a third firing and worth least
+   in round 1 where there is no engine to fire.
+
+   Measured at these numbers, 500 runs, optimal play, value buying:
+   APPRENTICE 51.2%, SCHOLAR 29.2%. Both inside the bands the difficulty model
+   sets, and no round before the last ends more than a fifth of the runs that
+   reach it. See docs/specs/spec-two-curves/difficulty-model.md. */
+const TARGETS = [10422, 14799, 21015, 29841, 42374, 60172];
 
 /* ---------- difficulty ----------
    A mode used to be a name and two numbers, and everything that actually made
@@ -2873,7 +2884,13 @@ const DIFFICULTIES = [
        climb. This starts lower and finishes higher: ratio 4.0, and round 1
        now ends 7.0% while the wall sits at round 3 where a deck exists to
        answer it. */
-    curve:[0.95, 0.94, 1.02, 0.97, 1.08, 1.02],
+    /* Round 4 is this mode's first Ordeal round and its first Reckoning
+       slot, so it has always been the wall. Three plays made it a taller one:
+       an Ordeal that shrinks the hand or takes the discards costs more across
+       three plays than across two, and at 0.97 the round ended 20.2% of runs,
+       past the 20% the difficulty model allows any round before the last.
+       0.873 puts it at 17.6% and the mode at 29.2%, both measured at n=500. */
+    curve:[0.95, 0.94, 1.02, 0.873, 1.08, 1.02],
     discards:0, ordealRounds:[3, 5], ordealBan:[],
     reckon:true, bestKey:"best:steep", lockedUntilRun:1,
     d:"The harder game. Three discards, two Ordeals, and a curve only a multiplying deck keeps up with." }
@@ -2947,7 +2964,14 @@ const KEEP_SLOTS = 2;
 /* What a round hands you before a mode, a Lens or an Ordeal has touched it.
    These were literals in three places, which is how a comparison against "3
    discards" survived a mode that starts every round with four. */
-const PLAYS_PER_ROUND = 2, DISCARDS_PER_ROUND = 3;
+/* Three, not two. Two was the rebuild's reading of "fewer and heavier than
+   four", and heavier it was - but a two-play round has no middle. You find
+   the best line, you find the second best line, the round is over: there is
+   no turn where what you already spent changes what is left worth doing,
+   which is the turn the dull rule was written for. Three gives the round an
+   opening, a middle and a close, and it gives the three discards something to
+   serve. Eighteen plays a run against the old thirty-two. */
+const PLAYS_PER_ROUND = 3, DISCARDS_PER_ROUND = 3;
 /* What a join is worth. Resonance is safe and small, tension is large and
    risky, and a kept line pays again every time its figure returns. */
 const JOIN_RESONANCE = 40, JOIN_TENSION = 1;
@@ -4023,11 +4047,11 @@ function deckCeiling(round, shape){
 
      It held 9 cards while four plays of three need twelve, so the last play
      always scored nothing; and it ranked by raw base value, which is the
-     smaller half of what a card is worth — a matching tag pays 25 on a deck
-     whose words average 23. A round the deck could actually make at 6,115 was
-     quoted at 5,040 against a target of 5,200, in red, with "no order of play
-     gets there" under it. A ceiling that says a round cannot be won when it
-     can is worse than no ceiling at all.
+     smaller half of what a card is worth — a matching tag pays DEMAND_CHIPS
+     on a deck whose words average 22. A round the deck could actually make at
+     6,115 was quoted at 5,040 against a target of 5,200, in red, with "no
+     order of play gets there" under it. A ceiling that says a round cannot be
+     won when it can is worse than no ceiling at all.
 
      Rank by what the round will actually pay for, and hold enough cards that
      every play has three to choose from. ~25ms. */
@@ -4035,7 +4059,7 @@ function deckCeiling(round, shape){
   const pool = G.deck.concat(G.discard, G.hand).slice()
     .sort(function(a, b){
       const fit = function(c){
-        return c.base + 30 * c.t.filter(function(t){ return want.indexOf(t) >= 0; }).length;
+        return c.base + DEMAND_CHIPS * c.t.filter(function(t){ return want.indexOf(t) >= 0; }).length;
       };
       return fit(b) - fit(a);
     })
@@ -4340,7 +4364,12 @@ async function play(){
   paidLine.forEach(function(c){
     c.t.forEach(function(t){ if(G.demand.tags.indexOf(t) >= 0) tired[t] = 1; });
   });
-  Object.keys(tired).forEach(function(t){ G.dull[t] = FATIGUE_SPAN + 1; });
+  /* FATIGUE_SPAN, not FATIGUE_SPAN + 1. The counter is decremented at the top
+     of the NEXT play's bookkeeping, not this one's, so the + 1 bought a third
+     play of dullness on a rule the help panel prints as two. Against a
+     two-play round it was invisible - the round ended first. Against three it
+     reaches over the Bookseller and into the next round's opening hand. */
+  Object.keys(tired).forEach(function(t){ G.dull[t] = FATIGUE_SPAN; });
   /* the one place growth is banked */
   for(const gid in res.growth){
     G.lensState[gid] = (G.lensState[gid] || 0) + res.growth[gid];
@@ -4522,34 +4551,7 @@ async function lament(){
   await sleep(Math.round(980 * Math.max(0.7, sp)));
 }
 
-/* While a selection sits on the table its score is not knowable yet - see
-   spec-the-verb-is-join. The counters go to dashes rather than to zero, so
-   the blank reads as "not yet" instead of as "nothing". */
-function setTallyPending(on){
-  const t = document.getElementById("tally");
-  const cap = document.getElementById("tpend");
-  if(t) t.classList.toggle("pending", !!on);
-  if(cap) cap.hidden = !on;
-  const cv = document.getElementById("chipsV"), mv = document.getElementById("multV");
-  /* setAttribute is guarded because the Node test harness renders against a
-     DOM stub that does not implement the whole element interface. */
-  const label = function(el, text){
-    if(el && typeof el.setAttribute === "function") el.setAttribute("aria-label", text);
-  };
-  if(!on){
-    label(cv, "points"); label(mv, "multiplier");
-    return;
-  }
-  const dash = "–";
-  if(cv) cv.textContent = dash;
-  if(mv) mv.textContent = dash;
-  label(cv, "points, not counted until you play");
-  label(mv, "multiplier, not counted until you play");
-}
 function setTally(c, m){
-  /* Any real number ends the pending state, so nothing has to remember to
-     clear it on the way into a resolution. */
-  setTallyPending(false);
   /* The pulse classes used to live here, driven by a string comparison against
      the DOM. countTo knows whether the value actually moved, so the punch
      belongs there — and two animations fighting over the same element was
@@ -5854,8 +5856,9 @@ const TUT = [
         : "";
       return (said || "These two have nothing to say to each other, so the line stops "
              + "before it starts.") + quiet
-           + "<br><br>The board says what it can see. It does <b>not</b> say what the "
-           + "line is worth \u2014 that is yours to judge."
+           + "<br><br>The counters price it as you build. What they cannot tell "
+           + "you is whether some OTHER five words would have paid more \u2014 "
+           + "that is yours to judge."
            + '<span class="do">Swap the order and watch it change.</span>'; } },
 
   { sel: "#stageHint", pos: "bottom", label: "The hands",
@@ -5888,7 +5891,9 @@ const TUT = [
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
-      return "An overtone you just used goes <b>dull</b> for two plays, so the best line "
+      const WORDS = ["no", "one", "two", "three", "four", "five"];
+      return "An overtone you just used goes <b>dull</b> for "
+           + (WORDS[FATIGUE_SPAN] || FATIGUE_SPAN) + " plays, so the best line "
            + "this turn is never the best line next turn.<br><br>"
            + "Clear the round and the <b>Bookseller</b> offers back a line you actually "
            + "played. Keep it, and it pays again every time that hand comes round. "
@@ -6284,7 +6289,8 @@ function renderPreview(){
     txt.className = "dc-text";
     txt.innerHTML = 'Wants '
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-      + '. Every matching tag you play is <b>+25 points</b>.'
+      + '. Every matching tag you play is <b>+' + DEMAND_CHIPS + ' points</b>'
+      + ' and <b>+' + DEMAND_MULT + ' multiplier</b>.'
       + '<span class="dc-fig">The shape of your hand pays too. '
       + '<button class="figlink" type="button">see the five hands</button>.</span>';
     call.appendChild(icons);
@@ -6308,9 +6314,19 @@ function renderPreview(){
     el.appendChild(p);
     sc.appendChild(el);
   });
-  /* Not res.chips and res.mult. The beads say what the line IS; the counters
-     say what it is WORTH, and that is the thing PLAY is for. */
-  setTallyPending(true);
+  /* The counters follow the selection.
+
+     They were blanked for a while, on the spec line that says the board never
+     shows the score of an uncommitted line - the idea being that if the board
+     prices the hand for you, choosing words is arithmetic somebody else has
+     already done. It reads as a broken counter. POINTS 0 and MULTIPLIER 1
+     under a hand you have just built look exactly like a game that has
+     stopped adding up, and that is the first thing a player says about it.
+
+     The beads below carry the same lesson without lying about the state of
+     the board: they name what each pair is DOING, which is the part a player
+     has to learn, while the counters say what it is worth. */
+  setTally(res.chips, res.mult);
 
   /* The engine pays for a matching overtone only if the overtone is not
      already spent this round, and only for words up to where the line stops.
@@ -6410,9 +6426,13 @@ function renderPreview(){
     .filter(function(k){ return nextBy[k].length; })
     .map(function(k){ return JOIN_NAME[k] + ": " + nextBy[k].join(", "); })
     .join(". ");
+  /* The counters price the selection, so the live region has to say the price
+     too - a player listening rather than looking was told the shape of the
+     line and never what it came to. */
   say((solo ? resonanceName(hits) : (fig ? fig.n : "Nothing yet"))
       + ". " + (solo ? "One word."
                      : jr.joins.map(function(j){ return JOIN_NAME[j.kind]; }).join(", "))
+      + ". Worth " + res.chips + " times " + (Math.round(res.mult * 10) / 10) + "."
       + (stops ? ". The line stops after " + jr.scored + "." : "")
       + (better ? " In another order these make " + better.n + "." : "")
       + (saidNext ? " Lay next to " + tip.w + ". " + saidNext + "." : ""));
@@ -6585,10 +6605,10 @@ function renderControls(){
   document.getElementById("discardsLeft").textContent = G.discards;
   const pips = document.getElementById("playPips");
   pips.innerHTML = "";
-  /* Hardcoded 4, from the era when a round had four plays. A round has two,
-     so every player saw two lit pips and two grey ones and read it as "two of
-     four left" - and budgeted a round they did not have. It also hid the whole
-     cost of THE WAGER and THE CLOCK, which is one play. */
+  /* Hardcoded 4, from the era when a round had four plays - so every player
+     saw the round's real plays lit and the rest grey, and read it as plays
+     they still had. Read off the round instead, which also shows the whole
+     cost of THE WAGER and THE CLOCK. */
   const budget = Math.max(G.plays, (roundShape(G.round) || { plays: G.plays }).plays);
   for(let i = 0; i < budget; i++){
     const s = document.createElement("span");
@@ -6978,7 +6998,12 @@ function carriedNote(){
 function runTouched(){
   if(!G) return false;
   const d = runDifficulty();
-  return G.round > 0 || G.total > 0 || G.plays < 4 || G.discards < 3 + d.discards;
+  /* The literal 4 outlived the four-play round: against two, and now against
+     three, `G.plays < 4` is true on the opening deal, so a board nobody had
+     touched still asked whether you were sure you wanted to leave it. */
+  return G.round > 0 || G.total > 0
+      || G.plays < PLAYS_PER_ROUND
+      || G.discards < DISCARDS_PER_ROUND + d.discards;
 }
 
 /* Asked in the game's own voice, with the thing being thrown away named. */

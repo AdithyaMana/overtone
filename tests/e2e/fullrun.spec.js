@@ -140,8 +140,8 @@ test.describe("a full run", () => {
 
       expect(ended, "the run never reached a result screen").not.toBeNull();
 
-      /* The arc actually happened. Six rounds of two plays, not the eight of
-         four this was written against, so the floor moves with the run. */
+      /* The arc actually happened. Six rounds of three plays, not the eight
+         of four this was written against, so the floor moves with the run. */
       expect(seen.plays, "no hands were played").toBeGreaterThan(2);
       expect(seen.shops, "the Bookseller never opened").toBeGreaterThan(0);
       expect(seen.bought, "no Lens was ever affordable").toBeGreaterThan(0);

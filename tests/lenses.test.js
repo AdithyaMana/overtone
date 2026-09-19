@@ -274,7 +274,8 @@ describe("the flawed Lenses take something back", () => {
     api.newRun("wager");
     api.G.lenses = [sigil("wager")];
     api.startRound();
-    assert.strictEqual(api.G.plays, 3, "should leave three plays, not four");
+    assert.strictEqual(api.G.plays, api.PLAYS_PER_ROUND - 1,
+      "THE WAGER should cost exactly one of the round's plays");
   });
 
   test("THE TITHE pays 1,000 and halves the multiplier", () => {

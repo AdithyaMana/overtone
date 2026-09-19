@@ -40,14 +40,14 @@ A vision to realize, forced by a pain. Players say Overtone's idea is good and p
   - **success:** A kept line appears in the rail carrying its own words as its name, and its bonus applies to later hands. Five slots, as now.
 
 - **CAP-7 — It is still a game that can be lost**
-  - **intent:** The run is 6 rounds of 2 plays with targets the new scoring can reach but not comfortably, so that the rebuild is balanced rather than merely different.
+  - **intent:** The run is 6 rounds of 3 plays with targets the new scoring can reach but not comfortably, so that the rebuild is balanced rather than merely different. *(2 plays as first shipped; raised on player feedback — see the assumption below.)*
   - **success:** SCHOLAR win rate inside [15%, 30%] over at least 1,200 simulated runs at optimal play, with deaths spread across at least four different rounds.
 
 ## Constraints
 
 - No new content may be authored to make the physics work. The 249-word lexicon, the 19 overtones, the 18 Demands, the card art and the audio are the material; the opposition table is derived from overtones that already exist.
 - Nothing in scoring may read spelling. Word length, first letter and last letter stop being mechanical inputs entirely, including in Lenses.
-- The board never shows the score of an uncommitted line. It may show which relations it has found; the total is only known after PLAY.
+- ~~The board never shows the score of an uncommitted line. It may show which relations it has found; the total is only known after PLAY.~~ **Withdrawn on player feedback.** It shipped, and the first thing the player said about it was "why do the points not get counted?" — the reasoning held (a board that prices the hand makes choosing words arithmetic somebody else has already done) and the reading was still correct: POINTS 0 and MULTIPLIER 1 under a hand you have just built is indistinguishable from a game that has stopped adding up. Dashes and a caption were tried first and did not survive contact either. The counters follow the selection again. The half the constraint was right about is kept: the relation beads name what each pair is DOING, which is the part a player has to learn, and that is what the board teaches with.
 - Every constant in `join-mechanics.md` is provisional until `tools/balance.js` is rebuilt for the new scoring and reports against CAP-7. The spec asserts the shape, not the numbers.
 - The game stays one self-contained file with no build step and no runtime dependencies.
 - A silent join must not void the whole line. It stops scoring at that point and the words before it still pay.
@@ -69,7 +69,7 @@ Two players are given the same daily hand and produce different lines, and each 
 - Silence stops the line rather than voiding it. Voiding can waste a whole turn on a guess while the overtones are hidden, which punishes the exploration the design depends on.
 - What the player has learned about a word persists across runs rather than within one. Across runs, the small lexicon becomes the progression; within one, it teaches nothing lasting.
 - A kept line's bonus attaches to the figure it made. The alternative — the player choosing an arbitrary effect — makes the line a token rather than a thing they wrote.
-- 6 rounds of 2 plays. The brainstorm said fewer and heavier without naming a number; 12 plays against the current 32 is the reading taken.
+- ~~6 rounds of 2 plays. The brainstorm said fewer and heavier without naming a number; 12 plays against the current 32 is the reading taken.~~ **Revised to 3 plays** on the player's report that two felt thin. Two took "fewer and heavier" too far: it leaves a round no middle — the best line, the second best line, done — and no turn that hinges on what the first play spent, which is the turn CAP-5's dull rule exists for. 18 plays a run. `TARGETS` was re-derived by sweep to match (10,422 opening, x1.42 a round) and both curves re-measured; see `spec-two-curves/difficulty-model.md`.
 
 ## Open Questions
 

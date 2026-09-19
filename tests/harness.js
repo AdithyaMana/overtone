@@ -147,6 +147,7 @@ function load(){
     flawsSeen, curveScale, shapeFor, clashes, ORDEAL_CLASH,
     DIFF_BY_ID, DIFF_BY_RANK, easiestDiff, diffBelow, diffAbove, modeOpen,
     ordealPoolAt, DISARMING, blindMode, JOIN_NAME, JOIN_SAID,
+    PLAYS_PER_ROUND, DISCARDS_PER_ROUND, runTouched,
     /* let a test read the tutorial's refund bookkeeping without owning it */
     get tutSpentPlay(){ return tutSpentPlay; },
     get tutRefundable(){ return tutRefundable; }

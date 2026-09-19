@@ -53,8 +53,16 @@ All line numbers are against `index.html` at the start of this work.
 
 ## The two curves
 
-**As measured and shipped.** `TARGETS` itself never moved:
-`[7720, 10036, 13047, 16961, 22049, 28664]`.
+**As measured and shipped.** `TARGETS` is
+`[10422, 14799, 21015, 29841, 42374, 60172]` — see *A round is three plays* at
+the foot of this file for where those came from. It sat on
+`[7720, 10036, 13047, 16961, 22049, 28664]` for as long as a round was two
+plays. The per-mode `curve` arrays below are as first measured, with one
+entry since changed — SCHOLAR's round 4, `0.97` → `0.873`, at the foot of this
+file — and the absolute targets quoted under each mode are the two-play ones,
+kept as written because the paragraphs around them are the record of how each
+curve's *shape* was arrived at. Multiply by 1.35 at round 1 rising to 2.1 at
+round 6 for what the game now asks.
 
 ### Gentle mode — `rank: 0`, named APPRENTICE
 
@@ -114,6 +122,8 @@ plays. A round has been two since the JOIN rebuild, so the Ordeal **handed the
 player a play** while quoting a number the game no longer used. It now takes
 one, floored at one, and says so. It counts as disarming: against four plays
 "one fewer" was a squeeze, against two it means clearing the round in one hand.
+*(A round is three plays now. Taking THE CLOCK back out of `DISARMING` was
+tried and measured; see* THE CLOCK, considered and left alone *below.)*
 
 The rest of the Ordeal set has drifted the same way and was **not** re-derived
 here — THE VICE caps a line at 2 of a possible 5 rather than 2 of 3, THE TOLL's
@@ -266,3 +276,65 @@ SCHOLAR was reshaped rather than rescaled. At `[1.22, …]` round 1 asked 9,418
 of a bare deck and the final/first ratio was 3.2 — a wall at the front with
 little arc behind it. It is 4.0 now, and the wall sits at round 3 where a deck
 exists to answer it.
+
+## A round is three plays
+
+*Asked for directly: two plays felt thin.* It was. Two plays gives a round no
+middle — the best line, the second best line, and the round is over. Nothing
+in it ever turns on what the first play spent, which is the turn the dull rule
+exists for. `PLAYS_PER_ROUND` is 3. Eighteen plays a run against the four-play
+game's thirty-two, and against the two-play rebuild's twelve.
+
+### Two rules that only two plays kept hidden
+
+**Fatigue was off by one.** `G.dull[t]` was set to `FATIGUE_SPAN + 1`, and the
+counter is decremented at the top of the *next* play's bookkeeping rather than
+the one that set it — so an overtone stayed dull for three plays under a help
+panel that prints `FATIGUE_SPAN` and says two. Against a two-play round the
+round ended before anyone could notice. Against three it reaches over the
+Bookseller and into the next round's opening hand, which reads as a bug
+because it is one. It is `FATIGUE_SPAN` now, verified by counting the plays an
+overtone is actually dull for rather than by reading the constant.
+
+**A new board asked whether you wanted to leave it.** `runTouched()` tested
+`G.plays < 4`, which has been true on the opening deal since the round stopped
+being four plays.
+
+### THE CLOCK, considered and left alone
+
+One play fewer out of three leaves two — the shape the game shipped with all
+week — so THE CLOCK looked like it should come back out of `DISARMING`.
+Measuring said otherwise. `DISARMING` does not govern THE CLOCK alone; it
+governs what THE RECKONING may draft *on top of* a round that already carries
+a scheduled Ordeal. Letting it into the early slots moved round 4 — SCHOLAR's
+first Ordeal round and already the run's wall — from 18.7% of runs to 21.0%,
+past the 20% cap. It stays.
+
+### The curve
+
+One base and one ratio, swept with `tools/balance.js --targets`: **10,422
+opening, ×1.42 a round.** A third play is not half a round again — it is a
+play made with a tired hand out of a deck that has spent its best overtones —
+so the base rises by 1.35 while the ratio rises from 1.30 to 1.42. The ratio
+had to move as well as the base because the extra play is worth most in the
+late rounds, where a stacked Lens gets a third firing, and least in round 1,
+where there is no engine to fire. A uniform scale that fit round 1 left the
+last rounds free; one that fit the last rounds walled off round 1.
+
+**One per-mode entry moved with it.** SCHOLAR's round 4 is that mode's first
+Ordeal round *and* its first Reckoning slot, so it has always been the wall.
+Three plays made it a taller one: an Ordeal that shrinks the hand or takes the
+discards costs more spread across three plays than across two. At `0.97` it
+ended 20.2% of runs — over the cap. `curve[3]` is `0.873`, which puts round 4
+at 17.6% and the mode at 29.2%. Every other entry in both curves is untouched.
+
+| mode | win rate (n=500) | band | worst round before the last | cap |
+|---|---|---|---|---|
+| APPRENTICE | 51.2% | 48–62 | 9.2% | 15% |
+| SCHOLAR | 29.2% | 25–38 | 17.6% | 20% |
+
+Measured with the shipped command, one per mode:
+
+```
+node tools/balance.js 500 --difficulty <id> --play optimal --buy value
+```

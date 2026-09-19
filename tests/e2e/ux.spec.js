@@ -767,7 +767,8 @@ test.describe("the tutorial does not cost the round it teaches in", () => {
     await walkTutorial(page);
     const after = await page.evaluate(() => ({ spent: tutSpentPlay, plays: G.plays }));
     expect(after.spent, "the refund flag was left set").toBe(false);
-    expect(after.plays, "more plays came back than went out").toBeLessThanOrEqual(2);
+    const budget = await page.evaluate(() => PLAYS_PER_ROUND);
+    expect(after.plays, "more plays came back than went out").toBeLessThanOrEqual(budget);
   });
 
   test("replaying it from Help mid-run does not hand out free plays",

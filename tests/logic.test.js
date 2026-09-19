@@ -242,16 +242,25 @@ describe("run shape", () => {
   });
 
   test("the climb is steep enough to force an engine", () => {
+    /* 15x was the eight-round game's number, across seven steps. Six rounds
+       is five steps, and the property that actually forces an engine is the
+       per-round ramp: a round asks around 40% more than the last, so the
+       hand that cleared round 1 is nowhere near round 6. */
+    for (let i = 1; i < api.TARGETS.length; i++) {
+      const step = api.TARGETS[i] / api.TARGETS[i - 1];
+      assert.ok(step >= 1.35,
+        "round " + (i + 1) + " asks only " + step.toFixed(2) + "x round " + i);
+    }
     const ratio = api.TARGETS[api.ROUNDS - 1] / api.TARGETS[0];
-    assert.ok(ratio >= 15, "final target is only " + ratio.toFixed(1) + "x the first");
+    assert.ok(ratio >= 5, "final target is only " + ratio.toFixed(1) + "x the first");
   });
 
   test("a run starts with a full hand and spendable resources", () => {
     api.newRun("shape");
     assert.strictEqual(api.G.hand.length, api.HAND_SIZE);
     assert.strictEqual(api.G.round, 0);
-    assert.strictEqual(api.G.plays, 4);
-    assert.strictEqual(api.G.discards, 3);
+    assert.strictEqual(api.G.plays, api.PLAYS_PER_ROUND);
+    assert.strictEqual(api.G.discards, api.DISCARDS_PER_ROUND);
     assert.ok(api.G.bank > 0, "player starts broke");
     assert.strictEqual(api.G.demandOrder.length, api.ROUNDS);
   });

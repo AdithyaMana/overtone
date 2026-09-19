@@ -216,15 +216,19 @@ test.describe("first visit", () => {
     await expect(page.locator("#hand .card")).toHaveCount(7);
     await expect(page.locator("#demandName")).not.toBeEmpty();
     await expect(page.locator("#roundScore")).toHaveText("0");
-    await expect(page.locator("#playsLeft")).toHaveText("4");
-    await expect(page.locator("#discardsLeft")).toHaveText("3");
+    /* Read off the game, not typed in: the round's budget has been 4, then 2,
+       then 3, and a hardcoded number here only ever fails a release late. */
+    const budget = await page.evaluate(() => [PLAYS_PER_ROUND, DISCARDS_PER_ROUND]);
+    await expect(page.locator("#playsLeft")).toHaveText(String(budget[0]));
+    await expect(page.locator("#discardsLeft")).toHaveText(String(budget[1]));
   });
 
   test("states the round's rule in the middle of the screen", async ({ page }) => {
     await open(page);
     const call = page.locator(".demand-call");
     await expect(call).toBeVisible();
-    await expect(call).toContainText("+25 points");
+    const paid = await page.evaluate(() => DEMAND_CHIPS);
+    await expect(call).toContainText("+" + paid + " points");
     /* one icon per demanded overtone */
     const wanted = await page.evaluate(() => G.demand.tags.length);
     await expect(call.locator(".dc-icons .ms")).toHaveCount(wanted);
@@ -242,13 +246,12 @@ test.describe("first visit", () => {
 
 /* ------------------------------------------------------------------ */
 test.describe("playing a hand", () => {
-  test("selecting a card lifts it and numbers it, and prices nothing", async ({ page }) => {
-    /* It used to assert the opposite - that picking a card moved the counters.
-       spec-the-verb-is-join: "The board never shows the score of an
-       uncommitted line. It may show which relations it has found; the total
-       is only known after PLAY." Both factors were on screen, so the total
-       was one multiplication away and judging the line was arithmetic
-       somebody else had already done. */
+  test("selecting a card lifts it, numbers it, and scores it live", async ({ page }) => {
+    /* For a while this asserted the opposite: blank counters, on the spec
+       line that says the board never shows the score of an uncommitted line.
+       Accurate, and it reads as a game that has stopped adding up - which is
+       the first thing a player said about it. The beads carry the lesson
+       about what the words are doing; the counters say what it is worth. */
     await open(page);
     await expect(page.locator("#chipsV")).toHaveText("0");
 
@@ -257,12 +260,7 @@ test.describe("playing a hand", () => {
     await expect(page.locator("#hand .card.sel")).toHaveCount(1);
     await expect(page.locator("#hand .card.sel .pos")).toHaveText("1");
     await expect(page.locator("#stageCards .card")).toHaveCount(1);
-    /* Dashes, not zeroes. Reading 0 and 1 was accurate and looked exactly
-       like a counter that had stopped working - the first thing a player
-       asked was why the points were not being counted. */
-    await expect(page.locator("#chipsV"), "the board priced a line nobody played").toHaveText("–");
-    await expect(page.locator("#multV"), "the board priced a line nobody played").toHaveText("–");
-    await expect(page.locator("#tpend"), "nothing said why the counters were blank").toBeVisible();
+    await expect(page.locator("#chipsV"), "the board did not price the selection").not.toHaveText("0");
     /* One word is not a line. LINE_MIN used to live only in the tutorial's
        copy while play() took a single card, so ASCETIC's "play exactly 1
        word" was selling a play everybody already had. */
@@ -377,7 +375,8 @@ test.describe("playing a hand", () => {
     await open(page);
     await playAHand(page);
 
-    await expect(page.locator("#playsLeft")).toHaveText("3");
+    const left = await page.evaluate(() => PLAYS_PER_ROUND - 1);
+    await expect(page.locator("#playsLeft")).toHaveText(String(left));
     await expect(page.locator("#hand .card")).toHaveCount(7);
     const score = await page.evaluate(() => G.roundScore);
     expect(score).toBeGreaterThan(0);
@@ -392,7 +391,8 @@ test.describe("playing a hand", () => {
     await page.click("#discardBtn");
 
     await expect(page.locator("#discardsLeft")).toHaveText("2");
-    await expect(page.locator("#playsLeft")).toHaveText("4");
+    await expect(page.locator("#playsLeft"), "discarding cost a play")
+      .toHaveText(String(await page.evaluate(() => PLAYS_PER_ROUND)));
     await expect(page.locator("#hand .card")).toHaveCount(7);
     const after = await page.evaluate(() => G.hand.map(c => c.w).join(","));
     expect(after).not.toBe(before);
@@ -452,17 +452,33 @@ test.describe("the figure on the board", () => {
     await expect(page.locator(".hand-name")).toHaveText("NOTHING YET");
   });
 
-  test("never says what the line is worth before it is played", async ({ page }) => {
-    /* The old board scored every selection live, which is why picking cards
-       was arithmetic somebody else had already done. Judging it is the game
-       now, so the readout says what it can SEE and never what it adds up to. */
+  test("prices the line, and still says what it can see", async ({ page }) => {
+    /* For a while the board refused to price an uncommitted line, on the
+       reasoning that a board which does the arithmetic takes the decision
+       away. The constraint is withdrawn: two counters reading 0 and 1 under a
+       hand you just built are indistinguishable from a game that has stopped
+       adding up, which is what the first player to see it said. What the
+       counters cannot tell you is whether some OTHER five words pay more, and
+       the readout is still the thing that helps with that - it names what
+       each pair is doing rather than handing over a total. */
     await open(page);
     await deal(page, ["EMBER", "GLACIER"]);
     await pick(page, ["1", "2"]);
-    const hint = await page.locator("#stageHint").textContent();
-    expect(hint).not.toMatch(/\bworth\b/);
-    expect(hint).not.toMatch(/[0-9],[0-9]{3}/);
-    await expect(page.locator("#stageHint")).toContainText("yours to judge");
+
+    const truth = await page.evaluate(() => {
+      const r = resolve(G.selected.map(id => G.hand.find(c => c.id === id)));
+      return { chips: String(r.chips), mult: String(Math.round(r.mult * 10) / 10) };
+    });
+    await expect(page.locator("#chipsV"), "the board did not price the line")
+      .toHaveText(truth.chips);
+    await expect(page.locator("#multV")).toHaveText(truth.mult);
+
+    /* and the readout is still about the relation, not the arithmetic.
+       Which relation is the fixture's business, not this test's - EMBER and
+       GLACIER are alike AND opposite, which is BOTH, not OPPOSITE. */
+    const beads = await page.locator("#stageHint .jn").allTextContents();
+    expect(beads.length, "the readout named no relation at all").toBeGreaterThan(0);
+    beads.forEach(b => expect(b).toMatch(/ALIKE|OPPOSITE|BOTH|NOTHING/));
   });
 
   test("the order is the decision, and the board says so without fixing it",
@@ -1451,12 +1467,12 @@ test.describe("the Bookseller tells the truth", () => {
     /* THE WAGER takes a play, THE FAMINE three cards and a discard. Buying a
        Lens that costs you a play should show that cost here, before you
        commit, rather than on the board a minute later. */
-    /* two plays a round now, so THE WAGER's toll leaves one */
     const r = await shopAt(page, 4, ["wager", "famine"]);
-    expect(r.shape.plays).toBe(1);
+    const budget = await page.evaluate(() => PLAYS_PER_ROUND);
+    expect(r.shape.plays, "THE WAGER should cost exactly one play").toBe(budget - 1);
     expect(r.shape.hand).toBe(4);
     const shape = page.locator(".panel p.shape");
-    await expect(shape).toContainText("1");
+    await expect(shape).toContainText(String(budget - 1));
     await expect(shape).toContainText("hand of 4");
   });
 
@@ -1803,8 +1819,9 @@ test.describe("Lenses that cost you something", () => {
       startRound();
       return { plays: G.plays, shown: document.getElementById("playsLeft").textContent };
     });
-    expect(meters.plays).toBe(3);
-    expect(meters.shown, "the meter still claims four").toBe("3");
+    const budget = await page.evaluate(() => PLAYS_PER_ROUND);
+    expect(meters.plays, "THE WAGER should cost exactly one play").toBe(budget - 1);
+    expect(meters.shown, "the meter and the state disagree").toBe(String(budget - 1));
   });
 
   test("THE FAMINE actually deals a smaller hand", async ({ page }) => {
@@ -1982,14 +1999,12 @@ test.describe("the counters", () => {
     for (const k of ["1", "2"]) await page.keyboard.press(k);
     /* The roll scrambles digits on its way, so the only thing that matters is
        that it settles on the truth rather than on whatever it was showing when
-       the animation stopped. Read after PLAY: before it, the counters are
-       deliberately blank - the line is not priced until it is committed. */
+       the animation stopped. */
     const want = await page.evaluate(() => {
       const cards = G.selected.map(id => G.hand.find(c => c.id === id));
       const r = resolve(cards);
       return { points: String(r.chips), mult: String(Math.round(r.mult * 10) / 10) };
     });
-    await page.keyboard.press("Enter");
     await expect(page.locator("#chipsV")).toHaveText(want.points, { timeout: 15000 });
     await expect(page.locator("#multV")).toHaveText(want.mult, { timeout: 15000 });
   });
