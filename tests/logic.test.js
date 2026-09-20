@@ -140,8 +140,11 @@ describe("scoring", () => {
     assert.ok(carn, "CARNIVORE missing from the Lens pool");
     api.G.lenses = [carn];
 
-    const wolf = api.makeCard({ w: "WOLF", t: ["ANI"] }, false);
-    const oak = api.makeCard({ w: "OAK", t: ["PLA"] }, false);
+    /* NATURE on both: ANIMAL and PLANT have nothing in common, and a line
+       stops at the first pair that does - so the word CARNIVORE is supposed to
+       eat was never being reached. */
+    const wolf = api.makeCard({ w: "WOLF", t: ["ANI", "NAT"] }, false);
+    const oak = api.makeCard({ w: "OAK", t: ["PLA", "NAT"] }, false);
 
     const eats = api.resolve([oak, wolf]).total;   // wolf devours oak
     const doesnt = api.resolve([wolf, oak]).total; // wolf is leftmost, eats nothing

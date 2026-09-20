@@ -1,264 +1,289 @@
 /* The shape of the hand.
  *
- * Figures are the one part of scoring that reads the letters rather than the
- * tags, and the only part a player can change without changing which cards they
- * hold — so the tests that matter here are about ORDER, about what counts as
- * binding every word, and about the figure landing early enough that a Lens
- * still multiplies it.
+ * This file used to test the orthographic figures - THE PAIR, THE COLUMN, THE
+ * STAIR, THE MONOGRAM, THE CHAIN - which read the letters of a word and not
+ * its meaning. The JOIN rebuild deleted them, and with them the split where
+ * the poetic layer and the mechanical layer never touched each other. A hand
+ * is now what a LINE makes, out of what each adjacent pair of words does.
+ *
+ * So the tests that matter here are about ORDER, about which hands a given run
+ * of joins makes, about every hand a line makes being paid rather than only
+ * the best one, and about the hands landing early enough that a Lens still
+ * multiplies them.
+ *
+ * Fixtures name their overtones rather than borrowing real lexicon words:
+ * every assertion below is a statement about a particular arrangement of
+ * shared and opposed tags, and a real word would only hide it. The opposed
+ * pairs these are built from are HEAT/COLD, DARK/BRIGHT, NATURE/TECH,
+ * MIND/BODY, WET/HEAT and ABSTRACT against BODY, FOOD and TOOL.
  */
 const { test, describe } = require("node:test");
 const assert = require("node:assert");
 const { load } = require("./harness.js");
 
 const { api } = load();
-const card = (w, tags) => api.makeCard({ w, t: tags || [] }, false);
-const hand = (...words) => words.map(w => card(w));
-/* Words the round actually wants. A figure is only paid its multiplier for
-   these, so any test about the SCORE has to say whether the round wants the
-   hand — the tests that only ask what shape the words make do not care. */
-const wanted = (...words) => words.map(w => card(w, ["NAT"]));
-const name = (...words) => { const f = api.figureFor(hand(...words)); return f ? f.id : null; };
+api.newRun("figures");
 
-/* Score a hand with no Lenses and a round that wants nothing, so the only thing
-   moving the numbers is the figure itself. */
-function bare(cards, lensIds, demandTags) {
+const card = (w, tags) => api.makeCard({ w, t: tags || [] }, false);
+
+/* Dullness is a property of a run in progress; these are statements about two
+   words, so it is cleared before every reading. */
+function line(...cards) { api.G.dull = {}; return cards; }
+/* Joined to a string, NOT compared as an array: api.figuresIn() hands back an
+   array carrying the VM realm's Array.prototype, and deepStrictEqual checks
+   prototype identity - a cross-realm [] never equals a host []. lenses.test.js
+   has been bitten by this twice. */
+const ids = (...cards) => api.figuresIn(line(...cards)).map(f => f.id).join(",");
+const best = (...cards) => {
+  const f = api.figureFor(line(...cards));
+  return f ? f.id : null;
+};
+
+/* The five hands, each as the smallest line that makes it. */
+const CLASH  = () => [card("EMBER", ["HEA"]), card("GLACIER", ["COL"])];
+const TWIST  = () => [card("EMBER", ["NAT", "HEA"]), card("GLACIER", ["NAT", "COL"])];
+const CHORUS = () => [card("THICKET", ["NAT", "PLA", "ANI"]),
+                      card("MEADOW",  ["NAT", "PLA", "ANI"])];
+/* one shared overtone, then two: the line climbs */
+const BUILD  = () => [card("TIDE", ["NAT"]), card("MOSS", ["NAT", "PLA"]),
+                      card("OAK",  ["NAT", "PLA"])];
+/* opposed, alike, opposed - the same read either way */
+const MIRROR = () => [card("EMBER", ["HEA"]), card("GLACIER", ["COL", "MIN"]),
+                      card("DOUBT", ["MIN"]), card("BONE", ["BOD"])];
+
+/* Score a line with no Lenses and a round that wants nothing, so the only
+   things moving the numbers are the joins, the hands and the words. */
+function bare(cards, lensIds) {
   api.newRun("figures");
-  api.G.demand = { n: "TEST", tags: demandTags || [] };
+  api.G.dull = {};
+  api.G.demand = { n: "TEST", tags: [] };
   api.G.lenses = (lensIds || []).map(id => api.LENSES.find(l => l.id === id));
   api.G.lensState = {};
   return api.resolve(cards);
 }
+const bases = cards => cards.reduce((s, c) => s + c.base, 0);
 
 /* ================================================================== */
-describe("what makes a figure", () => {
-  test("THE PAIR is two words of the same length", () => {
-    assert.strictEqual(name("OAK", "ELM"), "pair");
-    assert.strictEqual(name("OAK", "MOSS"), null, "3 and 4 is not a pair");
+describe("what a line makes", () => {
+  test("THE CLASH is two words that mean opposite things", () => {
+    assert.strictEqual(ids(...CLASH()), "antithesis");
+    /* and two words with nothing to say to each other make nothing */
+    assert.strictEqual(ids(card("MOSS", ["NAT"]), card("ANVIL", ["TOO"])), "");
   });
 
-  test("THE COLUMN is three of exactly the same length", () => {
-    assert.strictEqual(name("MOSS", "TIDE", "WOLF"), "column");
-    assert.strictEqual(name("MOSS", "TIDE", "EMBER"), "pair", "two of three is only a pair");
+  test("THE TWIST is alike and opposite at the same time", () => {
+    assert.strictEqual(ids(...TWIST()), "paradox");
+    /* Take the shared overtone away and the same opposition is only a clash.
+       The rare thing is holding both at once, not the opposition itself. */
+    assert.strictEqual(ids(card("EMBER", ["HEA"]), card("GLACIER", ["COL"])),
+      "antithesis");
   });
 
-  test("THE STAIR climbs or falls by the same step, either way round", () => {
-    assert.strictEqual(name("OAK", "MOSS", "EMBER"), "stair", "3, 4, 5");
-    assert.strictEqual(name("EMBER", "MOSS", "OAK"), "stair", "5, 4, 3");
-    assert.strictEqual(name("OAK", "EMBER", "FURNACE"), "stair", "3, 5, 7");
-    assert.strictEqual(name("OAK", "MOSS", "FURNACE"), null, "3, 4, 7 is an uneven step");
-    assert.strictEqual(name("MOSS", "OAK", "EMBER"), null,
-      "the same three words out of order are not a stair, and 4/3/5 is not a pair");
+  test("THE CHORUS wants three things in common, not two", () => {
+    assert.strictEqual(ids(...CHORUS()), "synonymy");
+    assert.strictEqual(
+      ids(card("THICKET", ["NAT", "PLA"]), card("MEADOW", ["NAT", "PLA"])), "",
+      "two shared overtones is a join, not a hand");
   });
 
-  test("THE MONOGRAM wants every word on the same letter", () => {
-    assert.strictEqual(name("MOSS", "MEMORY"), "mono");
-    assert.strictEqual(name("MOSS", "MEMORY", "MARBLE"), "mono");
-    assert.strictEqual(name("MOSS", "MEMORY", "TIDE"), "pair",
-      "one word off the M breaks it, and you drop to the floor");
-    assert.strictEqual(name("MOSS", "MEMORY", "OAK"), null, "with no floor left, nothing");
+  test("THE BUILD has to climb the whole way, not somewhere", () => {
+    assert.strictEqual(ids(...BUILD()), "escalation");
+    /* It used to fire if ANY adjacent pair happened to rise, which is nearly
+       every line of three words: measured at 98% of optimal plays. */
+    const [a, b, c] = BUILD();
+    assert.strictEqual(ids(b, c, a), "", "2 then 1 does not climb");
+    assert.strictEqual(
+      ids(card("A", ["NAT"]), card("B", ["NAT"]), card("C", ["NAT"])), "",
+      "1 then 1 is level, and level is not a climb");
   });
 
-  test("THE CHAIN wants each word to open where the last one closed", () => {
-    assert.strictEqual(name("OAK", "KILN"), "chain", "oaK then Kiln");
-    assert.strictEqual(name("OAK", "KILN", "NEEDLE"), "chain", "kilN then Needle");
-    assert.strictEqual(name("KILN", "OAK"), null, "the link only runs one way");
+  test("THE MIRROR has to hold end to end", () => {
+    assert.ok(ids(...MIRROR()).split(",").includes("chiasmus"));
+    /* Three joins minimum, because two the same is not a shape */
+    const [a, b, c] = MIRROR();
+    assert.ok(!ids(a, b, c).split(",").includes("chiasmus"), "two joins cannot mirror");
+    /* and the pairs have to mirror in what they ARE and in how much they
+       share, not merely in kind: four words on one shared overtone read the
+       same backwards and are not a mirror of anything. */
+    assert.strictEqual(
+      ids(card("A", ["NAT"]), card("B", ["NAT"]),
+          card("C", ["NAT"]), card("D", ["NAT"])), "",
+      "a line of identical joins is not a mirror");
   });
 
-  test("one word is never a figure, and neither is none", () => {
-    assert.strictEqual(api.figureFor(hand("FURNACE")), null);
+  test("one word is never a hand, and neither is none", () => {
+    assert.strictEqual(api.figureFor([card("FURNACE", ["HEA"])]), null);
     assert.strictEqual(api.figureFor([]), null);
     assert.strictEqual(api.figureFor(null), null);
   });
+});
 
-  test("a figure has to bind every word you play, and THE PAIR is the floor", () => {
-    /* OAK then KILN chains. Lay a word beside them that does not, and the chain
-       is gone — but two 4-letter words still leave you the floor. */
-    assert.strictEqual(name("OAK", "KILN"), "chain");
-    assert.strictEqual(name("OAK", "KILN", "MOSS"), "pair", "KILN and MOSS are both 4");
-    assert.strictEqual(name("OAK", "KILN", "FURNACE"), null, "nothing left at all");
+/* ================================================================== */
+describe("order is the decision", () => {
+  test("the same three words make a hand one way round and nothing the other", () => {
+    const [a, b, c] = BUILD();
+    assert.strictEqual(best(a, b, c), "escalation");
+    assert.strictEqual(best(c, b, a), null);
+  });
+
+  test("a pair with nothing in common stops the line, so what is past it never lands", () => {
+    /* EMBER and GLACIER are alike and opposite at once wherever they meet.
+       Put a word between them that neither of them can reach and the line
+       stops before it starts - the hand is not merely reduced, it is gone. */
+    const [hot, cold] = TWIST();
+    assert.strictEqual(ids(hot, cold), "paradox");
+    const wedge = card("ANVIL", ["TOO"]);
+    assert.strictEqual(ids(hot, wedge, cold), "");
+    assert.strictEqual(api.joinsOf(line(hot, wedge, cold)).scored, 1,
+      "one word scored, and the two after it written for nothing");
   });
 });
 
 /* ================================================================== */
-describe("which figure pays", () => {
-  test("only the best one does", () => {
-    /* MOSS / MARSH / MEMORY are all on M, and 4, 5, 6 is an even step. Both
-       figures are there; the rarer one is the one that pays. */
-    const both = api.figuresIn(hand("MOSS", "MARSH", "MEMORY")).map(f => f.id);
-    assert.strictEqual(both.join(","), "mono,stair");
-    assert.strictEqual(api.figureFor(hand("MOSS", "MARSH", "MEMORY")).id, "mono");
+describe("which hand pays", () => {
+  test("every hand your line makes pays, not only the best one", () => {
+    const m = MIRROR();
+    assert.strictEqual(ids(...m), "chiasmus,antithesis");
+    const r = bare(m);
+    const pay = api.FIG_PAY;
+    assert.strictEqual(r.chips - bases(m) - api.JOIN_RESONANCE,
+      pay.chiasmus.chips + pay.antithesis.chips,
+      "both hands should have paid their points");
+    /* 1, plus one for each of the two oppositions, plus the mirror's own +2 */
+    assert.strictEqual(r.mult, 1 + 2 * api.JOIN_TENSION
+      + pay.chiasmus.mult + pay.antithesis.mult);
   });
 
-  test("the pay table never rewards an easier figure more", () => {
-    /* Measured reachability from a seven-card hand, hardest first: monogram of
-       three 8%, chain of three 36%, column 55%, monogram of two 74%, chain of
-       two 87%, stair 87%, pair almost always. If a retune ever puts these out
-       of order the ladder has stopped meaning anything. */
-    const ladder = [
-      api.FIG_PAY.mono[3], api.FIG_PAY.chain[3], api.FIG_PAY.column[3],
-      api.FIG_PAY.mono[2], api.FIG_PAY.chain[2], api.FIG_PAY.stair[3],
-      api.FIG_PAY.pair[2]
-    ];
-    for (let i = 1; i < ladder.length; i++) {
-      assert.ok(api.figValue(ladder[i]) <= api.figValue(ladder[i - 1]),
-        "rung " + i + " pays more than the harder figure above it");
-      assert.ok(ladder[i].mult >= 1 && ladder[i].chips > 0, "every figure pays something");
-    }
-  });
-
-  test("a figure binding three words beats the same figure binding two", () => {
-    ["mono", "chain"].forEach(id => {
-      assert.ok(api.figValue(api.FIG_PAY[id][3]) > api.figValue(api.FIG_PAY[id][2]), id);
+  test("the table reads hardest first, and the pay ladder agrees with it", () => {
+    /* FIGURES is the display order and the priority order at once, so a retune
+       that makes an easier hand pay more silently breaks both. */
+    const ladder = api.FIGURES.map(f => api.figValue(api.FIG_PAY[f.id]));
+    for (let i = 1; i < ladder.length; i++)
+      assert.ok(ladder[i] < ladder[i - 1],
+        api.FIGURES[i].n + " pays as much as the harder hand above it");
+    api.FIGURES.forEach(f => {
+      const p = api.FIG_PAY[f.id];
+      assert.ok(p && p.chips > 0, f.n + " pays no points");
+      assert.ok(p.mult >= 0, f.n + " has a negative multiplier");
     });
   });
+
+  test("figureFor hands back the best-paying one of them", () => {
+    assert.strictEqual(best(...MIRROR()), "chiasmus");
+  });
 });
 
 /* ================================================================== */
-describe("the figure in the score", () => {
-  test("it adds its points and its multiplier to a hand the round wants", () => {
-    const pay = api.FIG_PAY.column[3];
-    const cards = wanted("MOSS", "TIDE", "WOLF");
-    const words = cards.reduce((s, c) => s + c.base, 0);
-    const r = bare(cards, null, ["NAT"]);
-    assert.strictEqual(r.chips, words + pay.chips + 25 * 3, "chips, figure and three matches");
-    assert.strictEqual(r.mult, 1 + pay.mult);
+describe("the hand in the score", () => {
+  test("it adds its points and its multiplier to the line", () => {
+    const c = CLASH();
+    const r = bare(c);
+    /* an opposition pays no points, so the only points here are the words and
+       the hand they make */
+    assert.strictEqual(r.chips, bases(c) + api.FIG_PAY.antithesis.chips);
+    assert.strictEqual(r.mult, 1 + api.JOIN_TENSION + api.FIG_PAY.antithesis.mult);
   });
 
   test("it lands before the Lenses, so a Lens that multiplies multiplies it", () => {
-    /* BRUTALIST is ×1.6 on every word of four letters or fewer. Three of them
-       is also THE COLUMN. If the figure were a bonus stapled on at the end the
-       multiplier would be 1 × 1.6³ + 3; it is (1 + 3) × 1.6³. */
-    const r = bare(wanted("MOSS", "TIDE", "WOLF"), ["brut"], ["NAT"]);
-    const want = (1 + api.FIG_PAY.column[3].mult) * Math.pow(1.6, 3);
-    assert.ok(Math.abs(r.mult - want) < 1e-9, "got " + r.mult + ", wanted " + want);
+    /* BRUTALIST is x1.6 on every word carrying a single overtone. Three of the
+       mirror's four words do. If the hand were a bonus stapled on at the end
+       the multiplier would be 3 x 1.6^3 + 2; it is (3 + 2) x 1.6^3. */
+    const m = MIRROR();
+    const plain = bare(m);
+    const withLens = bare(m, ["brut"]);
+    const want = plain.mult * Math.pow(1.6, 3);
+    assert.ok(Math.abs(withLens.mult - want) < 1e-9,
+      "got " + withLens.mult + ", wanted " + want);
   });
 
-  test("a hand with no figure scores exactly as it did before figures existed", () => {
-    const cards = hand("OAK", "KILN", "FURNACE");
-    assert.strictEqual(api.figureFor(cards), null);
+  test("a line that makes no hand is worth its words and its joins, and no more", () => {
+    const cards = [card("MOSS", ["NAT"]), card("TIDE", ["NAT"])];
+    assert.strictEqual(ids(...cards), "");
     const r = bare(cards);
-    assert.strictEqual(r.chips, cards.reduce((s, c) => s + c.base, 0));
+    assert.strictEqual(r.chips, bases(cards) + api.JOIN_RESONANCE);
     assert.strictEqual(r.mult, 1);
   });
 
-  test("the board is told about it, by name, before anything else", () => {
-    const r = bare(hand("MOSS", "TIDE", "WOLF"));
-    const ev = r.events.filter(e => e.fig);
-    assert.strictEqual(ev.length, 1, "exactly one figure event");
-    assert.strictEqual(ev[0].fig, "column");
-    assert.strictEqual(ev[0].txt.indexOf("THE COLUMN"), 0, "should lead with the name: " + ev[0].txt);
-    assert.strictEqual(r.events.indexOf(ev[0]), 0, "and it should come first");
-  });
-});
-
-/* ================================================================== */
-describe("the round has to want your words", () => {
-  /* Three words the same length is THE COLUMN either way. What the round
-     thinks of them decides whether the multiplier is real.
-
-     This exists because the two layers used to run in parallel and the bigger
-     one simply won: measured over every play of 951 hands, ignoring the Demand
-     entirely was the exactly correct play 70% of the time in round 1. */
-  const pay = () => api.FIG_PAY.column[3];
-  const withAnswers = n => bare(
-    ["MOSS", "TIDE", "WOLF"].map((w, i) => card(w, i < n ? ["NAT"] : ["TOO"])),
-    null, ["NAT"]);
-
-  test("a figure the round wants pays in full", () => {
-    assert.strictEqual(withAnswers(3).mult, 1 + pay().mult);
-  });
-
-  test("a figure nothing in the hand answers pays no multiplier at all", () => {
-    assert.strictEqual(withAnswers(0).mult, 1, "a shape with nothing behind it");
-  });
-
-  test("otherwise it is paid for the words that answer, in proportion", () => {
-    assert.strictEqual(withAnswers(2).mult, 1 + 2, "two of three of a +3 figure");
-    assert.strictEqual(withAnswers(1).mult, 1 + 1, "one of three");
-  });
-
-  test("the points are never withheld — only the multiplier is conditional", () => {
-    const none = withAnswers(0);
-    const words = none.events.length;
-    assert.ok(words > 0);
-    /* the figure's chips land even when the round wants none of it */
-    assert.ok(none.chips >= pay().chips,
-      "the figure's " + pay().chips + " points went missing: " + none.chips);
-  });
-
-  test("the board is told when the round is not paying in full", () => {
-    const ev = withAnswers(0).events.find(e => e.fig);
-    assert.strictEqual(ev.paid, 0);
-    assert.strictEqual(ev.answering, 0);
-    assert.ok(/no answer/.test(ev.txt), ev.txt);
-    const full = withAnswers(3).events.find(e => e.fig);
-    assert.strictEqual(full.paid, pay().mult);
-    assert.ok(/\+3 mult/.test(full.txt), full.txt);
-  });
-
-  test("a two-word figure is judged the same way", () => {
-    const both = bare([card("OAK", ["NAT"]), card("KILN", ["NAT"])], null, ["NAT"]);
-    const one = bare([card("OAK", ["NAT"]), card("KILN", ["TOO"])], null, ["NAT"]);
-    const neither = bare([card("OAK", ["TOO"]), card("KILN", ["TOO"])], null, ["NAT"]);
-    const chain = api.FIG_PAY.chain[2].mult;
-    assert.strictEqual(both.mult, 1 + chain);
-    assert.strictEqual(one.mult, 1 + Math.round(chain / 2));
-    assert.strictEqual(neither.mult, 1);
+  test("the board is told about it by name, after the joins and before the words", () => {
+    const r = bare(MIRROR());
+    const figs = r.events.filter(e => e.fig);
+    assert.strictEqual(figs.map(e => e.fig).join(","), "chiasmus,antithesis");
+    figs.forEach(e => {
+      const f = api.FIGURES.find(x => x.id === e.fig);
+      assert.strictEqual(e.txt.indexOf(f.n), 0, "should lead with the name: " + e.txt);
+    });
+    /* The joins are what MADE the hand, so they are read first; the words are
+       counted after, which is what lets a Lens on a word multiply the hand. */
+    const lastJoin = r.events.map(e => e.k).lastIndexOf("join");
+    const firstFig = r.events.indexOf(figs[0]);
+    const firstCard = r.events.findIndex(e => e.k === "card" && !e.fig);
+    assert.ok(lastJoin < firstFig, "a hand was announced before the joins that made it");
+    assert.ok(firstFig < firstCard, "the words were counted before the hand");
   });
 });
 
 /* ================================================================== */
 describe("the nudge that says you have it in the wrong order", () => {
-  test("it names the better figure these same words would make", () => {
-    /* 4, 3, 5 is nothing. 3, 4, 5 is THE STAIR. */
-    const better = api.figureByReorder(hand("MOSS", "OAK", "EMBER"));
-    assert.ok(better, "should have found the stair");
-    assert.strictEqual(better.id, "stair");
+  test("it names the better hand these same words would make", () => {
+    const [a, b, c] = BUILD();
+    const better = api.figureByReorder(line(c, b, a));
+    assert.ok(better, "should have found the build");
+    assert.strictEqual(better.id, "escalation");
   });
 
   test("it stays quiet when the order you have is already the best one", () => {
-    assert.strictEqual(api.figureByReorder(hand("OAK", "MOSS", "EMBER")), null, "already a stair");
-    assert.strictEqual(api.figureByReorder(hand("MOSS", "TIDE", "WOLF")), null,
-      "a column reads the same in any order");
-    assert.strictEqual(api.figureByReorder(hand("OAK", "KILN", "FURNACE")), null,
+    assert.strictEqual(api.figureByReorder(line(...BUILD())), null, "already a build");
+    assert.strictEqual(api.figureByReorder(line(...CLASH())), null,
+      "a clash reads the same either way round");
+    assert.strictEqual(
+      api.figureByReorder(line(card("MOSS", ["NAT"]), card("ANVIL", ["TOO"]))), null,
       "no order of these makes anything");
-    assert.strictEqual(api.figureByReorder(hand("FURNACE")), null, "one word");
+    assert.strictEqual(api.figureByReorder(line(card("FURNACE", ["HEA"]))), null,
+      "one word");
   });
 
-  test("it will not talk you out of the better hand", () => {
-    /* OAK then KILN is a chain; reversed it is nothing at all. */
-    assert.strictEqual(api.figureByReorder(hand("OAK", "KILN")), null);
+  test("it does not search a five-word line, and says so by staying quiet", () => {
+    /* 120 orderings on every click. The nudge is worth having and is not worth
+       that, so it looks past four. */
+    const five = BUILD().concat(CLASH());
+    assert.strictEqual(api.figureByReorder(line(...five)), null);
   });
 });
 
 /* ================================================================== */
-describe("figures against the real deck", () => {
-  test("every word in the lexicon can be read as a shape", () => {
+describe("hands against the real deck", () => {
+  test("every word in the lexicon carries at least one overtone", () => {
     api.newRun("figures-deck", true);
     const deck = api.G.deck.concat(api.G.hand, api.G.discard);
     assert.ok(deck.length > 20, "expected a real deck, got " + deck.length);
     deck.forEach(c => {
-      assert.ok(/^[A-Z]+$/.test(String(c.w).toUpperCase()),
-        "a word the figure rules cannot read: " + c.w);
-      assert.ok(c.w.length >= 2, "a one-letter word would make THE CHAIN meaningless: " + c.w);
+      assert.ok(Array.isArray(c.t) && c.t.length >= 1,
+        "a word nothing can ever join to: " + c.w);
+      c.t.forEach(t => assert.ok(api.TAGS[t], c.w + " carries an unknown overtone " + t));
     });
   });
 
-  test("a hand's worth of orderings never throws and never invents a figure", () => {
+  test("a hand's worth of orderings never throws and never invents a hand", () => {
     api.newRun("figures-fuzz", true);
+    api.G.dull = {};
     const deck = api.G.deck.concat(api.G.hand, api.G.discard);
     const rng = api.mulberry32(api.hashStr("fuzz"));
     for (let t = 0; t < 800; t++) {
-      const n = 1 + Math.floor(rng() * 3);
+      const n = 1 + Math.floor(rng() * 5);
       const cards = [];
       while (cards.length < n) cards.push(deck[Math.floor(rng() * deck.length)]);
+      const made = api.figuresIn(cards);
       const f = api.figureFor(cards);
-      if (!f) continue;
+      if (!f) {
+        assert.strictEqual(made.length, 0, "a best hand should exist if any do");
+        continue;
+      }
       assert.ok(n > 1, "a single word made " + f.id);
-      assert.ok(api.FIG_PAY[f.id], "unknown figure " + f.id);
-      assert.ok(f.chips > 0 && f.mult > 0, f.id + " paid nothing");
-      assert.ok(api.figuresIn(cards).some(x => x.id === f.id),
-        "the best figure should be one of the figures");
+      assert.ok(api.FIG_PAY[f.id], "unknown hand " + f.id);
+      assert.ok(f.chips > 0 && f.mult >= 0, f.id + " paid nothing");
+      assert.strictEqual(made[0].id, f.id, "the best hand should be the first one listed");
+      /* a hand can only be made out of joins the line actually reads */
+      assert.ok(api.joinsOf(cards).joins.length >= 1, f.id + " came out of no joins");
     }
   });
 });

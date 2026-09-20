@@ -310,34 +310,41 @@ test.describe("playing a hand", () => {
     await expect(page.locator(".stage-hint .ord")).toHaveCount(0);
   });
 
-  test("stops telling you three words beat one when your Lens says otherwise", async ({ page }) => {
-    await open(page);
-    /* ASCETIC pays x5 for a single word. The board was still printing "Three
-       words beat one" underneath it — the game arguing with the build the
-       game just sold you. */
-    const bare = await page.evaluate(() => {
-      G.lenses = []; render();
-      return document.getElementById("stageHint").textContent;
-    });
-    expect(bare).toContain("Three words beat one");
+  test("stops arguing with the Lens it just sold you about how long a line is",
+    async ({ page }) => {
+      await open(page);
+      /* ASCETIC pays x5 for a single word. The board was still printing "Three
+         words beat one" underneath it — the game arguing with the build the
+         game just sold you. The general advice is different now, because a
+         long line under JOIN finds more hands AND has further to fall, but the
+         rule is the same: a Lens that reshapes the hand gets the last word. */
+      const bare = await page.evaluate(() => {
+        G.lenses = []; G.selected = []; render();
+        return document.getElementById("stageHint").textContent;
+      });
+      expect(bare).toContain("A longer line pays more and risks more");
 
-    const ascetic = await page.evaluate(() => {
-      G.lenses = [LENSES.find(l => l.id === "asc")];
-      render();
-      return document.getElementById("stageHint").textContent;
+      const ascetic = await page.evaluate(() => {
+        G.lenses = [LENSES.find(l => l.id === "asc")];
+        G.selected = []; render();
+        return document.getElementById("stageHint").textContent;
+      });
+      expect(ascetic).not.toContain("A longer line");
+      expect(ascetic).toContain("ASCETIC");
     });
-    expect(ascetic).not.toContain("Three words beat one");
-    expect(ascetic).toContain("ASCETIC");
-  });
 
   test("says the order matters once a Lens actually reads position", async ({ page }) => {
     await open(page);
-    await page.evaluate(() => {
+    /* On the idle board, which is where the hint lives: lay a word and the
+       readout takes the space over to say what the line is doing. The `.ord`
+       span is a different thing now - it is the nudge that names a better
+       hand the same words would make in another order. */
+    const said = await page.evaluate(() => {
       G.lenses = [LENSES.find(l => l.id === "carn")];   // eats the word to its LEFT
-      render();
+      G.selected = []; render();
+      return document.getElementById("stageHint").textContent;
     });
-    await page.locator("#hand .card").first().click();
-    await expect(page.locator(".stage-hint .ord")).toContainText("left to right");
+    expect(said).toContain("left to right");
   });
 
   test("says it for a mixed +mult / ×mult pair too", async ({ page }) => {
@@ -443,7 +450,10 @@ test.describe("the figure on the board", () => {
     await deal(page, ["EMBER", "GLACIER"]);        // NATURE shared, heat/cold and wet/heat opposed
     await pick(page, ["1", "2"]);
     await expect(page.locator("#stageHint .jn.paradox")).toHaveCount(1);
-    await expect(page.locator(".hand-name")).toHaveText("THE PARADOX");
+    /* Read off the table rather than typed in: this hand has been THE PARADOX
+       and is THE TWIST, and the id is the part that has not moved. */
+    const named = await page.evaluate(() => FIGURES.find(f => f.id === "paradox").n);
+    await expect(page.locator(".hand-name")).toHaveText(named);
   });
 
   test("says where a line falls silent rather than going quiet", async ({ page }) => {
@@ -486,9 +496,10 @@ test.describe("the figure on the board", () => {
   test("the order is the decision, and the board says so without fixing it",
     async ({ page }) => {
       await open(page);
-      /* WOLF rings with BEAR and has nothing to say to OAK. One order reads all
-         the way through; the other stops dead after two words. */
-      await deal(page, ["WOLF", "OAK", "BEAR"]);
+      /* WOLF has nothing to say to OAK. THORN reaches both - DANGER with the
+         wolf, PLANT with the oak - so one order reads all the way through and
+         the other stops dead after two words. */
+      await deal(page, ["WOLF", "OAK", "THORN"]);
       await pick(page, ["1", "2", "3"]);
       await expect(page.locator("#stageHint .stops")).toHaveCount(1);
 
@@ -503,12 +514,17 @@ test.describe("the figure on the board", () => {
     await pick(page, ["1", "2"]);
     const res = await page.evaluate(() => {
       const line = G.selected.map(id => G.hand.find(c => c.id === id));
+      /* The Demand pays a multiplier per matching word, and the seed decides
+         whether these two match it - which has nothing to do with the pull. */
+      G.demand = { n: "TEST", tags: [] };
+      G.lenses = [];
       const j = joinOf(line[0], line[1], {});
-      return { t: j.t, mult: resolve(line).mult, per: JOIN_TENSION };
+      return { t: j.t, per: JOIN_TENSION, mult: resolve(line).mult,
+               figs: figuresIn(line).reduce((s, f) => s + f.mult, 0) };
     });
     expect(res.t).toBeGreaterThan(0);
-    /* one per opposed pair, plus one more for the figure they make */
-    expect(res.mult).toBe(1 + res.t * res.per + 1);
+    /* one per opposed pair, plus whatever the hands they make are worth */
+    expect(res.mult).toBe(1 + res.t * res.per + res.figs);
   });
 
   test("the figure name opens the table of all five", async ({ page }) => {
@@ -567,27 +583,33 @@ test.describe("spelling is not a mechanic", () => {
 });
 
 test.describe("the Bookseller", () => {
+  /* Play a real hand, then clear what is left of the target and let the game
+     open the shop itself. Three blind hands used to get there; against the
+     current curve they do not, and these tests are about the shop rather than
+     about whether three arbitrary cards can beat round 1. */
+  async function toTheShop(page) {
+    await playAHand(page);
+    await page.evaluate(() => { G.roundScore = G.target; winRound(); });
+    await expect(page.locator("#veil")).toBeVisible();
+  }
+
   test("opens on clearing a round and teaches the economy", async ({ page }) => {
     await open(page);
-    for (let i = 0; i < 4; i++) {
-      if (await page.locator("#veil").isVisible()) break;
-      await playAHand(page);
-    }
+    await toTheShop(page);
 
     const panel = page.locator("#panel");
     await expect(panel).toContainText("The Bookseller");
     /* the exponential has to be stated in numbers, not implied */
     await expect(panel.locator(".stakes")).toContainText("Lenses multiply");
-    await expect(panel.locator(".offer")).toHaveCount(3);
+    /* Two Lenses and the extra words. A line the round kept is a fourth
+       .offer and does not belong to the shelf, so it is excluded by name. */
+    await expect(panel.locator(".offer:not(.keep)")).toHaveCount(3);
     await expect(panel.locator("#leaveShop")).toContainText("Leave with no Lens");
   });
 
   test("buying a Lens equips it and it survives into the next round", async ({ page }) => {
     await open(page);
-    for (let i = 0; i < 4; i++) {
-      if (await page.locator("#veil").isVisible()) break;
-      await playAHand(page);
-    }
+    await toTheShop(page);
     await expect(page.locator("#panel")).toContainText("The Bookseller");
 
     /* buy the first Lens the purse can afford */
@@ -729,7 +751,9 @@ test.describe("layout", () => {
       await expect(preview).toHaveCount(2);
       await expect(preview.first()).toBeVisible();
       await expect(page.locator("#hand .card .pos")).toHaveCount(2);
-      await expect(page.locator("#stageHint")).toContainText("worth");
+      /* The readout names what the pair is doing; the price is on the two
+         counters above it. It used to say "worth", and that word moved. */
+      await expect(page.locator("#stageHint")).toContainText(/ALIKE|OPPOSITE|BOTH|NOTHING/);
 
       const size = await page.evaluate(() => {
         const up = document.querySelector("#stageCards .card");
@@ -1539,17 +1563,18 @@ test.describe("the Bookseller tells the truth", () => {
          date, which would make this test start failing on a Tuesday for no
          reason anyone could find.
 
-         On this seed a bare deck tops out at 16,625 against round 4's
-         17,809. ALCHEMIST pays for NATURE and TECH in the same hand, which
-         takes it to 18,375 and covers it.
+         On this seed a bare deck tops out at 24,954 against round 4's
+         26,051. ALCHEMIST pays for NATURE and TECH in the same hand, which
+         takes it to 27,954 and covers it.
 
-         Seed and round have moved four times now - the figure ledger, the
-         JOIN rebuild, the per-mode curves, and the pass that took spelling
-         out of scoring (a card's base value was its letter count, so every
-         deck ceiling in the game moved). What a deck can reach depends on the
-         scoring and what it is measured against depends on the mode. Found by
-         probing rather than guessed; re-running the probe beats hunting. */
-      newRun("probe4", true);
+         Seed and round have moved five times now - the figure ledger, the
+         JOIN rebuild, the per-mode curves, the pass that took spelling out of
+         scoring (a card's base value was its letter count, so every deck
+         ceiling in the game moved), and the move to three plays a round. What
+         a deck can reach depends on the scoring and what it is measured
+         against depends on the mode. Found by probing rather than guessed;
+         re-running the probe beats hunting. */
+      newRun("probe2", true);
       G.round = 3; G.lenses = []; G.lensState = {}; G.bank = 20;
       G.offers = [{ kind: "lens", lens: LENSES.find(l => l.id === "alch"), cost: 5 }];
       openShop(9);

@@ -239,14 +239,19 @@ test.describe("labels do not land on each other", () => {
       + "% on " + (seen.overWho || seen.peakWho) + ")").toBeLessThanOrEqual(120);
   });
 
-  test("the figure gets its own beat before the cards start", async ({ page }) => {
+  test("the hand gets its own beat between the joins and the words", async ({ page }) => {
     await page.goto(GAME);
     await enterGame(page);
     if (await page.locator("#tut").isVisible()) await page.click("#tutSkip");
     await page.waitForTimeout(250);
     await page.evaluate(() => {
+      /* One shared overtone, then two: the line climbs, which is THE BUILD.
+         Seven words all carrying NATURE made a line of identical joins and no
+         hand at all, so there was no beat here to measure. */
+      const tags = [["NAT"], ["NAT", "PLA"], ["NAT", "PLA"],
+                    ["NAT"], ["NAT"], ["NAT"], ["NAT"]];
       G.hand = ["MOSS", "TIDE", "WOLF", "OAK", "EMBER", "KILN", "FURNACE"]
-        .map(w => makeCard({ w, t: ["NAT"] }, false));
+        .map((w, i) => makeCard({ w, t: tags[i] }, false));
       G.selected = []; render();
     });
     for (const k of ["1", "2", "3"]) { await page.keyboard.press(k); await page.waitForTimeout(90); }
@@ -275,18 +280,25 @@ test.describe("labels do not land on each other", () => {
 
     const beats = await page.evaluate(() => window.__beats.map((b, i, a) =>
       ({ text: b.text, gap: i ? Math.round(b.at - a[i - 1].at) : 0 })));
-    expect(beats.length, "the hand printed no labels at all").toBeGreaterThan(2);
+    expect(beats.length, "the hand printed no labels at all").toBeGreaterThan(3);
 
-    /* the figure announces itself first, and by itself */
-    expect(beats[0].text, "the figure did not open the hand: "
-      + beats.map(b => b.text).join(" | ")).toContain("THE COLUMN");
-    expect(beats[0].text, "double space in the label").not.toContain("  ");
+    const named = await page.evaluate(() => FIGURES.find(f => f.id === "escalation").n);
+    const at = beats.findIndex(b => b.text.indexOf(named) === 0);
+    const all = beats.map(b => b.text).join(" | ");
+    expect(at, "the hand never announced itself: " + all).toBeGreaterThan(0);
+    expect(beats[at].text, "double space in the label").not.toContain("  ");
 
-    /* and then holds the stage longer than any card that follows it */
-    const figureBeat = beats[1].gap;
-    const cardBeats = beats.slice(2).map(b => b.gap);
-    expect(figureBeat, "the cards started on top of the figure's beat: "
-      + JSON.stringify(beats)).toBeGreaterThan(Math.max(...cardBeats));
+    /* The joins are what MADE it, so they are read first - and nothing that
+       came before it is a word's own worth. */
+    beats.slice(0, at).forEach(b =>
+      expect(b.text, "a word was counted before the hand it made: " + all)
+        .toMatch(/ALIKE|OPPOSITE|BOTH|NOTHING/));
+
+    /* and it holds the stage longer than any word that follows it */
+    const heldFor = beats[at + 1].gap;
+    const wordBeats = beats.slice(at + 2).map(b => b.gap);
+    expect(heldFor, "the words started on top of the hand's beat: "
+      + JSON.stringify(beats)).toBeGreaterThan(Math.max(...wordBeats));
   });
 });
 
@@ -304,10 +316,17 @@ test.describe("it can be played sideways", () => {
         cut: Math.max(0, Math.round(
           document.getElementById("playBtn").getBoundingClientRect().bottom - innerHeight)),
         sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        /* Cards are fanned, so each one sits a few pixels off its neighbour and
-           a raw count of distinct tops says four rows for one. Bucket them. */
-        rows: new Set([...document.querySelectorAll("#hand .card")]
-          .map(c => Math.round(c.getBoundingClientRect().top / 40))).size
+        /* Cards are fanned, so each one sits a few pixels off its neighbour.
+           Bucketing tops on a fixed 40px grid put a 13px fan either side of a
+           boundary and called one row two. A wrapped row puts a card a whole
+           card lower, so measure the spread against the card. */
+        rows: (() => {
+          const r = [...document.querySelectorAll("#hand .card")]
+            .map(c => c.getBoundingClientRect());
+          if (!r.length) return 0;
+          const spread = Math.max(...r.map(x => x.top)) - Math.min(...r.map(x => x.top));
+          return 1 + Math.round(spread / r[0].height);
+        })()
       }));
       expect(m.cut, "PLAY is below the fold").toBe(0);
       expect(m.sideways, "the board scrolls sideways").toBeLessThanOrEqual(1);

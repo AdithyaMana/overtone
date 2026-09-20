@@ -141,10 +141,12 @@ describe("flat chip Lenses", () => {
   });
 
   test("CARNIVORE gives an ANIMAL word four times the base of the word to its left", () => {
-    const left = card("AVALANCHE", ["COL"]);
-    const r = compare("carn", [left, card("WOLF", ["ANI"])]);
+    /* NATURE on both, so the line actually reads as far as the ANIMAL word.
+       Two words with nothing in common stop the line at the first of them. */
+    const left = card("AVALANCHE", ["COL", "NAT"]);
+    const r = compare("carn", [left, card("WOLF", ["ANI", "NAT"])]);
     assert.strictEqual(r.chips, left.base * 4);
-    const first = compare("carn", [card("WOLF", ["ANI"]), card("MOSS", ["PLA"])]);
+    const first = compare("carn", [card("WOLF", ["ANI", "NAT"]), card("MOSS", ["PLA", "NAT"])]);
     assert.strictEqual(first.chips, 0, "an ANIMAL word played first has nothing to eat");
   });
 
@@ -204,13 +206,19 @@ describe("Lenses that multiply the multiplier", () => {
   test("ANTONYM ENGINE pays 180 and doubles for HEAT straight after COLD", () => {
     const hot = compare("anton", [card("GLACIER", ["COL"]), card("EMBER", ["HEA"])]);
     assert.strictEqual(hot.chips, 180);
-    assert.strictEqual(hot.with_.mult, 2);
+    /* The Lens's own doubling, not the hand's multiplier. HEAT next to COLD is
+       an opposition, so the line is already worth more than x1 before the Lens
+       is consulted, and `mult` is the ratio the Lens is responsible for. */
+    assert.strictEqual(hot.mult, 2);
 
     const reversed = compare("anton", [card("EMBER", ["HEA"]), card("GLACIER", ["COL"])]);
     assert.strictEqual(reversed.chips, 180, "should work in both directions");
 
+    /* NATURE throughout so the line reads to the end - otherwise this passes
+       because the third word is never scored, which proves nothing. */
     const apart = compare("anton",
-      [card("GLACIER", ["COL"]), card("MOSS", ["PLA"]), card("EMBER", ["HEA"])]);
+      [card("GLACIER", ["COL", "NAT"]), card("MOSS", ["PLA", "NAT"]),
+       card("EMBER", ["HEA", "NAT"])]);
     assert.strictEqual(apart.chips, 0, "the two words must be adjacent");
   });
 
@@ -218,8 +226,10 @@ describe("Lenses that multiply the multiplier", () => {
     /* Was "four letters or fewer" - which on the blind curve was the one thing
        a player could still read off a card with its overtones hidden. */
     assert.strictEqual(compare("brut", [card("OAK", ["PLA"])]).with_.mult, 1.6);
-    const two = compare("brut", [card("OAK", ["PLA"]), card("TIDE", ["WET"])]);
-    assert.ok(Math.abs(two.with_.mult - 2.56) < 1e-9, "1.6 x 1.6");
+    /* The same single overtone on both: one apiece for BRUTALIST, and shared,
+       so the line reads past the first word. */
+    const two = compare("brut", [card("OAK", ["NAT"]), card("TIDE", ["NAT"])]);
+    assert.ok(Math.abs(two.mult - 2.56) < 1e-9, "1.6 x 1.6");
     assert.strictEqual(compare("brut", [card("HAMMER", ["TOO", "HEA"])]).with_.mult, 1,
       "a word that means two things is not the blunt instrument");
   });
@@ -256,8 +266,8 @@ describe("Lenses that multiply the multiplier", () => {
 
   test("GLUTTON multiplies by 3.2 for exactly three words, and costs a discard", () => {
     const three = compare("glut",
-      [card("OAK", ["PLA"]), card("TIDE", ["WET"]), card("EMBER", ["HEA"])]);
-    assert.strictEqual(three.mult, 2.5);
+      [card("OAK", ["NAT"]), card("TIDE", ["NAT"]), card("EMBER", ["NAT"])]);
+    assert.strictEqual(three.mult, 3.2);
     assert.strictEqual(compare("glut", [card("OAK", ["PLA"])]).with_.mult, 1);
 
     api.newRun("glut-round");
@@ -290,15 +300,15 @@ describe("the flawed Lenses take something back", () => {
   });
 
   test("THE ORACLE multiplies the first word by 4 and silences the rest", () => {
-    const rest = card("HAMMER", ["TOO"]);
-    const r = compare("oracle", [card("OAK", ["PLA"]), rest]);
-    assert.strictEqual(r.with_.mult, 4);
+    const rest = card("HAMMER", ["TOO", "NAT"]);
+    const r = compare("oracle", [card("OAK", ["PLA", "NAT"]), rest]);
+    assert.strictEqual(r.mult, 4);
     assert.strictEqual(r.chips, -rest.base, "words after the first should score nothing");
   });
 
   test("THE FAMINE pays 150 a word and shrinks the hand and the discards", () => {
     assert.strictEqual(compare("famine", [card("OAK", ["PLA"])]).chips, 150);
-    assert.strictEqual(compare("famine", [card("OAK", ["PLA"]), card("TIDE", ["WET"])]).chips, 300);
+    assert.strictEqual(compare("famine", [card("OAK", ["NAT"]), card("TIDE", ["NAT"])]).chips, 300);
     assert.strictEqual(sigil("famine").hand, -3);
 
     api.newRun("famine");
@@ -311,10 +321,15 @@ describe("the flawed Lenses take something back", () => {
 
   test("THE CURSE multiplies by 3.5 and doubles every target", () => {
     assert.strictEqual(compare("curse", [card("OAK", ["PLA"])]).with_.mult, 3.5);
+    /* Against the round's own target, not TARGETS[0] raw: every mode scales
+       the table by its curve, so the raw number is nobody's round 1. */
+    api.newRun("curse");
+    api.startRound();
+    const plain = api.G.target;
     api.newRun("curse");
     api.G.lenses = [sigil("curse")];
     api.startRound();
-    assert.strictEqual(api.G.target, api.TARGETS[0] * 2);
+    assert.strictEqual(api.G.target, plain * 2);
   });
 
   test("a flawed Lens is marked as one, so the shop can warn about it", () => {
@@ -368,7 +383,7 @@ describe("the table as a whole", () => {
   test("a growing Lens always says so in its description", () => {
     api.LENSES.forEach(l => {
       if (l.grows) {
-        assert.ok(/for every round you have held this Lens/.test(l.d),
+        assert.ok(/more each round you keep it/.test(l.d),
           l.n + " grows but does not tell the player");
       }
     });
