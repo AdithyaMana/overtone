@@ -3810,10 +3810,6 @@ function newRun(seedStr, fresh){
     roundLines: [],
     /* which Lens in the rail is opened out to its full rule */
     openLens: null,
-    /* a round result deferred while the opening tutorial finishes */
-    heldResult: null,
-    /* the opening tutorial's play is given back once, per run */
-    tutRefunded: false,
     interpreterUsed: false,
     interpretedWord: null,
     animating: false,
@@ -3832,8 +3828,6 @@ function newRun(seedStr, fresh){
   }
 
   for(const k in SEEN) delete SEEN[k];
-  /* Same reason as in startTutorial(): a new board owes the lesson nothing. */
-  tutSpentPlay = false;
   G.coachStep = coachDone() ? null : "pick";
   startRound();
 }
@@ -4292,6 +4286,16 @@ async function play(){
      selling something real when they say "play exactly 1 word", rather than
      describing a play everybody already had. */
   if(G.animating || G.selected.length < minPlay() || G.plays<=0) return;
+  /* The lesson does not spend the round it is teaching in. It used to ask for
+     a PLAY, which meant a first-timer who did as they were told arrived at
+     round 1 a play down - so the play was handed back, and handing it back
+     needed a gate against replaying the lesson from Help to farm free plays,
+     and a held result so a taught hand that cleared the round did not drop the
+     Bookseller on top of step 7. None of that is here any more, because the
+     thing all of it was propping up is gone: the lesson costs nothing because
+     it spends nothing. Guarded here rather than on the button alone, since
+     Enter and D reach the same two functions. */
+  if(tutActive()) return;
   if(G.mustForfeit && !G.forfeited){
     toast("THE FORFEIT: give a word up first. Pick one and DISCARD.");
     SFX.deny(); buzz([8,45,8]);
@@ -4309,14 +4313,6 @@ async function play(){
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
   G.selected = [];
   G.plays--;
-  /* A play spent inside the lesson is given back when the lesson ends - ONE of
-     them. PLAY stays enabled while the overlay is up, so a player who hits it
-     twice spent two and would come out ahead of somebody who skipped. See
-     refundTutorialPlay(). */
-  if(tutActive()){
-    if(tutSpentPlay) tutRefundable = false;
-    tutSpentPlay = true;
-  }
   /* After resolve(), never before: the line is paid at the overtones it had
      when the player laid it, and they tire for the next one. An overtone that
      just scored is dull, and pays nothing until it recovers - so the strongest
@@ -4485,30 +4481,6 @@ async function play(){
   G.animating = false;
   document.getElementById("app").classList.remove("resolving");
 
-  /* The opening tutorial has to be allowed to finish saying what it came to
-     say. Now that it asks for all three cards, a good first hand can clear
-     round 1 outright — which would drop the Bookseller on top of step 7 and
-     end the lesson two beats early, on the one screen that explains why Lenses
-     exist.
-
-     So while the overlay is up the round is held open, and the result lands the
-     moment it closes. Nothing is faked to do it: the hand scores exactly what
-     it scored and the board shows the real number. The only thing deferred is
-     the celebration. */
-  if(tutActive() && (G.roundScore >= G.target || G.plays <= 0)){
-    G.heldResult = G.roundScore >= G.target ? "won" : "lost";
-    draw(handSize() - G.hand.length);
-    document.getElementById("stageHint").textContent = idleHint();
-    render();
-    /* Step 7 is reached off `G.plays < 4`, which is true at the TOP of play() —
-       so its text was written before the hand had scored, and told a player who
-       had just cleared the round to go and clear it. Re-render now that the
-       result is in, and reposition the spotlight against the board as it now
-       stands. */
-    renderTut();
-    return;
-  }
-
   if(G.roundScore >= G.target){ await celebrate(); winRound(); return; }
   if(G.plays <= 0){ await lament(); endRun(false); return; }
 
@@ -4588,6 +4560,9 @@ function flashLens(i){
 
 function discardSel(){
   if(G.animating || G.selected.length===0 || G.discards<=0) return;
+  /* Same reason as play(): a discard spent during the lesson is a discard the
+     round never gets back, and no step asks for one. */
+  if(tutActive()) return;
   const cards = G.hand.filter(function(c){ return G.selected.indexOf(c.id)>=0; });
   G.discard = G.discard.concat(cards);
   G.hand = G.hand.filter(function(c){ return G.selected.indexOf(c.id)===-1; });
@@ -5777,46 +5752,61 @@ function toggleSel(id){
   /* coachSet lives in render(), which this path deliberately skips — without
      this the coach never leaves step one and the Play prompt never appears. */
   coachSet(G.coachStep);
+  /* A tutorial step that reads the line back has to follow the line. Drawn
+     once when the step opened, it described the two words that were down at
+     that moment and then sat there unchanged while the player laid a third or
+     reordered them — under a caption telling them to do exactly that. */
+  if(tutActive() && TUT[tutStep] && TUT[tutStep].live) renderTut();
 }
 
 /* ---------- the opening tutorial ----------
-   Eight beats on the real board with the real deck. Three of them wait for the
-   player to actually do the thing rather than read that they could — a
-   tutorial you can finish without touching the game has taught nothing.
+   Eight beats on the real board with the real deck. Two of them wait for the
+   player to tap a card, because a tutorial you can finish without touching the
+   game has taught nothing, and a tap costs nothing: tap again and the word
+   comes back up.
 
-   Two of those waits cost nothing and undo themselves: a tap lays a word and
-   another tap picks it back up. The third asked for a PLAY — a committed line
-   and one of the round's three plays — and it carried no Next, so the only way
-   past it was Skip, which ends the lesson. A first-timer who did not want to
-   commit a line they had not chosen had to quit the thing teaching them. It is
-   an invitation now: it still advances the instant you play, and there is a
-   way by. */
+   It used to want a PLAY as well, and that was a mistake with a long tail. A
+   committed line and one of the round's plays is a lot to ask of somebody who
+   has been playing for ninety seconds, and the step carried no Next, so the
+   only way past it was Skip. The lesson's only exit was to quit it. PLAY and
+   DISCARD are both off while the overlay is up now, and the lesson spends
+   nothing at all.
+
+   The copy is written for somebody who has never seen this before. Short
+   sentences, one idea a step, and the game's own words introduced rather than
+   assumed - a first-timer does not know what an overtone is, and telling them
+   a word "rings of HEAT" teaches the vocabulary and not the game. */
 const TUT = [
   { label: "Overtone",
     text: function(){
       const c = (G && G.hand && G.hand[0]) || null;
-      const rings = c ? c.t.slice(0, 3).map(function(t){
+      const tags = c ? c.t.slice(0, 3).map(function(t){
         return "<b>" + TAGS[t][0] + "</b>"; }).join(", ") : "";
-      return "Pluck a guitar string and fainter notes ring under it. Those are its "
-           + "<b>overtones</b>.<br><br>"
-           + (c ? "Words have them too. <b>" + c.w + "</b> rings of " + rings
-                  + " \u2014 what it means, printed on the card. "
-                : "Words have them too: what they mean, printed on the card. ")
-           + "Nineteen overtones run the whole game, and the game reads nothing else."
-           + '<span class="do">Six rounds. Each one wants a mood, and each asks for '
-           + 'more than the last.</span>'; } },
+      return (c ? "Every word here comes with tags. <b>" + c.w + "</b> is tagged "
+                  + tags + ". "
+                : "Every word here comes with tags, printed on the card. ")
+           + "Tags are the only thing the game looks at. It never reads the word "
+           + "itself.<br><br>"
+           + "The game calls them <b>overtones</b>, after the quieter notes that "
+           + "ring under a plucked guitar string. There are nineteen."
+           + '<span class="do">Six rounds. Each one wants more points than the '
+           + 'last.</span>'; } },
 
   { sel: ".blind", pos: "right", label: "What the round wants",
     text: function(){
-      return "<b>" + G.demand.n + "</b> wants "
+      return "This round is <b>" + G.demand.n + "</b>, and it wants "
            + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-           + ". Every word you lay that means either one pays <b>+25</b>."
-           + '<span class="do">Reach ' + G.target.toLocaleString() + '.</span>'; } },
+           + ". Play a word carrying either tag and it earns <b>+" + DEMAND_CHIPS
+           + " points</b> and <b>+" + DEMAND_MULT + " multiplier</b> on top of "
+           + "whatever else it does."
+           + '<span class="do">You need ' + G.target.toLocaleString()
+           + ' points to clear the round.</span>'; } },
 
   { sel: "#hand", pos: "top", label: "Lay a word",
     text: function(){
-      return "You are not picking three of seven. You are writing a <b>line</b>, "
-           + "left to right, and the order you tap is the order it is read."
+      return "Your words go down in a row, left to right. The row is your "
+           + "<b>line</b>. The order you tap them is the order they are read, and "
+           + "it changes what they score."
            + '<span class="do">Tap a word.</span>'; },
     done: function(){ return G.selected.length >= 1; } },
 
@@ -5824,19 +5814,20 @@ const TUT = [
      everything after it is detail. */
   { sel: "#hand", pos: "top", label: "The word beside it",
     text: function(){
-      return "Now lay another. What you score is not the two words \u2014 it is how "
-           + "they go <b>together</b>.<br><br>"
-           + "Two words that mean something of the same thing are <b>ALIKE</b>. Two "
-           + "that mean opposite things \u2014 hot and cold, dark and bright \u2014 are "
-           + "<b>OPPOSITE</b>, and that is worth far more. Two with nothing in common "
-           + "are <b>NOTHING</b>, and the line stops dead there."
-           + '<span class="do">Tap a second word. The board will name what the '
-           + 'rest of your hand would do.</span>'; },
+      return "Now tap another. The game scores the <b>pair</b>, not the two words "
+           + "on their own.<br><br>"
+           + "Share a tag and they are <b>ALIKE</b>. Have opposite tags, like hot "
+           + "and cold, and they are <b>OPPOSITE</b>, which pays a great deal "
+           + "more. Share nothing and they are <b>NOTHING</b>: the line stops "
+           + "there, and every word after it scores zero."
+           + '<span class="do">Tap a second word. The board will label the rest of '
+           + 'your hand with what each one would do next to it.</span>'; },
     done: function(){ return G.selected.length >= 2; } },
 
   /* Reads the board rather than guessing at it, so it can never tell a player
-     their words are doing something they are not. */
-  { sel: "#stageHint", pos: "bottom", label: "What yours are doing",
+     their words are doing something they are not. `live` redraws it whenever
+     the selection moves, because this is the step that asks them to move it. */
+  { sel: "#stageHint", pos: "bottom", label: "What yours are doing", live: true,
     text: function(){
       const cards = G.selected.map(function(id){
         return G.hand.find(function(c){ return c.id === id; });
@@ -5845,66 +5836,63 @@ const TUT = [
       const said = jr.joins.map(function(j, i){
         const a = cards[i].w, b = cards[i + 1].w;
         if(j.kind === "paradox")
-          return "<b>" + a + "</b> and <b>" + b + "</b> are alike AND opposite at "
-               + "the same time. That is the rare one.";
+          return "<b>" + a + "</b> and <b>" + b + "</b> are alike and opposite at "
+               + "the same time. That is the rare one, and the best paid.";
         if(j.kind === "tension")
-          return "<b>" + a + "</b> and <b>" + b + "</b> mean opposite things.";
-        return "<b>" + a + "</b> and <b>" + b + "</b> mean something of the same thing.";
+          return "<b>" + a + "</b> and <b>" + b + "</b> have opposite tags.";
+        return "<b>" + a + "</b> and <b>" + b + "</b> share a tag.";
       }).join(" ");
       const quiet = jr.scored < cards.length
-        ? " Then it falls silent, and everything after that is a word you wrote "
-          + "for nothing."
+        ? " After that the line goes quiet, and the rest of it scores nothing."
         : "";
-      return (said || "These two have nothing to say to each other, so the line stops "
-             + "before it starts.") + quiet
-           + "<br><br>The counters price it as you build. What they cannot tell "
-           + "you is whether some OTHER five words would have paid more \u2014 "
-           + "that is yours to judge."
-           + '<span class="do">Swap the order and watch it change.</span>'; } },
+      return (said || "These two share nothing, so the line stops before it starts.")
+           + quiet
+           + "<br><br>Watch <b>POINTS</b> and <b>MULTIPLIER</b> at the top. They "
+           + "add your line up as you tap. What they cannot tell you is whether "
+           + "some other five words would have paid more. That part is yours."
+           + '<span class="do">Tap the words in a different order and watch the '
+           + 'numbers move.</span>'; } },
 
   { sel: "#stageHint", pos: "bottom", label: "The hands",
     text: function(){
-      return "Two opposite words make <b>THE CLASH</b>. Two that are alike and "
-           + "opposite at once make <b>THE TWIST</b>. Four whose pairs read the same "
-           + "backwards as forwards make <b>THE MIRROR</b>.<br><br>"
-           + "Those are the hands, the way a flush is a hand. They set your "
-           + "multiplier, and <b>every one your line makes pays</b>."
-           + '<span class="do">A longer line finds more of them \u2014 and has further '
-           + 'to fall.</span>'; } },
+      return "Some patterns have names, the way a flush has a name in poker. Two "
+           + "opposite words make <b>THE CLASH</b>. Two that are alike and "
+           + "opposite at the same time make <b>THE TWIST</b>. A line that reads "
+           + "the same backwards makes <b>THE MIRROR</b>.<br><br>"
+           + "These are your <b>hands</b>. They raise the multiplier, and you are "
+           + "paid for every one your line makes."
+           + '<span class="do">Longer lines make more hands. They also have more '
+           + 'places to break.</span>'; } },
 
-  { sel: "#playBtn", pos: "top", label: "Play it",
+  /* No longer asks for a PLAY, so it can say what both buttons do instead of
+     spending its whole span on one of them. */
+  { sel: "#playBtn", pos: "top", label: "The two buttons",
     text: function(){
-      /* Read off the round rather than written down. Both numbers move with
-         the difficulty, and both used to be spelled out in words. */
       const WORDS = ["no", "one", "two", "three", "four", "five"];
-      const cap1 = function(w){ return String(w).charAt(0).toUpperCase() + String(w).slice(1); };
-      /* The round's budget, not what is left of it. Read live it said "One
-         plays a round" the moment a play had been spent. */
-      const budget = (roundShape(G.round) || { plays: G.plays }).plays;
-      return cap1(WORDS[budget] || budget) + (budget === 1 ? " play" : " plays")
-           + " a round, and a line is "
+      const shape = roundShape(G.round) || { plays: G.plays, discards: G.discards };
+      return "<b>PLAY</b> scores your line and deals you fresh words. You get "
+           + (WORDS[shape.plays] || shape.plays) + " plays a round.<br><br>"
+           + "<b>DISCARD</b> swaps words out without scoring them, "
+           + (WORDS[shape.discards] || shape.discards) + " times a round. A line is "
            + (WORDS[LINE_MIN] || LINE_MIN) + " to " + (WORDS[maxPlay()] || maxPlay())
-           + " words. <b>Discard</b> swaps words instead, "
-           + (WORDS[(roundShape(G.round) || G).discards] || G.discards) + " times a round."
-           + '<span class="do">Hit PLAY. This one is on the house \u2014 you get '
-           + 'the play back when the lesson ends \u2014 or move on and play it '
-           + 'yourself.</span>'; },
-    done: function(){ return tutSpentPlay; },
-    soft: true, next: "Not yet" },
+           + " words long."
+           + '<span class="do">Both buttons are off until this lesson ends, so '
+           + 'nothing here can cost you a play.</span>'; } },
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
       const WORDS = ["no", "one", "two", "three", "four", "five"];
-      return "An overtone you just used goes <b>dull</b> for "
-           + (WORDS[FATIGUE_SPAN] || FATIGUE_SPAN) + " plays, so the best line "
-           + "this turn is never the best line next turn.<br><br>"
-           + "Clear the round and the <b>Bookseller</b> offers back a line you actually "
-           + "played. Keep it, and it pays again every time that hand comes round. "
-           + "That is your engine, and you wrote it."
+      return "A tag you just scored goes <b>dull</b> for "
+           + (WORDS[FATIGUE_SPAN] || FATIGUE_SPAN) + " plays and pays nothing "
+           + "while it rests. So the best line this turn will not be the best "
+           + "line next turn.<br><br>"
+           + "Clear a round and the <b>Bookseller</b> offers to sell you back a "
+           + "line you played. Buy it and it pays again every time you make that "
+           + "hand."
            + '<span class="do">'
            + (G.roundScore >= G.target
                 ? "You have cleared " + G.demand.n + ". The Bookseller is next."
-                : "That is the whole game. Go and clear " + G.demand.n + ".")
+                : "That is all of it. Go and clear " + G.demand.n + ".")
            + "</span>"; } }
 ];
 
@@ -5956,55 +5944,13 @@ function restoreHandOrder(){
 }
 
 let tutStep = -1, tutWatch = null;
-/* Whether the lesson has spent one of the round's plays, and whether this
-   lesson is one the game owes a play for at all. */
-let tutSpentPlay = false, tutRefundable = false;
 
 function tutActive(){ return tutStep >= 0; }
 
-/* The tutorial asks the player to actually PLAY a hand, because a tutorial you
-   can finish without touching the game has taught nothing. But a round is two
-   plays. So a first-timer who did exactly as they were told reached round 1
-   with one play to make the target, while anybody who pressed Skip had two -
-   being taught was a penalty, on the only screen in the game that teaches.
-
-   The hand was real and it scored and the player keeps every point of it. The
-   PLAY is on the house: it was not a play they chose, it was one the lesson
-   asked for. That leaves them exactly level with somebody who skipped, which
-   is the bar - not ahead of them, and no longer behind. */
-function refundTutorialPlay(){
-  const owed = tutSpentPlay;
-  tutSpentPlay = false;
-  if(!G || !owed) return;
-  /* Not a lesson the game owes for, or this run has already been paid. */
-  if(!tutRefundable || G.tutRefunded) return;
-  /* A round the taught hand already cleared is not short of a play, and the
-     shop pays 4 + plays + discards - so refunding here would hand a taught
-     player a dollar a skipper never sees. */
-  if(G.heldResult === "won" || G.roundScore >= G.target) return;
-  G.tutRefunded = true;
-  G.plays++;
-  /* A round that was held "lost" because the plays ran out has not run out of
-     plays any more, so the held result is no longer true. */
-  if(G.heldResult === "lost" && G.roundScore < G.target) G.heldResult = null;
-}
 function tutorialSeen(){ return store.get("tutorial", false); }
 
 function startTutorial(force){
   if(!force && tutorialSeen()) return;
-  /* A fresh lesson has spent nothing yet. Without this a player who starts a
-     new run mid-tutorial carries the old run's debt into it and is handed back
-     a play the new round never spent. */
-  tutSpentPlay = false;
-  /* And the play is only on the house when the lesson is the OPENING one.
-     Help always offers "Run the tutorial", so without this a player could open
-     it in any round, play a hand, press Skip, and be handed the play straight
-     back - as many times as they liked. Measured: four cycles left G.plays at
-     2 every time. A run the player can opt out of makes every balance number
-     in docs/specs/spec-two-curves/ describe a game nobody has to play.
-
-     So: the first round, nothing scored in it yet, and once per run. */
-  tutRefundable = !!G && G.round === 0 && G.roundScore === 0 && !G.tutRefunded;
   tutStep = 0;
   arrangeForTutorial();
   renderHand();
@@ -6034,23 +5980,12 @@ function endTutorial(completed){
   document.getElementById("tut").hidden = true;
   store.set("tutorial", true);
   restoreHandOrder();
-  /* Before the held result is read below: the refund can be what decides
-     whether the round is over at all. */
-  refundTutorialPlay();
   if(G){ renderHand(); renderControls(); }
   /* Finishing the tutorial makes the coach redundant. SKIPPING it does not —
      a player who dismisses a six-step overlay has not necessarily learned
      anything, and the coach is one unobtrusive line. Leave them the net. */
   if(completed) coachFinish();
   else if(G) coachSet(G.coachStep);
-
-  /* whatever the last hand earned, it lands now */
-  if(G && G.heldResult && !G.animating){
-    const held = G.heldResult;
-    G.heldResult = null;
-    if(held === "won") celebrate().then(winRound);
-    else lament().then(function(){ endRun(false); });
-  }
 }
 
 function renderTut(){
@@ -6060,12 +5995,8 @@ function renderTut(){
     s.label + " · " + (tutStep + 1) + " of " + TUT.length;
   document.getElementById("tutText").innerHTML = s.text();
   /* A step that waits on the player gets no Next — doing it is the button.
-     A SOFT step is the exception: it still advances the moment you do the
-     thing, and it also offers a way past, named for what it is. */
-  const tutN = document.getElementById("tutNext");
-  tutN.hidden = !!s.done && !s.soft;
-  tutN.textContent = s.next || "Next";
-  tutN.classList.toggle("primary", !s.soft);
+     Only the two taps wait now, and a second tap undoes either of them. */
+  document.getElementById("tutNext").hidden = !!s.done;
 
   const dots = document.getElementById("tutDots");
   dots.innerHTML = "";
@@ -6250,12 +6181,12 @@ const COACH = {
       ? "Lay two words side by side and see what they do to each other."
       : "Gold tags are what this round wants. Tap two or three words that have one.";
   },
-  /* This used to promise that the board had done the arithmetic for you. The
-     JOIN rebuild deliberately took the score preview away - judging the line
-     before you commit to it is the game - so the coach was telling a first-time
-     player to trust a number that is not on the screen. */
-  play:  "Hit PLAY. You find out what it was worth when you commit.",
-  score: "That's points × multiplier. Your hand and your tags add the points; Lenses multiply them."
+  /* Written twice against a board that had changed under it: first promising
+     a score preview that the JOIN rebuild had removed, then telling a player
+     they would only find out on commit, which stopped being true the day the
+     counters came back. It says what is on the screen now. */
+  play:  "Happy with the two counters at the top? Hit PLAY.",
+  score: "That is points × multiplier. Your hand and your tags make the points. Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
 function coachFinish(){ store.set("coached", true); if(G) G.coachStep = null; coachSet(null); }
@@ -6625,13 +6556,19 @@ function renderControls(){
   }
   const owed = G.mustForfeit && !G.forfeited;
   const tooShort = G.selected.length > 0 && G.selected.length < minPlay();
+  /* Both are off for the length of the lesson, so it cannot cost the round a
+     play or a discard whatever the player presses. */
+  const lesson = tutActive();
   document.getElementById("playBtn").disabled =
-    G.animating || G.selected.length===0 || tooShort || G.plays<=0 || owed;
-  /* Say which of the two it is, rather than greying out without a reason. */
-  document.getElementById("playBtn").title = owed
-    ? "THE FORFEIT: give a word up first"
+    G.animating || G.selected.length===0 || tooShort || G.plays<=0 || owed || lesson;
+  /* Say which of the three it is, rather than greying out without a reason. */
+  document.getElementById("playBtn").title = lesson
+    ? "Finish or skip the lesson first"
+    : owed ? "THE FORFEIT: give a word up first"
     : tooShort ? "A line is " + minPlay() + " words or more" : "";
-  document.getElementById("discardBtn").disabled = G.animating || G.selected.length===0 || G.discards<=0;
+  document.getElementById("discardBtn").disabled =
+    G.animating || G.selected.length===0 || G.discards<=0 || lesson;
+  document.getElementById("discardBtn").title = lesson ? "Finish or skip the lesson first" : "";
   document.getElementById("interpBtn").disabled = G.animating || G.interpreterUsed;
   document.getElementById("interpBtn").textContent = G.interpreterUsed ? "\u2713 Word added" : "+ Add word";
   document.getElementById("bankLabel").textContent = "$" + G.bank;
@@ -7186,34 +7123,38 @@ function showHelp(back){
   }).join("");
 
   showPanel(''
-    + '<h2>How Overtone works</h2>'
+    + '<h2>How to play</h2>'
     + '<div class="sub">Five rules</div>'
     + '<div class="why">'
-    +   '<p>Pluck a guitar string and fainter notes ring under the one you played. '
-    +   'Those are its <b>overtones</b>.</p>'
-    +   '<p>Words have them too. <b>FURNACE</b> rings of <b class="gold">HEAT</b>, '
-    +   '<b class="gold">TOOL</b>, <b class="gold">DANGER</b>. Those rings are the tags '
-    +   'on the card, and they are everything this game knows about a word \u2014 which '
-    +   'is the whole of it, because what you score is what two words do to each '
-    +   'other.</p>'
+    +   '<p>Every word in this game comes with tags. <b>FURNACE</b> is tagged '
+    +   '<b class="gold">HEAT</b>, <b class="gold">TOOL</b>, '
+    +   '<b class="gold">DANGER</b>.</p>'
+    +   '<p>Tags are the only thing the game looks at. It never reads the word '
+    +   'itself. What you score is what the tags on one word do to the tags on '
+    +   'the word beside it.</p>'
+    +   '<p>The game calls them <b>overtones</b>, after the quieter notes that '
+    +   'ring under a plucked guitar string. There are nineteen, and they are '
+    +   'listed at the bottom of this card.</p>'
     + '</div>'
     + '<div class="teach">'
     +   '<div class="teach-row"><div class="teach-n">1</div>'
-    +     '<p>You write a <b>line</b>: two to five words, in an order. Scoring reads each '
-    +     '<b>pair</b> in turn, so where a word sits is as much of the decision as which '
-    +     'word it is.</p></div>'
+    +     '<p>Play two to five words in a row. The row is your <b>line</b>. The '
+    +     'game scores each neighbouring <b>pair</b> in turn, so where you put a '
+    +     'word matters as much as which word you pick.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">2</div>'
-    +     '<p>Two words that mean something of the same thing are <b>ALIKE</b> \u2014 <b>+'
-    +     JOIN_RESONANCE + '</b> for each thing they share. Two that mean opposite things '
-    +     'are <b class="gold">OPPOSITE</b> \u2014 <b>+' + JOIN_TENSION + ' to the '
-    +     'multiplier</b>, which is worth far more. Two with <b>NOTHING</b> in common '
-    +     'stop the line dead: the words after them score nothing at all.</p>'
-    +     '<p>Once a word is laid, the board names which of those every other card '
-    +     'in your hand would be, so you never have to work it out.</p></div>'
+    +     '<p>Two words that share a tag are <b>ALIKE</b>: <b>+' + JOIN_RESONANCE
+    +     '</b> points for every tag they share. Two with opposite tags are '
+    +     '<b class="gold">OPPOSITE</b>: <b>+' + JOIN_TENSION + ' to the '
+    +     'multiplier</b>, which is worth a great deal more. Two with nothing in '
+    +     'common are <b>NOTHING</b>, and they stop the line: every word after '
+    +     'them scores zero.</p>'
+    +     '<p>Once you have laid a word down, the board labels every other card '
+    +     'in your hand with what it would do next to it, so you never have to '
+    +     'work it out yourself.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">3</div><div>'
-    +     '<p>What those add up to is a <b>hand</b>, the way a flush is a hand \u2014 '
-    +     'THE CLASH, THE TWIST, THE CHORUS, THE BUILD, THE MIRROR \u2014 and every one '
-    +     'your line makes pays. '
+    +     '<p>Some patterns have names, the way a flush has a name in poker: '
+    +     'THE CLASH, THE TWIST, THE CHORUS, THE BUILD, THE MIRROR. Those are '
+    +     '<b>hands</b>, and you are paid for every one your line makes. '
     +     '<button class="figlink" id="helpFigs" type="button">All five hands</button></p>'
     +     '</div></div>'
     +   '<div class="teach-row"><div class="teach-n">4</div>'
@@ -7225,14 +7166,17 @@ function showHelp(back){
        curve's numbers for the round on their own table. */
     +     '<p>Your score is <b>points &times; multiplier</b>. Round 1 wants '
     +     Math.round(TARGETS[0] * runDifficulty().curve[0]).toLocaleString()
-    +     ', round ' + ROUNDS + ' wants '
+    +     ' points. Round ' + ROUNDS + ' wants '
     +     Math.round(TARGETS[ROUNDS-1] * runDifficulty().curve[ROUNDS-1]).toLocaleString()
-    +     '. The board <b>never</b> tells you the '
-    +     'total before you commit \u2014 judging it is the game.</p></div>'
+    +     '. The two counters at the top of the board add your line up as you '
+    +     'build it. What they cannot tell you is whether some other five words '
+    +     'would have paid more, and that is the game.</p></div>'
     +   '<div class="teach-row"><div class="teach-n">5</div>'
-    +     '<p>An overtone you just used goes <b>dull</b> for ' + FATIGUE_SPAN + ' plays. '
-    +     'Clear a round and the Bookseller offers back a line you played: keep it and it '
-    +     'pays again every time its figure returns. Five slots, shared with Lenses.</p></div>'
+    +     '<p>A tag you just scored goes <b>dull</b> for ' + FATIGUE_SPAN + ' plays '
+    +     'and pays nothing until it recovers. Clear a round and the Bookseller '
+    +     'offers to sell you back a line you played: buy it and it pays again '
+    +     'every time you make that hand. You have five slots, shared with '
+    +     'Lenses.</p></div>'
     + '</div>'
 
     + '<p>' + (function(){
@@ -7248,14 +7192,14 @@ function showHelp(back){
             + at.map(function(r){ return r + 1; }).join(", ").replace(/, ([^,]*)$/, " and $1")
             + ' change a rule instead of raising the number.';
       })()
-    + ' The Bookseller names the next one before you spend.</p>'
+    + ' The Bookseller tells you which one is coming before you spend.</p>'
 
     + '<div class="worked join">'
     +   cardHTML(exA) + cardHTML(exB)
     +   '<div class="worked-sum">'
-    +     '<b>' + exA.w + '</b> and <b>' + exB.w + '</b> are both of <b>NATURE</b>, '
-    +     'and they are opposite twice over \u2014 hot against cold, and wet against '
-    +     'hot. Alike and opposite at the same time is <b class="gold">'
+    +     '<b>' + exA.w + '</b> and <b>' + exB.w + '</b> both carry <b>NATURE</b>, '
+    +     'and they clash twice over: hot against cold, and wet against hot. '
+    +     'Alike and opposite at the same time is <b class="gold">'
     +     (exFig ? exFig.n : "a hand") + '</b>, the rarest thing two words can do.'
     +     '<span class="worked-tot">' + exChips.toLocaleString() + ' \u00d7 '
     +     exMult + ' = ' + (exChips * exMult).toLocaleString() + ' points</span>'

@@ -202,10 +202,12 @@ test.describe("first visit", () => {
     await open(page);
     await page.click("#helpBtn");
     const panel = page.locator("#panel");
-    await expect(panel).toContainText("How Overtone works");
+    await expect(panel).toContainText("How to play");
     await expect(panel).toContainText("points × multiplier");
-    /* the question the rules card never used to answer */
-    await expect(panel).toContainText("Take three words");
+    /* how long a line is, which is the first thing a player needs and which
+       the card answered with "Take three words" for a release after a line
+       stopped being three of anything */
+    await expect(panel).toContainText("two to five words");
     /* the worked example and the overtone legend both carry the rules */
     await expect(panel.locator(".worked")).toBeVisible();
     await expect(panel.locator(".legend .leg")).toHaveCount(19);
@@ -979,7 +981,7 @@ test.describe("layout", () => {
   test("help can be reopened at any time", async ({ page }) => {
     await open(page);
     await page.click("#helpBtn");
-    await expect(page.locator("#panel")).toContainText("How Overtone works");
+    await expect(page.locator("#panel")).toContainText("How to play");
     await page.keyboard.press("Escape");
     await expect(page.locator("#veil")).toBeHidden();
   });
@@ -1157,8 +1159,8 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
     await page.click("#tutNext");                      // -> the shape of your hand
-    await page.click("#tutNext");                      // -> the score, where PLAY is next
-    await page.click("#playBtn");
+    await page.click("#tutNext");                      // -> the two buttons
+    await page.click("#tutNext");                      // -> why you come back
     await expect(page.locator("#tutStep")).toContainText(at(STEPS));
     /* The last step names the reason to come back: overtones tire, and the
        Bookseller hands you back a line you wrote. It used to name a Lens. */
@@ -1167,10 +1169,9 @@ test.describe("the opening tutorial", () => {
     await expect(last).toContainText("Bookseller");
   });
 
-  test("advances off a real play, then finishes and stays gone", async ({ page }) => {
+  test("runs end to end on taps alone, then finishes and stays gone", async ({ page }) => {
     await page.goto(GAME);
     await enterGame(page);
-    /* straight to the play step */
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await expect(page.locator("#tutStep")).toContainText(at(4));
@@ -1179,14 +1180,12 @@ test.describe("the opening tutorial", () => {
     await expect(page.locator("#tutStep")).toContainText(at(5));
     /* Step 5 reads the board back rather than naming a figure — it says what
        the words the player actually laid are doing to each other. */
-    await expect(page.locator("#tutText")).toContainText("The counters price it as you build");
+    await expect(page.locator("#tutText")).toContainText("Watch");
     await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(6));
     await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(7));
-    await expect(page.locator("#tutNext")).toHaveText("Not yet");
-
-    await page.click("#playBtn");
+    await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(STEPS));
     await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();
@@ -1198,31 +1197,40 @@ test.describe("the opening tutorial", () => {
     await expect(page.locator("#tut")).toBeHidden();
   });
 
-  test("does not make you spend a play to reach the end", async ({ page }) => {
-    /* The lesson asks for a PLAY, and that step used to be the only way
-       forward: no Next, so a player who did not want to commit a line they had
-       not chosen could only quit the thing teaching them. Asking is fine.
-       Being the only door is not. */
+  test("cannot spend the round it is teaching in", async ({ page }) => {
+    /* The lesson used to ask for a PLAY, and that step had no Next, so the
+       only way past it was Skip: a player who did not want to commit a line
+       they had not chosen had to quit the thing teaching them. Asking was the
+       wrong shape. PLAY and DISCARD are simply off for the length of it, so
+       there is no play to ask for, no play to hand back, and no way for the
+       lesson to leave a first-timer worse off than somebody who skipped. */
     await page.goto(GAME);
     await enterGame(page);
     for (let i = 0; i < 2; i++) await page.click("#tutNext");
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
-    for (let i = 0; i < 2; i++) await page.click("#tutNext");
-    await expect(page.locator("#tutStep")).toContainText(at(7));
+    await expect(page.locator("#tutStep")).toContainText(at(5));
 
-    const before = await page.evaluate(() => G.plays);
-    await page.click("#tutNext");
-    await expect(page.locator("#tutStep")).toContainText(at(STEPS));
-    await page.click("#tutNext");
+    /* a full line is selected and both buttons still say no, with a reason */
+    await expect(page.locator("#playBtn")).toBeDisabled();
+    await expect(page.locator("#playBtn")).toHaveAttribute("title", /lesson/i);
+    await expect(page.locator("#discardBtn")).toBeDisabled();
+    /* and the keyboard reaches the same two functions, so it is barred too */
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("d");
+    const mid = await page.evaluate(() => ({ plays: G.plays, discards: G.discards }));
+
+    for (let i = 0; i < 4; i++) await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();
 
-    /* nothing played, nothing scored, nothing refunded - the round is where a
-       player who pressed Skip on step 1 would have found it */
-    const after = await page.evaluate(() => ({ plays: G.plays, score: G.roundScore }));
-    expect(after.plays, "the lesson spent a play nobody made").toBe(before);
-    expect(after.score).toBe(0);
-    /* and the two words it had them lay are still selected, ready to play */
+    const after = await page.evaluate(() => ({
+      plays: G.plays, discards: G.discards, score: G.roundScore,
+      budget: PLAYS_PER_ROUND
+    }));
+    expect(mid).toEqual({ plays: after.budget, discards: after.discards });
+    expect(after.plays, "the lesson spent a play").toBe(after.budget);
+    expect(after.score, "the lesson scored something").toBe(0);
+    /* the two words it had them lay are still down, and now playable */
     await expect(page.locator("#hand .card.sel")).toHaveCount(2);
     await expect(page.locator("#playBtn")).toBeEnabled();
   });
@@ -1254,8 +1262,7 @@ test.describe("the opening tutorial", () => {
     await page.locator("#hand .card").nth(0).click();
     await page.locator("#hand .card").nth(1).click();
     await page.locator("#hand .card").nth(2).click();
-    for (let i = 0; i < 2; i++) await page.click("#tutNext");
-    await page.click("#playBtn");
+    for (let i = 0; i < 3; i++) await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(STEPS));
     await page.click("#tutNext");
     await expect(page.locator("#tut")).toBeHidden();

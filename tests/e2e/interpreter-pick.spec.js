@@ -112,7 +112,10 @@ test.describe("the game says what an overtone is", () => {
     await expect(why).toBeVisible();
     await expect(why).toContainText("overtones");
     await expect(why).toContainText("FURNACE");
-    /* the point a playtester could not find: the definition is not the game */
-    await expect(why).toContainText("never scores a point");
+    /* the point a playtester could not find: the tags are the game, and the
+       word itself is not read. This used to be worded "what a word means never
+       scores a point", which the JOIN rebuild made false - meaning is now the
+       only thing that scores. */
+    await expect(why).toContainText("never reads the word itself");
   });
 });

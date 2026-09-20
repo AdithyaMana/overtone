@@ -372,7 +372,7 @@ test.describe("the rules describe the game you are in", () => {
     await page.goto(GAME);
     await enterGame(page);
     await page.click("#helpBtn");
-    await expect(page.locator("#panel h2")).toContainText("How Overtone works");
+    await expect(page.locator("#panel h2")).toContainText("How to play");
   };
 
   test("the gentler mode is told it meets one Ordeal, at the end", async ({ page }) => {

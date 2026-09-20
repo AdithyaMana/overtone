@@ -94,19 +94,34 @@ test.describe("the tutorial teaches the figure it can actually see", () => {
     expect(covered.hint, "the tutorial card is covering the readout").toBeLessThanOrEqual(5);
   });
 
-  test("names the figure that is actually on the board", async ({ page }) => {
+  test("describes the words that are actually on the board", async ({ page }) => {
+    /* This step used to name the figure. Under JOIN it reads the PAIRS back
+       instead, because what each pair is DOING is the thing a player has to
+       learn - so what it has to agree with is the line they just laid. */
     await toShapeStep(page);
-    const seen = await page.evaluate(() => ({
-      onBoard: document.querySelector(".hand-name").textContent.trim(),
-      inCard: document.getElementById("tutText").textContent
-    }));
-    /* whatever the board says, the card has to agree with it */
-    if (seen.onBoard === "NO FIGURE") {
-      expect(seen.inCard).toMatch(/make <?b?>?nothing|make nothing/i);
-    } else {
-      expect(seen.inCard, "the card named a different figure than the board")
-        .toContain(seen.onBoard);
-    }
+    const seen = await page.evaluate(() => {
+      const line = G.selected.map(id => G.hand.find(c => c.id === id));
+      const jr = joinsOf(line);
+      return {
+        /* the scored part: a line that hits a silence stops there, and the
+           card names the words up to that point rather than all of them */
+        words: line.slice(0, jr.scored).map(c => c.w),
+        kinds: jr.joins.map(j => j.kind),
+        stops: jr.scored < line.length,
+        inCard: document.getElementById("tutText").textContent
+      };
+    });
+    for (const w of seen.words)
+      expect(seen.inCard, "the card left out a word it had scored").toContain(w);
+    /* joinsOf() breaks at the first silence, so these three are all of them */
+    const SAID = { resonance: "share a tag", tension: "have opposite tags",
+                   paradox: "alike and opposite" };
+    for (const k of seen.kinds)
+      expect(seen.inCard, "the card called a pair something it is not")
+        .toContain(SAID[k]);
+    if (seen.stops)
+      expect(seen.inCard, "the line stops and the card did not say so")
+        .toContain("goes quiet");
   });
 
   test("deals a hand whose first three words make a figure worth naming",
@@ -550,7 +565,7 @@ test.describe("the main menu", () => {
     await expect(page.locator("#veil")).toBeHidden();
 
     await page.click("#titleHelp");
-    await expect(page.locator("#panel h2")).toContainText("How Overtone works");
+    await expect(page.locator("#panel h2")).toContainText("How to play");
     await page.click("#helpBack");
     await expect(page.locator("#title")).toBeVisible();
 
@@ -700,13 +715,15 @@ test.describe("round over reads as a popup", () => {
 });
 
 /* ---------- being taught is not a penalty ----------
-   The tutorial asks the player to actually PLAY a hand, because a tutorial you
-   can finish without touching the game has taught nothing. A first-timer who
-   did exactly as they were told reached round 1 a play short of anybody who
-   pressed Skip. The play is handed back when the lesson ends. The asking is an
-   invitation now - these tests walk the path that accepts it. */
+   A first-timer who did exactly as the lesson told them used to reach round 1
+   a play short of anybody who pressed Skip, because the lesson asked for a
+   PLAY. It was handed back, and handing it back needed a gate against farming
+   free plays by replaying the lesson from Help. None of that is here now: PLAY
+   and DISCARD are off for the length of the overlay, so the lesson has nothing
+   to spend and nothing to repay. */
 test.describe("the tutorial does not cost the round it teaches in", () => {
-  /* Walk the whole lesson, playing the hand it asks for. */
+  /* Walk the whole lesson the way a player does: Next, and a tap where a step
+     is waiting for one. */
   async function walkTutorial(page) {
     /* endTutorial() writes overtone:tutorial, so a second walk in the same
        context would find no tutorial to walk. */
@@ -718,13 +735,8 @@ test.describe("the tutorial does not cost the round it teaches in", () => {
     await expect(page.locator("#tut")).toBeVisible();
     for (let guard = 0; guard < 40; guard++) {
       if (!(await page.locator("#tut").isVisible())) break;
-      /* A step with `done` is waiting on the player. The PLAY step offers a
-         Next as well, so that it is possible to reach the end without
-         committing a line - but this walk is the path that does what the
-         lesson asks, so the wait wins wherever there is one. */
-      const waits = await page.evaluate(() => !!(TUT[tutStep] && TUT[tutStep].done));
       const next = page.locator("#tutNext");
-      if (!waits && await next.isVisible()) {
+      if (await next.isVisible()) {
         await next.click(); await page.waitForTimeout(150); continue;
       }
       /* a step that waits on the player: give it what it is waiting for */
@@ -732,11 +744,6 @@ test.describe("the tutorial does not cost the round it teaches in", () => {
       if (picked < 2) {
         await page.locator("#hand .card").nth(picked).click();
         await page.waitForTimeout(300);
-        continue;
-      }
-      if (await page.locator("#playBtn").isEnabled()) {
-        await page.click("#playBtn");
-        await page.waitForTimeout(3500);
         continue;
       }
       await page.waitForTimeout(250);
@@ -748,56 +755,48 @@ test.describe("the tutorial does not cost the round it teaches in", () => {
       await page.goto(GAME);
       await enterGame(page);
       await page.click("#tutSkip");
-      const skipped = await page.evaluate(() => G.plays);
+      const skipped = await page.evaluate(() => ({ plays: G.plays, discards: G.discards }));
 
       /* same seed, same round, the other path through it */
       await walkTutorial(page);
-      const taught = await page.evaluate(() => G.plays);
+      const taught = await page.evaluate(() => ({ plays: G.plays, discards: G.discards }));
 
-      expect(taught, "being taught cost a play that skipping did not").toBe(skipped);
+      expect(taught, "being taught cost something skipping did not").toEqual(skipped);
     });
 
-  test("and keeps every point the hand it was taught with scored",
-    async ({ page }) => {
-      await walkTutorial(page);
-      const out = await page.evaluate(() => ({
-        score: G.roundScore, plays: G.plays, target: G.target, over: G.over
-      }));
-      expect(out.score, "the taught hand scored nothing").toBeGreaterThan(0);
-      expect(out.over, "the tutorial ended the run").toBe(false);
-      /* and round 1 is still there to be won */
-      expect(out.plays).toBeGreaterThan(0);
-    });
-
-  test("the play it spends is given back exactly once", async ({ page }) => {
+  test("leaves the round exactly where it found it", async ({ page }) => {
     await walkTutorial(page);
-    const after = await page.evaluate(() => ({ spent: tutSpentPlay, plays: G.plays }));
-    expect(after.spent, "the refund flag was left set").toBe(false);
-    const budget = await page.evaluate(() => PLAYS_PER_ROUND);
-    expect(after.plays, "more plays came back than went out").toBeLessThanOrEqual(budget);
+    const out = await page.evaluate(() => ({
+      score: G.roundScore, round: G.round, over: G.over,
+      plays: G.plays, budget: PLAYS_PER_ROUND
+    }));
+    expect(out.score, "the lesson scored something").toBe(0);
+    expect(out.plays, "the lesson spent a play").toBe(out.budget);
+    expect(out.round).toBe(0);
+    expect(out.over, "the lesson ended the run").toBe(false);
   });
 
-  test("replaying it from Help mid-run does not hand out free plays",
-    async ({ page }) => {
-      /* Help always offers "Run the tutorial". Without a gate a player could
-         open it in any round, play a hand, press Skip, and get the play back —
-         as often as they liked. */
-      await page.goto(GAME);
-      await enterGame(page);
-      await page.click("#tutSkip");
-      /* spend the round's first play for real, so the run is under way */
-      for (const k of ["1", "2"]) await page.keyboard.press(k);
-      await page.keyboard.press("Enter");
-      await page.waitForFunction(() => !G.animating, null, { timeout: 20000 });
-      const before = await page.evaluate(() => G.plays);
+  test("replaying it from Help mid-run costs nothing either", async ({ page }) => {
+    /* Help always offers "Run the tutorial". While the lesson refunded a play
+       this was an exploit - open it in any round, play a hand, press Skip, get
+       the play back, repeat. Now it is simply a read-through, and the only
+       thing worth checking is that it still leaves the round alone. */
+    await page.goto(GAME);
+    await enterGame(page);
+    await page.click("#tutSkip");
+    /* spend the round's first play for real, so the run is under way */
+    for (const k of ["1", "2"]) await page.keyboard.press(k);
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => !G.animating, null, { timeout: 20000 });
+    const before = await page.evaluate(() => ({ plays: G.plays, discards: G.discards }));
 
-      for (let i = 0; i < 3; i++) {
-        await page.evaluate(() => { hidePanel(); startTutorial(true); });
-        await expect(page.locator("#tut")).toBeVisible();
-        await page.click("#tutSkip");
-        await expect(page.locator("#tut")).toBeHidden();
-      }
-      expect(await page.evaluate(() => G.plays),
-        "replaying the tutorial handed back plays it never spent").toBe(before);
-    });
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => { hidePanel(); startTutorial(true); });
+      await expect(page.locator("#tut")).toBeVisible();
+      await page.click("#tutSkip");
+      await expect(page.locator("#tut")).toBeHidden();
+    }
+    expect(await page.evaluate(() => ({ plays: G.plays, discards: G.discards })),
+      "replaying the tutorial moved the round").toEqual(before);
+  });
 });
