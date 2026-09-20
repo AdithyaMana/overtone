@@ -831,12 +831,21 @@ button{ font-family: inherit; color: inherit; }
 /* An overtone that has just scored is RESTING. It pays nothing for ALIKE and
    nothing for the round's own tags until it recovers, which is a rule the help
    panel stated and the board never showed: a tag mid-rest looked exactly like
-   a tag that pays, and a resting tag the round wanted was drawn in gold. Faded
-   and struck through, because it is still there - opposition is never dulled,
-   so a resting tag can still clash with the word beside it. */
+   a tag that pays, and a resting tag the round wanted was drawn in gold.
+
+   A grey chip, not a paler one. The first try only lightened the lilac and
+   added a hairline strike, and side by side with a live tag at card size the
+   two were the same thing - the player it was built for said it did not look
+   different. A live tag is pale lilac on cream, so going PALER moves it
+   towards the card; going grey moves it away from both. Three states that
+   cannot be confused: gold pays double, lilac pays, grey struck pays nothing.
+
+   Struck rather than removed, because the overtone is still there -
+   opposition is never dulled, so a resting tag can still clash with the word
+   beside it. */
 .card .tg.dull{
-  background: #E9E5EE; color: var(--card-dim);
-  text-decoration: line-through; text-decoration-thickness: 1px;
+  background: #B4ADA0; color: #F4F1EA;
+  text-decoration: line-through; text-decoration-thickness: 1.5px;
 }
 .card.interpreted{
   box-shadow: 0 0 0 3px var(--lens), 0 4px 0 var(--card-edge), 0 7px 13px rgba(0,0,0,.4);
