@@ -211,6 +211,22 @@ test.describe("first visit", () => {
     /* the worked example and the overtone legend both carry the rules */
     await expect(panel.locator(".worked")).toBeVisible();
     await expect(panel.locator(".legend .leg")).toHaveCount(19);
+
+    /* The keep rule was stated wrong for a release: a kept line is free and
+       kept lines have a shelf of their own, and the card said you BOUGHT one
+       out of the five slots the Lenses use. Read off the constants, because
+       the wrong version was wrong for a reason nobody would notice reading it
+       - it was true before KEEP_SLOTS existed. */
+    const keep = await page.evaluate(() => ({
+      chips: KEPT_CHIPS, mult: KEPT_MULT, keeps: KEEP_SLOTS, lenses: LENS_SLOTS
+    }));
+    await expect(panel, "the card does not say what a kept line pays")
+      .toContainText("+" + keep.chips + " points");
+    await expect(panel).toContainText("+" + keep.mult + " multiplier");
+    await expect(panel, "the card gets the two shelves wrong")
+      .toContainText(keep.keeps + " kept lines and " + keep.lenses + " Lenses");
+    await expect(panel, "the card sells a line the Bookseller gives away")
+      .not.toContainText("buy it and it pays");
   });
 
   test("deals a full hand once the help card is dismissed", async ({ page }) => {

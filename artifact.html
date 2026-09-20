@@ -3822,7 +3822,7 @@ function newRun(seedStr, fresh){
     /* overtone -> plays until it wakes up */
     dull: {},
     /* lines the player kept. A Lens is bought; these are written, and they
-       share the same five slots. */
+       have a shelf of their own - KEEP_SLOTS, not the Lens slots. */
     kept: [],
     /* what was laid down this round, so the Bookseller can offer it back */
     roundLines: [],
@@ -3864,10 +3864,13 @@ function handSize(){
   return Math.max(4, n);
 }
 
-/* A Lens and a kept line cost the same thing: one of the five slots. Three
-   call sites used to count only the Lenses, so a rail holding two Lenses and
-   three kept lines read as "two of five" - and the offers stayed clickable
-   while buy() silently refused them. One answer, read everywhere. */
+/* Two shelves, counted apart. Kept lines used to compete for the five Lens
+   slots, and because they are free that made "keep five, buy nothing" strictly
+   better than anything on the shelf - so KEEP_SLOTS bounds them on their own.
+   One answer for each, read everywhere: three call sites once counted Lenses
+   only while the offers still cost a shared slot, so a rail holding two Lenses
+   and three kept lines read as "two of five" and the offers stayed clickable
+   while buy() silently refused them. */
 function slotsUsed(){ return G ? G.lenses.length : 0; }
 function slotsLeft(){ return LENS_SLOTS - slotsUsed(); }
 function slotsFull(){ return slotsLeft() <= 0; }
@@ -7203,9 +7206,11 @@ function showHelp(back){
     +   '<div class="teach-row"><div class="teach-n">5</div>'
     +     '<p>A tag you just scored goes <b>dull</b> for ' + FATIGUE_SPAN + ' plays '
     +     'and pays nothing until it recovers. Clear a round and the Bookseller '
-    +     'offers to sell you back a line you played: buy it and it pays again '
-    +     'every time you make that hand. You have five slots, shared with '
-    +     'Lenses.</p></div>'
+    +     'offers you back a line you played, for nothing: keep it and it pays '
+    +     '<b>+' + KEPT_CHIPS + ' points</b> and <b>+' + KEPT_MULT + ' multiplier</b> '
+    +     'every time you make that hand again. The hand, not those exact words. '
+    +     'You can hold ' + KEEP_SLOTS + ' kept lines and ' + LENS_SLOTS + ' Lenses, '
+    +     'on separate shelves.</p></div>'
     + '</div>'
 
     + '<p>' + (function(){
