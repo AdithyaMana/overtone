@@ -823,6 +823,16 @@ button{ font-family: inherit; color: inherit; }
   background: #DCD4E0; color: #453F54;
 }
 .card .tg.match{ background: var(--gold); color:#12181C; font-weight:700; }
+/* An overtone that has just scored is RESTING. It pays nothing for ALIKE and
+   nothing for the round's own tags until it recovers, which is a rule the help
+   panel stated and the board never showed: a tag mid-rest looked exactly like
+   a tag that pays, and a resting tag the round wanted was drawn in gold. Faded
+   and struck through, because it is still there - opposition is never dulled,
+   so a resting tag can still clash with the word beside it. */
+.card .tg.dull{
+  background: #E9E5EE; color: var(--card-dim);
+  text-decoration: line-through; text-decoration-thickness: 1px;
+}
 .card.interpreted{
   box-shadow: 0 0 0 3px var(--lens), 0 4px 0 var(--card-edge), 0 7px 13px rgba(0,0,0,.4);
 }
@@ -5693,10 +5703,15 @@ function cardEl(c, staticCard){
   tags.className = "tags";
   /* Sorted on a COPY: c.t is game state and the Lenses read it. Matching tags
      go first so that on a phone, where the row is capped at two lines, what
-     falls out of sight is never a tag that scores. */
-  const shown = !wordKnown(c.w) ? [] : c.t.slice().sort(function(a, b){
+     falls out of sight is never a tag that scores. A tag the round wants but
+     which is resting scores nothing, so it does not get that place. */
+  const resting = dullTags();
+  const pays = function(t){
     const m = G && G.demand ? G.demand.tags : [];
-    return (m.indexOf(b) >= 0) - (m.indexOf(a) >= 0);
+    return m.indexOf(t) >= 0 && !resting[t];
+  };
+  const shown = !wordKnown(c.w) ? [] : c.t.slice().sort(function(a, b){
+    return pays(b) - pays(a);
   });
   if(!wordKnown(c.w)){
     const q = document.createElement("span");
@@ -5706,9 +5721,14 @@ function cardEl(c, staticCard){
   }
   shown.forEach(function(t){
     const s = document.createElement("span");
-    const match = G && G.demand && G.demand.tags.indexOf(t) >= 0;
-    s.className = "tg" + (match ? " match" : "");
+    const n = resting[t] || 0;
+    /* Resting beats matching. A dull tag pays neither the join nor the round,
+       and demandHits() has always excluded it - so a gold chip on one was the
+       board promising points it had already decided not to pay. */
+    s.className = "tg" + (n ? " dull" : (pays(t) ? " match" : ""));
     s.textContent = TAGS[t][0];
+    if(n) s.title = TAGS[t][0] + " is resting. It wakes up in "
+                  + n + (n === 1 ? " play." : " plays.");
     tags.appendChild(s);
   });
 

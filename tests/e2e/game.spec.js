@@ -349,6 +349,39 @@ test.describe("playing a hand", () => {
       expect(ascetic).toContain("ASCETIC");
     });
 
+  test("says which overtones are resting, and stops gilding the ones that are",
+    async ({ page }) => {
+      /* An overtone that has just scored pays nothing for ALIKE and nothing
+         for the round until it recovers - demandHits() has always excluded it
+         - and the card drew it exactly like one that pays, in gold when the
+         round wanted it. A rule the help panel stated and the board hid. */
+      await open(page);
+      const seen = await page.evaluate(() => {
+        const want = G.demand.tags[0];
+        const mk = (w, t) => makeCard({ w, t }, false);
+        G.hand = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN"]
+          .map(w => mk(w, [want, "NAT"]));
+        /* exactly what a play that scored it leaves behind */
+        G.dull = {}; G.dull[want] = FATIGUE_SPAN;
+        G.selected = []; render();
+        const tg = [...document.querySelectorAll("#hand .card .tg")];
+        return {
+          want: TAGS[want][0],
+          live: TAGS.NAT[0],
+          dull: tg.filter(e => e.classList.contains("dull")).map(e => e.textContent),
+          gold: tg.filter(e => e.classList.contains("match")).map(e => e.textContent),
+          told: tg.filter(e => e.classList.contains("dull")).every(e => /resting/.test(e.title))
+        };
+      });
+      expect(seen.dull, "a resting overtone is drawn like one that pays")
+        .toContain(seen.want);
+      expect(seen.dull, "an overtone that is awake was drawn as resting")
+        .not.toContain(seen.live);
+      expect(seen.gold, "the board gilded an overtone it has decided not to pay for")
+        .not.toContain(seen.want);
+      expect(seen.told, "a resting overtone does not say when it wakes").toBe(true);
+    });
+
   test("says the order matters once a Lens actually reads position", async ({ page }) => {
     await open(page);
     /* On the idle board, which is where the hint lives: lay a word and the
