@@ -14,7 +14,7 @@ Overtone ships two difficulty settings and neither is the thing its name promise
 
 Underneath, difficulty is not data. It is 24 hardcoded `id === "apprentice"` / `id === "scholar"` tests spread across `index.html` — the ordeal schedule, the target curve, the reckoning exemption, the unlock gate, the storage keys, the run-end offers. Which mode is the gentle one is an assumption baked into two dozen branches rather than a property anybody can read or change.
 
-At the same time the board states four things the game stopped doing when the verb became JOIN. It tells a first-time player to pick up to three words when a line is five, and to trust a score preview that was deliberately removed. And the tutorial spends one of the round's two plays teaching, so a beginner who does exactly as instructed probably loses the first round they ever see.
+At the same time the board states four things the game stopped doing when the verb became JOIN. It tells a first-time player to pick up to three words when a line is five, and to trust a score preview that was deliberately removed. And the tutorial spends one of the round's two plays teaching, so a beginner who does exactly as instructed probably loses the first round they ever see. *(The round is three plays since; the refund below settles it either way.)*
 
 ## Capabilities
 
@@ -23,8 +23,8 @@ At the same time the board states four things the game stopped doing when the ve
   - **success:** `grep` over `index.html` returns zero occurrences of "Pick up to 3 words", "already worked out what you'd get", and — outside the `FIGURES` table's own `id` strings — the words "ring together", "pull against", "silence" and "figure" used as player-facing nouns. The board's idle hint states the real cap by reading `maxPlay()`, and reads correctly at cap 2, 3 and 5. The panel reached by tapping the hand name uses ALIKE / OPPOSITE / BOTH / NOTHING and calls the five shapes hands.
 
 - **CAP-2 — The tutorial does not cost the round it teaches in**
-  - **intent:** A player finishes the opening tutorial no worse off than a player who skipped it, so that being taught is never a penalty.
-  - **success:** A run that completes the tutorial reaches the end of the tutorial with the same number of plays remaining as a run that skipped it, verified in an e2e spec that walks both paths and compares `G.plays`. Round 1 is winnable afterwards from the position the tutorial leaves.
+  - **intent:** A player finishes the opening tutorial no worse off than a player who skipped it, so that being taught is never a penalty — and is never made to commit a line to get out of a step, so that being taught is not a thing you have to quit.
+  - **success:** A run that completes the tutorial reaches the end of the tutorial with the same number of plays remaining as a run that skipped it, verified in an e2e spec that walks both paths and compares `G.plays`. Round 1 is winnable afterwards from the position the tutorial leaves. *(Added on player feedback:)* the PLAY step asks rather than insists — every step of the lesson can be left without abandoning the lesson, verified in an e2e spec that reaches the last step without playing and finds `G.plays` and `G.roundScore` untouched.
 
 - **CAP-3 — Difficulty is data, not branches**
   - **intent:** Everything that makes one mode different from the other is a declared property of that mode, so that changing which mode is gentle is a data edit rather than an audit of the whole file.

@@ -1179,12 +1179,12 @@ test.describe("the opening tutorial", () => {
     await expect(page.locator("#tutStep")).toContainText(at(5));
     /* Step 5 reads the board back rather than naming a figure — it says what
        the words the player actually laid are doing to each other. */
-    await expect(page.locator("#tutText")).toContainText("The board says what it can see");
+    await expect(page.locator("#tutText")).toContainText("The counters price it as you build");
     await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(6));
     await page.click("#tutNext");
     await expect(page.locator("#tutStep")).toContainText(at(7));
-    await expect(page.locator("#tutNext")).toBeHidden();
+    await expect(page.locator("#tutNext")).toHaveText("Not yet");
 
     await page.click("#playBtn");
     await expect(page.locator("#tutStep")).toContainText(at(STEPS));
@@ -1196,6 +1196,35 @@ test.describe("the opening tutorial", () => {
     await enterGame(page);
     await expect(page.locator("#hand .card")).toHaveCount(7);
     await expect(page.locator("#tut")).toBeHidden();
+  });
+
+  test("does not make you spend a play to reach the end", async ({ page }) => {
+    /* The lesson asks for a PLAY, and that step used to be the only way
+       forward: no Next, so a player who did not want to commit a line they had
+       not chosen could only quit the thing teaching them. Asking is fine.
+       Being the only door is not. */
+    await page.goto(GAME);
+    await enterGame(page);
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await page.locator("#hand .card").nth(0).click();
+    await page.locator("#hand .card").nth(1).click();
+    for (let i = 0; i < 2; i++) await page.click("#tutNext");
+    await expect(page.locator("#tutStep")).toContainText(at(7));
+
+    const before = await page.evaluate(() => G.plays);
+    await page.click("#tutNext");
+    await expect(page.locator("#tutStep")).toContainText(at(STEPS));
+    await page.click("#tutNext");
+    await expect(page.locator("#tut")).toBeHidden();
+
+    /* nothing played, nothing scored, nothing refunded - the round is where a
+       player who pressed Skip on step 1 would have found it */
+    const after = await page.evaluate(() => ({ plays: G.plays, score: G.roundScore }));
+    expect(after.plays, "the lesson spent a play nobody made").toBe(before);
+    expect(after.score).toBe(0);
+    /* and the two words it had them lay are still selected, ready to play */
+    await expect(page.locator("#hand .card.sel")).toHaveCount(2);
+    await expect(page.locator("#playBtn")).toBeEnabled();
   });
 
   test("can be skipped, and skipping sticks", async ({ page }) => {

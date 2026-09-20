@@ -5780,9 +5780,17 @@ function toggleSel(id){
 }
 
 /* ---------- the opening tutorial ----------
-   Six beats on the real board with the real deck. Two of them wait for the
+   Eight beats on the real board with the real deck. Three of them wait for the
    player to actually do the thing rather than read that they could — a
-   tutorial you can finish without touching the game has taught nothing. */
+   tutorial you can finish without touching the game has taught nothing.
+
+   Two of those waits cost nothing and undo themselves: a tap lays a word and
+   another tap picks it back up. The third asked for a PLAY — a committed line
+   and one of the round's three plays — and it carried no Next, so the only way
+   past it was Skip, which ends the lesson. A first-timer who did not want to
+   commit a line they had not chosen had to quit the thing teaching them. It is
+   an invitation now: it still advances the instant you play, and there is a
+   way by. */
 const TUT = [
   { label: "Overtone",
     text: function(){
@@ -5879,8 +5887,10 @@ const TUT = [
            + " words. <b>Discard</b> swaps words instead, "
            + (WORDS[(roundShape(G.round) || G).discards] || G.discards) + " times a round."
            + '<span class="do">Hit PLAY. This one is on the house \u2014 you get '
-           + 'the play back when the lesson ends.</span>'; },
-    done: function(){ return tutSpentPlay; } },
+           + 'the play back when the lesson ends \u2014 or move on and play it '
+           + 'yourself.</span>'; },
+    done: function(){ return tutSpentPlay; },
+    soft: true, next: "Not yet" },
 
   { sel: ".lensbar", pos: "bottom", label: "Why you come back",
     text: function(){
@@ -6049,8 +6059,13 @@ function renderTut(){
   document.getElementById("tutStep").textContent =
     s.label + " · " + (tutStep + 1) + " of " + TUT.length;
   document.getElementById("tutText").innerHTML = s.text();
-  /* a step that waits on the player gets no Next — doing it is the button */
-  document.getElementById("tutNext").hidden = !!s.done;
+  /* A step that waits on the player gets no Next — doing it is the button.
+     A SOFT step is the exception: it still advances the moment you do the
+     thing, and it also offers a way past, named for what it is. */
+  const tutN = document.getElementById("tutNext");
+  tutN.hidden = !!s.done && !s.soft;
+  tutN.textContent = s.next || "Next";
+  tutN.classList.toggle("primary", !s.soft);
 
   const dots = document.getElementById("tutDots");
   dots.innerHTML = "";

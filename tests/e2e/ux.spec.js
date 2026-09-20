@@ -701,10 +701,10 @@ test.describe("round over reads as a popup", () => {
 
 /* ---------- being taught is not a penalty ----------
    The tutorial asks the player to actually PLAY a hand, because a tutorial you
-   can finish without touching the game has taught nothing. But a round is two
-   plays, so a first-timer who did exactly as they were told reached round 1
-   with one play to make the target while anybody who pressed Skip had two. The
-   play is handed back when the lesson ends. */
+   can finish without touching the game has taught nothing. A first-timer who
+   did exactly as they were told reached round 1 a play short of anybody who
+   pressed Skip. The play is handed back when the lesson ends. The asking is an
+   invitation now - these tests walk the path that accepts it. */
 test.describe("the tutorial does not cost the round it teaches in", () => {
   /* Walk the whole lesson, playing the hand it asks for. */
   async function walkTutorial(page) {
@@ -718,9 +718,15 @@ test.describe("the tutorial does not cost the round it teaches in", () => {
     await expect(page.locator("#tut")).toBeVisible();
     for (let guard = 0; guard < 40; guard++) {
       if (!(await page.locator("#tut").isVisible())) break;
-      const step = await page.evaluate(() => tutStep);
+      /* A step with `done` is waiting on the player. The PLAY step offers a
+         Next as well, so that it is possible to reach the end without
+         committing a line - but this walk is the path that does what the
+         lesson asks, so the wait wins wherever there is one. */
+      const waits = await page.evaluate(() => !!(TUT[tutStep] && TUT[tutStep].done));
       const next = page.locator("#tutNext");
-      if (await next.isVisible()) { await next.click(); await page.waitForTimeout(150); continue; }
+      if (!waits && await next.isVisible()) {
+        await next.click(); await page.waitForTimeout(150); continue;
+      }
       /* a step that waits on the player: give it what it is waiting for */
       const picked = await page.evaluate(() => G.selected.length);
       if (picked < 2) {
