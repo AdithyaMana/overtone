@@ -4483,15 +4483,32 @@ async function play(){
     });
   }
   G.dull = G.dull || {};
+  /* What was resting WHILE this hand scored, taken before the counters move.
+     resolve() priced the line against exactly this map, so it is the record
+     of which overtones actually paid.
+
+     A tag that was already resting paid nothing for this line - joinOf drops
+     it from the shared tags and demandHits refuses it - and the code below
+     used to tire it anyway, on both counts: the pair loop was handed {} so it
+     would ignore rest, and the demand loop never asked. Playing the same tag
+     over and over therefore held its clock at FATIGUE_SPAN forever, so the
+     card's own "MIND is resting, it wakes up in 2 plays" was a promise the
+     board could break on the very next hand. Same shape as the gilding bug:
+     the board charging for something it had already decided not to pay. Rest
+     is earned by paying, so only a tag that paid is put back to sleep. */
+  const wasResting = {};
+  Object.keys(G.dull).forEach(function(t){ wasResting[t] = 1; });
   Object.keys(G.dull).forEach(function(t){
     if(--G.dull[t] <= 0) delete G.dull[t];
   });
   const tired = {};
   const paidLine = cards.slice(0, res.scored);
   for(let i = 0; i + 1 < paidLine.length; i++)
-    sharedTags(paidLine[i], paidLine[i + 1], {}).forEach(function(t){ tired[t] = 1; });
+    sharedTags(paidLine[i], paidLine[i + 1], wasResting).forEach(function(t){ tired[t] = 1; });
   paidLine.forEach(function(c){
-    c.t.forEach(function(t){ if(G.demand.tags.indexOf(t) >= 0) tired[t] = 1; });
+    c.t.forEach(function(t){
+      if(G.demand.tags.indexOf(t) >= 0 && !wasResting[t]) tired[t] = 1;
+    });
   });
   /* FATIGUE_SPAN, not FATIGUE_SPAN + 1. The counter is decremented at the top
      of the NEXT play's bookkeeping, not this one's, so the + 1 bought a third

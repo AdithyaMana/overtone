@@ -1,588 +1,401 @@
 # Overtone
 
-**A word roguelite where meaning is the physics.**
+A word roguelite. Every word carries a few overtones, which are plain meaning tags like HEAT,
+COLD, NATURE, DANGER. You lay words in a row, and the game scores what each word does to the word
+beside it. Two that share an overtone pay points. Two that mean opposite things pay multiplier.
+Two with nothing in common stop the line dead.
 
-Every word carries *overtones* — semantic tags like HEAT, MOTION, DANGER, TIME. Each round wants
-two of them (`THE FURNACE — wants HEAT or DANGER`) and sets a target. You play up to three
-word-cards, they resolve left to right, and every overtone that matches pays out. Between rounds
-you buy **Lenses** that rewrite how meaning scores, until the numbers get silly.
+That is the whole engine. The game never reads the word itself, only its overtones, so the
+decision is always about meaning rather than spelling.
 
-The tags are what a word *means*. The other half of the game is what a word *is*: three words of
-the same length, or three that each open on the letter the last one closed on, make a **figure**,
-and the figure is scored before anything reads a single tag. So the round pulls you one way and
-the shape of your hand pulls you another, and the order you tap them in is part of it.
+[Play it](https://playovertone.web.app). One click, nothing to install.
 
-Each card shows the icons for its own overtones on a plate tinted by the most distinctive one,
-so the picture and the scoring rule are views of the same data. Nineteen icons cover all 249
-words — and every word a player invents, which is the case a fixed art library could not serve.
+[DESIGN.md](DESIGN.md) is the long writeup. It was kept as the game was built, so its later
+sections are a record of how it got here rather than a description of what ships today. For the
+current scoring rules, read [`docs/specs/spec-the-verb-is-join/`](docs/specs/spec-the-verb-is-join/).
 
-Once per run, the **Interpreter** will take any word you type — your dog's name, your job
-title, anything — appraise its overtones, and shuffle it into your deck as a real card.
+## Why it works this way
 
-▶ **[Play it](https://playovertone.web.app)** — one click, nothing to install.
+The first version of this game was a checklist. You picked three of seven cards against two
+overtones the round had named, the board had already scored them before you committed, and two
+people playing the same daily played it identically and had nothing to say to each other
+afterwards. People told me the idea was good and playing it was boring. They were right, and the
+problem was not the difficulty curve. It was the verb.
 
-📄 **[Design writeup](DESIGN.md)** — pitch, loop, progression, money, AI, shipping, references.
+The fix was sitting in the data. Half of all word pairs in the lexicon share an overtone, 17% are
+in opposition, and 11.9% are both at once, and none of that was read at the moment of play. So
+the verb became JOIN. Words go down in an order and score against each other, and what you are
+deciding is what these two words do when you put them next to one another.
 
----
+Two rules follow from that and are not negotiable. Nothing in scoring reads spelling: not word
+length, not first letter, not last letter, not in a Lens either. And no new content was written
+to make the physics work. The 249 words, the 19 overtones and the opposition table all come out
+of material that already existed.
 
-## Play
+## How it plays
 
-- Pick up to **three** words carrying what the round wants. Each matching tag is **+25 points**.
-- The **shape** of your hand is scored first. Three words of the same length is THE COLUMN; three
-  climbing or falling by the same step is THE STAIR; each one opening on the letter the last one
-  closed on is THE CHAIN. Figures add points *and* lift the multiplier off 1.
-- A hand scores **points × multiplier**. Words and tags add points; the figure and then the
-  Lenses move the multiplier.
-- **Take three whenever you can.** A non-matching word still adds its own value, so a third word
-  is almost never a mistake — and clearing a round with plays and discards left pays more at the
-  shop. Play fewer only when a Lens pays you to (ASCETIC gives ×5 for exactly one word).
-- **Four plays, three discards** per round. Miss the target and the run ends.
-- The game opens on a **title screen**: your record, how hard you want it, and Play. It is a
-  stack of entries you walk with the arrow keys, not a settings page — the only prose on it is
-  the one line saying what the difficulty you are on does. The board's masthead holds the way
-  back to it, and one button beside that for sound.
-- Two difficulties. **SCHOLAR** is the game as balanced: three Ordeals, on rounds 4, 6 and 8.
-  **APPRENTICE** hands back a discard and meets **one Ordeal, on the last round** — and never one
-  of the three that take a mechanic away. Its targets are higher than a straight scaling to pay for
-  that, because it is not meant to be a smaller game: every decision survives and the numbers ask
-  more for them. A new player starts on APPRENTICE and **SCHOLAR is shut until they have finished a
-  run**, won or lost.
-- **The first flawed Lens you are offered gets a card of its own**, once — what it pays, what it
-  takes, and when that trade is worth making. They are on every shelf on both difficulties: keeping
-  them off APPRENTICE's was tried and measured, and it made the gentler mode *harder*, because six
-  of the biggest multipliers in the game are what its curve is built to be climbed with.
-- Clear a round and the **Bookseller** sells you a Lens. Lenses are the game; a deck that isn't
-  multiplying will stall around round 4.
+You hold seven words. You lay between two and five of them in a row, and the row is your line.
+The game walks the line left to right and scores each neighbouring pair:
 
-`1`–`7` pick · `Enter` play · `D` discard · `Space` hurry the scoring · `Esc` close
+- Alike: the pair shares one or more overtones. 40 points for each one they share.
+- Opposite: the pair carries an opposed pair of overtones, like HEAT against COLD. Plus 1 to the
+  multiplier, which is worth far more than the points.
+- Nothing: neither. The line stops there, and every word after it scores zero.
 
-## Figures
+There are eight opposed pairs. HEAT against COLD, DARK against BRIGHT, NATURE against TECH, MIND
+against BODY, WET against HEAT, and ABSTRACT against BODY, FOOD or TOOL.
 
-A tester put the problem better than the design notes had:
+On top of that, each round wants two overtones and prints them on the plaque. Every matching
+overtone you play is 55 points and half a multiplier. Beat the target and you go to the shop.
+Miss it and the run is over.
 
-> Everything revolves around the tags for the words, so the actual word on the card gets ignored
-> most of the time. A player can just see the tag needed and pick those cards.
+Three plays and three discards a round, six rounds a run.
 
-They were right. A word was a tag bundle with a number attached; its letters were decoration, and
-the order you played in changed nothing unless you happened to own one of four Lenses. The same
-tester found one run far more engaging than the rest — the run where they drew a Lens that paid
-for playing words biggest to smallest, because it made them read what they were actually holding.
+Where you put a word matters as much as which word you pick, because the scoring only ever looks
+at neighbours. Once you lay a word down, the board labels every other card in your hand with what
+it would do next to it, so nobody has to hold the table in their head.
 
-So that became the base game. Every hand is scored for its **figure** — its shape as an object,
-before anything reads its meaning — and the figure lands *first*, so every Lens that multiplies
-multiplies it too. It is where a poker hand sits in the game Overtone owes its shape to.
+`1`-`7` pick, `Enter` play, `D` discard, `Space` hurry the scoring, `Esc` close.
 
-| Figure | Two words | Three words | Reachable from a 7-card hand |
-|---|---|---|---|
-| **THE MONOGRAM** — every word opens on the same letter | +110 · +2 mult | +320 · +5 mult | 74% / **8%** |
-| **THE CHAIN** — each word opens on the letter the last one closed on | +90 · +2 mult | +220 · +4 mult | 87% / **36%** |
-| **THE COLUMN** — three words of exactly the same length | — | +150 · +3 mult | **55%** |
-| **THE STAIR** — three climbing or falling by the same step | — | +80 · +2 mult | **87%** |
-| **THE PAIR** — two of your words share a length | +30 · +1 mult | +30 · +1 mult | ~95% |
+## The five hands
 
-Only the best figure pays, and every figure but THE PAIR has to bind **every word you play** —
-two words that chain stop chaining the moment you lay a third beside them. That is the decision
-the mechanic exists to create: three words for the chips, or two for the figure.
+Some patterns have names, the way a flush has a name in poker. Every hand your line makes pays,
+not just the best one.
 
-**And the round has to want your words.** A figure's *multiplier* is paid only for the words that
-answer the Demand. Three words the same length that the round wants nothing of is a shape with
-nothing behind it: the points still land, the multiplier does not. Two of three answering pays two
-thirds of it.
+| Hand | What it is | Pays |
+|---|---|---|
+| THE MIRROR | four words whose pairs read the same backwards as forwards | 250 points, +2 mult |
+| THE TWIST | two words that are alike and opposite at the same time | 200 points, +1 mult |
+| THE BUILD | each pair with more in common than the pair before it | 150 points |
+| THE CHORUS | two words with three things or more in common | 120 points |
+| THE CLASH | two words that mean opposite things | 80 points |
 
-This is a correction, not a flourish. Measured over every possible play of 951 hands, the two
-layers ran in parallel and the bigger one simply won — "take the best figure and ignore the
-Demand" was the *exactly correct* play 70% of the time in round 1 and cost nothing at all through
-round 4, while "take the best tags and ignore the shape" gave up 63–79% of the hand. That is the
-same complaint that started this work, pointed the other way. Coupling them fixed it:
+The prices come from how often each one can actually be made, measured with
+`node tools/join-sim.js` rather than picked by feel. `tests/figures.test.js` checks the ladder
+never inverts.
 
-| | ignore the Demand | ignore the shape | weigh both |
-|---|---|---|---|
-| **before**, round 1 | best play **70%** | best play 3% | best play 100% |
-| **after**, round 1 | best play 45% | best play 5% | best play 73% |
-| **after**, round 7 | best play 23% | best play 11% | best play 31% |
+## Overtones rest
 
-No heuristic solves the hand now, at any point in a run.
+An overtone that just paid goes quiet for two plays. On the card it turns grey and struck
+through, and while it is resting it pays nothing, not for a match and not for an alike. Hover it
+and the card says how many plays until it wakes.
 
-**The ranking is measured, not guessed.** The first cut of this table had THE CHAIN as the rare
-jackpot at +6 mult. A seven-card hand holds 210 ordered triples, so a three-word chain turns up in
-36% of them; three words sharing an initial turns up in 8%. The pay table follows the measurement,
-and `tests/figures.test.js` asserts the ladder never inverts.
+Opposites never rest. That is the point of the rule: a line built on clashes keeps paying, and a
+line built on hammering the same overtone runs dry. Resting is what stops one good pairing from
+being the answer to every hand.
 
-**The tutorial deals a hand it can teach from.** The step that introduces figures tells you to tap
-three cards and then names what they made. Dealt at random those three make nothing 43% of the
-time and THE PAIR — which demonstrates neither length order nor letters — another 44%, so the one
-step that teaches the mechanic mostly taught that the mechanic does not fire. `arrangeForTutorial()`
-reorders the same seven words so the first three make the best figure available; 98% now land on
-something worth naming. It is a teaching aid, not a handout, so the deal goes back the way it was
-dealt the moment the tutorial ends — left in place it cleared round 1 in a single hand and made the
-daily seed worth more to a player who watched the tutorial than to one who skipped it.
+Only an overtone that actually paid goes to sleep. Playing one that is already resting used to
+put its clock back to the top, which made the card's own countdown a promise the board could
+break on the next hand.
 
-**The multiplier is added, not multiplied**, which was the other half of the feedback. An added
-multiplier is worth most to a deck that has none of its own and least to a runaway engine: it is
-a 3× swing on a bare round-1 hand and about 1.5× on a deck already holding three +mult Lenses.
-It narrows the gap between a good deck and a broken one instead of widening it.
+## Playing it blind
 
-### Does the order matter?
+There is a switch under the sound button called "play it blind". Turn it on and a word does not
+show you its overtones until you have played it once, and what you have learned is kept between
+runs. The board stops telling you which words answer the round and starts asking whether you
+know.
 
-Yes, from the first hand of your first run — a figure reads left to right, so the same three
-words can be THE STAIR in one order and nothing at all in another. The board names the figure you
-have made and tells you when the same words would make a better one in some other order. It never
-reorders them for you: *which* words to take is the decision, and losing points because you did
-not notice is not.
+It is off until somebody chooses it. It used to be tied to a difficulty, which meant anyone who
+had played before met it without being told, which is a different game arriving unannounced.
 
-Order matters a second way, which no figure readout would think to mention:
+## Keeping a line
 
-1. **A Lens reads position.** CARNIVORE eats the word to its left, LEXICOGRAPHER pays for your
-   leftmost word, ANTONYM ENGINE wants a HEAT word directly after a COLD one, ENTROPY wants each
-   word shorter than the one before it.
-2. **You hold one Lens that *adds* to the multiplier and another that *multiplies* it.** The
-   multiplier is a single running number, so `(1+2)×3 = 9` and `(1×3)+2 = 5` are different
-   scores from the same three cards. Put the adders first.
+Clear a round and the Bookseller offers you back a line you just played, for free. Keep it and it
+pays 120 points and +1 multiplier every time you make that hand again. The hand, not those exact
+words, so a kept THE CLASH pays on every clash you make for the rest of the run.
 
-`orderMatters()` in `index.html` computes that second kind, and the Lens line appears only when
-it returns true. Blaming the Lenses for something no Lens is reading is a lie the board used to
-tell.
+It is the only rule in a run the player wrote rather than bought. You can hold two of them, on a
+shelf of their own under the Lens rail, where you can read one back mid round. The chip flashes
+when it fires.
+
+## Lenses
+
+Lenses are what you spend money on, and a deck that is not multiplying stalls somewhere around
+round 4. There are 30 of them and you can hold five.
+
+Seven of them are flawed. They carry the biggest numbers in the game and every one takes
+something back: a play, a discard, two cards of hand, half your income, or the target itself. The
+first flawed Lens you are ever offered gets a card of its own explaining the trade, once.
+
+Nine Lenses grow every round you hold them, sized against how common their overtone is. DANGER
+sits on 34% of the lexicon and grows slowly. MONEY sits on 9% and grows fast. Flat payouts die,
+because targets climb almost sixfold across a run, so a Lens paying a fixed number per word is
+decisive in round 2 and pointless by round 6.
+
+## Ordeals
+
+Six rounds of "make a bigger number than last time" is a grind, not a difficulty curve. So some
+rounds change a rule instead of raising the number, and the rule is on the plaque before you play
+a card.
+
+| | |
+|---|---|
+| THE DROUGHT | no discards |
+| THE CLOCK | one play fewer |
+| THE LEAN YEAR | a four card hand |
+| THE FORFEIT | give a word up before you play |
+| THE VICE | three words at a time, at most |
+| THE FOG | words are worth nothing on their own, only matching overtones pay |
+| THE TOLL | every word costs 90 points to play |
+| THE MIRROR | a word scores nothing unless two of its overtones match |
+| THE HALF-LIGHT | every hand starts at half a multiplier |
+
+They are drawn from the seed, so a daily deals everyone the same ones and no two runs are shaped
+alike. Each one breaks a different habit. The Bookseller names the next Ordeal before you spend,
+which is the whole reason they sit on fixed rounds: an Ordeal you are told about is a purchase
+decision, and one you discover is a bad beat.
+
+Round 1 is never an Ordeal. The tutorial runs there, and meeting a rule breaking round while
+still learning the rules would be indefensible. There is a test for it.
+
+## The Reckoning
+
+A run that gets its engine going stops being a game. Every hand clears, nothing is a decision,
+and the run finishes itself. Players said so in those words.
+
+Raising every target is the obvious fix and the wrong one, because it punishes the decks that
+never got going and barely touches the ones that did. So from round 3 the round answers the deck
+in front of it: past three times what it asks for, it drafts a second Ordeal on top of the one it
+already has, and the Bookseller names it before you spend.
+
+It never drafts a rule the deck has no answer to. An earlier version handed the disarming
+Ordeals, the ones that take a mechanic away, to decks that had only seen two shops. That happened
+280 times in 495 drafts. It is 0 in 367 now.
+
+## Two difficulties
+
+APPRENTICE is the easier game: lower targets, a fourth discard, one Ordeal instead of two, and no
+Reckoning. Same words, same Lenses, same hands. An easier mode that removes the decision is not
+an easier version of the same game, so nothing else moves.
+
+SCHOLAR is the game as balanced. Two Ordeals, on rounds 4 and 6, and a curve only a multiplying
+deck keeps up with.
+
+A first run starts on APPRENTICE and cannot start anywhere else, and SCHOLAR is locked until one
+run has ended, won or lost. Somebody opening this for the first time has no idea that most runs
+are meant to end early, and finding that out by losing six in a row is not a lesson.
+
+Three things keep the two honest. Difficulty is pinned when the run starts, so nobody switches at
+round 5 to duck the wall. A score set on the gentler curve is stored under its own key and never
+becomes the SCHOLAR best. And the share block names the mode.
 
 ## Run it locally
-
-No build step, no dependencies, no server:
 
 ```bash
 git clone https://github.com/AdithyaMana/overtone.git && open overtone/index.html
 ```
 
-`index.html` is the whole game — engine, 249-word lexicon, 24 Lenses, and styles in one file.
+No build step, no dependencies, no server. `index.html` is the whole game: engine, 249 word
+lexicon, 30 Lenses, art and styles in one file. Playwright is a dev dependency and nothing else
+is.
 
-## Repository
+## What is in here
 
 | Path | What it is |
 |---|---|
-| `index.html` | The game. Standalone; source of truth. |
-| `audio/theme.mp3` | The looping theme. The only asset not inlined — fetched on the first tap, never on load. |
-| `DESIGN.md` | The full design writeup. |
-| `build-artifact.js` | Strips the HTML wrapper to produce `artifact.html` for the Claude Artifacts host. |
-| `artifact.html` | Generated — do not edit by hand. |
-| `tools/sim.js` | Headless balance simulator (deck coverage + difficulty curve). |
-| `tests/harness.js` | Loads the real game into a Node VM for engine tests. |
-| `tests/logic.test.js` | Engine tests (node:test). |
-| `tests/lenses.test.js` | Exact arithmetic for all 24 Lenses. |
-| `tests/figures.test.js` | What makes a figure, which one pays, and where it lands in the score. |
-| `tests/e2e/ux.spec.js` | The findings of a UX audit, turned into things that cannot come back. |
-| `tests/e2e/difficulty.spec.js` | APPRENTICE and the menu: that it is gentler, cannot be switched into mid-run, keeps its scores out of the real best, and that every door out of the menu comes back to it. |
-| `tests/runend.test.js` | Memory unlock and share block. |
-| `tests/e2e/` | Browser tests (Playwright). |
-| `docs/tests/test-summary.md` | What is covered, and what is not. |
-| `tools/export-cards.js` | Exports the full card list from the lexicon. |
-| `art/CARDS.md` | All 249 cards, grouped, with overtones and icons. |
-| `art/cards.csv` | Same list as data. |
-| `docs/brainstorming/` | The ideation log the design came out of — 86 logged ideas across seven techniques. |
-
-## The arcade display face
-
-Big text and every number are set in an arcade display face; the small print stays in a
-legible dot-matrix face, because a heavy arcade face is unreadable at 10px.
-
-The page ships with [Russo One](https://fonts.google.com/specimen/Russo+One) as the display
-face. To use your own arcade TTF instead — the artifact host’s CSP only serves fonts from
-`fonts.gstatic.com`, so it has to travel inside the page as a data URI:
-
-```bash
-npm run font -- ARCADE_R.TTF
-```
-
-That embeds it as `@font-face { font-family: "ArcadeLocal" }`, which `--f-display` already
-asks for first — so the swap needs no other change. `npm run font -- --clear` removes it and
-falls back to the web face. Then rebuild with `node build-artifact.js`.
-
-Check the licence first: embedding a font in a published page redistributes it, which many
-free-for-personal-use faces do not permit.
-
-## Deploying
-
-```bash
-npm run deploy      # stage public/ and push to Firebase Hosting
-```
-
-Hosted at **https://playovertone.web.app** (Firebase project `playovertone`).
-`overtone.web.app` was already taken globally — that subdomain belongs to whoever owns the
-Firebase project ID `overtone`.
-
-`tools/build-web.js` copies `index.html` into `public/`, copies `audio/theme.mp3` next to it, and
-serves the same page as `404.html` so any URL lands in the game. Tests, tools and `node_modules`
-stay out of the deploy.
+| `index.html` | The game. Standalone, and the source of truth. |
+| `audio/theme.mp3` | The looping theme. The only asset not inlined, and it is fetched on the first tap rather than on load. |
+| `DESIGN.md` | The long design writeup. |
+| `build-artifact.js` | Strips the HTML wrapper to produce `artifact.html`. |
+| `artifact.html` | Generated. Do not edit by hand. |
+| `tools/sim.js` | Deck coverage, and how a player with no Lenses fares. |
+| `tools/balance.js` | Full runs: win rate, where runs die, what a round can produce. |
+| `tools/join-sim.js` | How often each hand can be made, which is where the pay table comes from. |
+| `tools/build-web.js` | Stages `public/` for Firebase. |
+| `tools/export-cards.js` | Writes the full card list out of the lexicon. |
+| `tools/embed-font.js` | Embeds a local arcade TTF as a data URI. |
+| `tests/harness.js` | Loads the real game into a Node VM so engine tests run the code that ships. |
+| `tests/*.test.js` | Engine tests. Scoring, Lenses, hands, the shop, Ordeals, the Reckoning. |
+| `tests/e2e/` | Browser tests, run on desktop and phone viewports. |
+| `docs/specs/` | The specs the last three rebuilds were run from, each with its working log. |
+| `docs/tests/test-summary.md` | What is covered and what is not. |
+| `docs/brainstorming/` | The ideation log the design came out of. |
+| `art/CARDS.md` | All 249 cards with their overtones and icons. |
 
 ## Tests
 
 ```bash
-npm test          # engine — no browser, no network, ~0.3s
-npm run test:e2e  # browser — desktop + phone, ~21s
+npm test          # engine, no browser, no network
+npm run test:e2e  # browser, desktop and phone
 ```
 
-**434 tests, 0 failures.** 144 engine + 290 E2E. The engine tier uses Node’s built-in runner and needs no
-dependencies; the E2E tier uses Playwright against `file://`, so no server is involved.
-Playwright is a devDependency only — the game still has zero runtime dependencies and still
-opens by double-clicking `index.html`.
+165 engine tests and 378 browser tests, all passing. The engine tier uses Node's built in runner
+and needs nothing installed. The browser tier uses Playwright against a local static server.
 
-`tests/harness.js` runs the real `index.html` script in a Node VM against a stubbed DOM, so
-engine tests exercise the code that actually ships rather than a copy. Full breakdown, plus
-the two real bugs the suite caught, is in [`docs/tests/test-summary.md`](docs/tests/test-summary.md).
+`tests/harness.js` runs the real `index.html` script inside a Node VM against a stubbed DOM, so
+the engine tests exercise the code that actually ships instead of a copy of it. The full
+breakdown is in [`docs/tests/test-summary.md`](docs/tests/test-summary.md).
 
-## Sound, vibration and motion
+Two things the suite is for, beyond catching crashes. It pins copy that reads off the constants,
+because the rules card was wrong for a whole release in a way nobody would catch by reading it,
+having been right before a constant moved. And it pins geometry on a phone, because the hand
+slipping behind the pinned controls is invisible on a desktop and fatal on a handset.
 
-### The effects
+## Deploying
 
-The first version played one oscillator per event, which is exactly why every sound in the game
-was a beep. A hit that reads as physical is three layers landing on the same frame:
+```bash
+npm run deploy
+```
 
-1. a **noise transient**, 20–60ms, for the attack you feel;
-2. a **pitched body that bends downward** — that fall is what the ear hears as something
-   *landing* rather than something *sounding*;
-3. a **sub sine** under it for weight.
+That runs `tools/build-web.js` and then `firebase deploy --only hosting`. Running the Firebase
+command on its own ships whatever is already in `public/`, which is a stale build. Do not.
+
+Hosted at https://playovertone.web.app. `overtone.web.app` was taken globally, because that
+subdomain belongs to whoever owns the Firebase project ID `overtone`.
+
+`build-web.js` copies `index.html` into `public/`, puts `audio/theme.mp3` beside it, and serves
+the same page as `404.html` so any URL lands in the game. Tests, tools and `node_modules` stay
+out.
+
+## On a phone
+
+Portrait is a real layout, not a squeezed desktop. The budget is written against 375x667, smaller
+than any phone the game is likely to meet, and every band except the board and the hand gets a
+fixed allowance so the two that carry the game get the slack.
+
+The control row is pinned to the bottom rather than measured, because phone heights vary far more
+than widths and pinning is the only version that cannot put PLAY below the fold on a device
+nobody tested. All seven words are visible at once, in two rows, and two tests assert that no
+card's bottom edge falls below the top of the control row at 393x727 and 375x667. A hand you have
+to scroll is a decision you cannot make.
+
+At portrait width the board stops repeating the hand back at you. The order badges are already on
+the cards in hand, and hiding the stage preview returned 240px of a 667px screen. While a hand
+resolves, the hand folds away and the board takes the room, which is what makes the scoring
+readout fit.
+
+Every card is the same rectangle at a given breakpoint, measured against the worst case the
+lexicon can produce rather than guessed. Portrait caps the overtone row at two lines to afford
+it, so `cardEl` sorts the scoring overtones to the front and what a fourth long one pushes out of
+sight is never one that pays.
+
+A Lens opens when you tap it. The rail clamps a rule to two lines and `title` is a hover tooltip,
+which a touch screen does not have, so the rule somebody just paid $6 for was unreadable on a
+phone.
+
+## Sound and motion
+
+The first version played one oscillator per event, which is why every sound was a beep. A hit
+that reads as physical is three layers landing on the same frame: a short noise transient for the
+attack, a pitched body that bends downward, and a sub sine under it for weight. The downward bend
+is the part the ear hears as something landing rather than something sounding.
 
 Chip hardware faked all three with two square channels and a noise channel, so that is the shape
-of `SFX` in `index.html`: squares and saws, one noise buffer, hard envelopes with no tail, and a
-`tanh` soft clipper on the bus so four layers at once saturate like a console instead of
-crackling. The scoring sound climbs a whole-tone ladder as a chain runs, so a long hand builds
-instead of repeating, and a multiplier event gets a saw growl under it so it is audibly not a
-point.
+of `SFX`: squares and saws, one noise buffer, hard envelopes with no tail, and a `tanh` soft
+clipper on the bus so four layers at once saturate like a console instead of crackling. The
+scoring sound climbs a whole tone ladder as a line runs, so a long hand builds instead of
+repeating, and a multiplier event gets a saw growl under it so it is audibly not a point.
 
-### The theme
+The theme is a 96kbps MP3 of about 2MB and it is never fetched before the player touches
+something. No browser will play audio before a gesture anyway, so putting it on the critical path
+would slow the first frame for nothing. It sits low and ducks further under a big hand, because
+it is scenery. Browsers disagree about which events count as a gesture, so the start retries on
+every interaction, in the capture phase, until the element is genuinely playing.
 
-A 96kbps MP3 at ~2MB, **never fetched before the player touches something**: no browser will play
-audio before a gesture anyway, so putting it on the critical path would only slow the first frame
-for nothing. It sits at `MUSIC_VOL = 0.15` and ducks to a quarter of that under a big hand — it
-is scenery, not the show, and at its first setting it swallowed the effects it is supposed to sit
-under.
-
-Browsers do not agree on which events count as a gesture, and an iframed page can need the
-gesture to land inside the frame, so the start is not a one-shot: it retries on every interaction,
-in the capture phase, until the element is genuinely playing, and only then unhooks.
-
-`audio/theme.mp3` is re-encoded from a 6.6MB 320kbps source that stays out of the repo
-(`.gitignore`); regenerate it with:
+`audio/theme.mp3` is re-encoded from a 320kbps source kept out of the repo:
 
 ```bash
 ffmpeg -i "bg music.mp3" -codec:a libmp3lame -b:a 96k -ar 44100 -ac 2 -map_metadata -1 audio/theme.mp3
 ```
 
-Music, sound effects and vibration are three separate switches under the ♪ button, because they
-fail differently — music is what people mute in public, effects are what they mute at work, and
-vibration is what eats a battery. **Vibration is Android-only**: iOS Safari does not implement
-`navigator.vibrate` at all, so on an iPhone every `buzz()` is a silent no-op. Nothing in the game
-depends on a buzz to be understood; it is confirmation, never information, and the settings panel
-says so rather than quietly shipping a dead switch.
+Music, effects and vibration are three separate switches, because they fail differently. Music is
+what people mute in public, effects are what they mute at work, and vibration is what eats a
+battery. Vibration is Android only, since iOS Safari does not implement `navigator.vibrate` at
+all, so every buzz on an iPhone is a silent no-op. Nothing in the game needs a buzz to be
+understood, and the settings panel says so rather than shipping a dead switch quietly.
 
 `prefers-reduced-motion` kills every animation, the flying points, the confetti and the screen
-shake, and short-circuits the counter rolls so the numbers settle synchronously.
+shake, and settles the counters synchronously.
 
-### One bug worth knowing about if you touch the particles
+### A bug worth knowing about if you touch the particles
 
-Every throwaway particle — sparks, confetti, the flying points, the shockwave — used to be
-written as `el.animate(frames, opts)` with a separate, slightly longer `setTimeout` to remove
-the element. **A Web Animation with no `fill` reverts its element to the element's own static
-style the instant it finishes.** So in the gap between the two, every particle snapped back to
-its start position at full opacity and sat there. The sparks were the visible case: 700–1220ms of
-animation, removed at 1300ms, leaving a solid square parked dead centre of the board for up to
-half a second after every hand.
+Every throwaway particle used to be written as `el.animate(frames, opts)` with a slightly longer
+`setTimeout` to remove the element. A Web Animation with no `fill` reverts its element to the
+element's own static style the instant it finishes, so in the gap between the two, every particle
+snapped back to its start position at full opacity and sat there. The sparks were the visible
+case: up to half a second of a solid square parked dead centre of the board after every hand.
 
 They all go through `animateOut()` now, which sets `fill: "forwards"` and removes the element on
-`onfinish`, with the timeout kept only as a net for browsers that never fire it. A test samples
-every frame of the scoring window and fails if any particle's animation does not hold its last
-frame — and it was checked against the broken version, because a regression test that passes
-either way is worse than none.
-
-## Ordeals
-
-Raising the target curve makes a game grindier, not harder, and the reviews had already said the
-loop felt aimless. The problem was not that the rounds were easy, it was that they were all the
-**same** — eight rounds of "make a bigger number than last time" with a difficulty knob on it.
-
-**Rounds 4, 6 and 8 now carry an Ordeal**: one rule, stated on the plaque before a card is played,
-that stops the hand you have been playing all run from working.
-
-| | |
-|---|---|
-| THE DROUGHT | no discards |
-| THE CLOCK | three plays instead of four |
-| THE LEAN YEAR | a four-card hand |
-| THE VICE | two words at a time, at most |
-| THE FOG | words are worth nothing on their own; only matching tags pay |
-| THE TOLL | every word costs 90 points to play |
-| THE MIRROR | a word scores nothing unless *two* of its tags match |
-| THE HALF-LIGHT | every hand begins at half a multiplier |
-| THE FORFEIT | give a word up before you play |
-
-Three are drawn per run from the seed, so a daily deals everyone the same three and two runs are
-never shaped alike. Each invalidates a different habit: THE VICE breaks "always take three",
-THE FOG breaks a deck built on long words, THE MIRROR breaks a deck built on breadth,
-THE HALF-LIGHT breaks an engine leaning on the multiplier.
-
-**The Bookseller names the next Ordeal before you spend.** That is the whole reason they sit on
-fixed rounds rather than arriving as a surprise: an Ordeal you are told about is a purchase
-decision, and an Ordeal you discover is just a bad beat. Round 8 is always one, so a run ends on a
-wall rather than on a slightly larger number.
-
-Round 1 is never an Ordeal — the tutorial runs there, and meeting a rule-breaking round while
-still learning the rules would be indefensible. There is a test for it.
-
-## Can a round always be won?
-
-No, and that is deliberate — but it is now always visible one round ahead.
-
-`npm run balance -- --fair` answers the question properly. For every round a run
-reaches it computes the **ceiling**: the best score the *whole deck* could produce with
-perfect draws, perfect ordering and every play spent. Nothing a real hand does can beat it, so a
-target above the ceiling is a target no sequence of plays reaches.
-
-| | rounds the deck cannot reach, however played |
-|---|---|
-| holding a flawed Lens | **15.6%** |
-| holding none | 7.7% |
-
-A flawed Lens roughly doubles it. The 7.7% floor is a build that fell off the curve, which is the
-genre working. A losing build is fine; an **invisible** losing build is not — so the Bookseller now
-does the arithmetic out loud:
-
-- **The true target.** It used to print `TARGETS[round]` straight, so with THE CURSE it said
-  11,500 and the round then demanded 23,000 — the game lying at the exact moment you are deciding
-  what to buy.
-- **The true shape.** "You will have 3 plays, 2 discards, a hand of 4" whenever a Lens or the
-  coming Ordeal has bent the round.
-- **The reality check.** *"Played perfectly, your deck makes about 3,854 next round. It asks for
-  47,000. No order of play gets there."* Red when it is short, and it names the two ways out: buy
-  something that changes it, or sell a Lens costing more than it pays.
-
-One honest finding from the simulator: **selling rarely rescues a run.** Modelling a player who
-sells whenever the warning fires made things *worse* — stripping the engine costs more than the
-drawback did. Selling only helps when removing that Lens actually raises the ceiling, which is
-uncommon. So the flawed Lenses are a bet you commit to rather than a trap you escape, and the
-weight sits where it should: on the purchase.
-
-## The Reckoning
-
-A run that gets its engine going stops playing the game. Every hand clears, nothing is a
-decision, and the run finishes itself — which is a complaint players made in exactly those words.
-
-Raising every target is the obvious answer and the wrong one: it punishes the decks that never got
-going and barely inconveniences the ones that did. So the round answers the deck in front of it.
-**Past three times what the round asks for, it drafts a second rule** — one of the Ordeals, never
-the one it already has — and the Bookseller names it before you spend, so an engine loud enough to
-trigger it is a purchase you made knowing.
-
-Both numbers are measured, and both were retuned after measuring what they cost. Across simulated
-runs the deck's ceiling over the round's target sits at a median of **4.1×** on rounds 1 and 2 —
-those targets are meant to be walked over, and round 1 is where the tutorial runs — and then at
-**0.7× to 1.2×** from round 3 on. So the rule starts at round 3.
-
-The bar is three times rather than twice because twice turned out to be a tax rather than an
-answer:
-
-| threshold | fires on | realistic win rate |
-|---|---|---|
-| no reckoning | — | 20.8% |
-| **3× (shipped)** | 0–5% of rounds 3–8 | **18.2%** |
-| 2× | 5–18% of rounds 3–8 | 16.6% |
-
-Being strong is the point of the game. Running away with it is what this is for.
-
-**Memory never carries a flawed Lens.** It is a gift handed to a player who has not chosen anything
-yet — it arrives before the first shop, on a board they cannot answer it on. A Lens that doubles
-every target is a bargain you accept with a deck and a purse, and a sentence when it is dealt to
-you on round 1. Taking one is a decision, and a decision has to be made, not inherited.
-
-## Playing on a phone
-
-Portrait is a first-class layout, not a squeezed desktop. The budget is written against
-**375×667** — smaller than any phone the game is likely to meet — and every band except the
-board and the hand gets a fixed allowance, so the two that carry the game get the slack:
-
-- The control row is **pinned to the bottom**, not measured. Phone heights vary far more than
-  widths (a Pixel 5 is 117px shorter than an iPhone 14), and pinning is the only version that
-  cannot put PLAY below the fold on a device nobody tested.
-- **All seven words are visible at once**, in two rows. A hand you have to scroll is a decision
-  you cannot make. Two E2E tests assert exactly this at 393×727 and 375×667: no card's bottom
-  edge may fall below the top of the control row.
-- **The board does not repeat the hand back.** At portrait width the stage's preview cards are
-  hidden — the order badges are already on the cards in hand — which returned 240px of a 667px
-  screen. While a hand resolves the cards fold away and the board takes the room, which is what
-  makes the scoring readout fit.
-- **Every card is the same rectangle.** Left to size themselves, cards came out ragged: a word
-  takes one line to three, and its tags one row to five. Each breakpoint now has a single height,
-  measured against the worst case the lexicon can actually produce (SANDSTORM, four long
-  overtones) rather than guessed. Portrait is the one tier that caps the tag row at two lines to
-  afford it — so `cardEl` sorts matching tags to the front, and what a fourth long tag pushes out
-  of sight is never one that scores.
-- **A Lens opens.** The rail clamps a rule to two lines, and `title` — the only other way to read
-  it — is a hover tooltip, which a touch screen does not have, so the rule a player just paid $6
-  for was unreadable on a phone. Tapping one opens it out to the full text. It stays on the rail's
-  one row, stopping just short of full width so the next Lens peeks in: letting the rail wrap grew
-  it by 53px, which is enough to put the hand's bottom row behind the controls.
-
-## Balance
-
-Nothing here is guessed. Two simulators run the **real engine** through the harness — real deck
-construction, real draws, real scoring, real shop, real purchases.
-
-```bash
-npm run sim                      # deck coverage + how a LENS-LESS player fares
-npm run balance                  # full runs: win rate, where runs die, mult ceiling
-npm run balance -- --curve       # what a round can actually PRODUCE, per round
-npm run balance -- --lenses      # per-Lens power ranking against the baseline
-npm run balance -- --stacks      # the strongest reachable loadouts
-npm run balance -- 400 --play greedy --buy random
-```
-
-`sim.js` plays with **no** Lenses. That was the right question while the shop was the thing
-being taught and the wrong one once the shop became the game: **it cannot see a broken Lens,
-because it never buys one.** `balance.js` does, and the first time it ran it reported a **70%
-win rate** — the reviews were right.
-
-### The simulator was flattering itself
-
-After the first pass the model said 25% and players said it was still easy. They were right, and
-the model was wrong in three specific ways — **it never rerolled** the shop, **it never carried a
-Memory Lens** into run 2, and its "realistic" player took the best three cards by face value
-without trying orderings. That last one is the worst of the three: the board scores every
-selection live, so clicking three cards and swapping them about *is* a search. A human is far
-closer to optimal play than a greedy model, because the game does the arithmetic for them.
-
-With rerolling, Memory, and a human-depth search (`--play human`, which tries every ordering of
-the best five cards), the honest number was **33%**, and rounds 1-3 killed 0.3% of runs between
-them. The first three rounds were a formality.
-
-### What the numbers said
-
-| | at first | after pass one | before figures | now |
-|---|---|---|---|---|
-| optimal player (searches every ordering) | 70% | 43% | 23.4% | **28.3%** |
-| realistic player (`--play human`) | — | 33% | 18.2% | **17.0%** |
-| careless player (`--play greedy`, never reorders) | — | 12% | 12.8% | **9.0%** |
-| round 8 target | 5,200 (p9 of what a round can produce) | 29,000 (p45) | 28,000 | **46,000** |
-| best single Lens | ENTROPY, **100%** win, carried to round 7.7 alone | 58% | | |
-| worst single Lens | CHRONICLER, 3% | 21% | | |
-
-The last column is the figure pass, and the row that matters is the middle one: **18.0% against
-18.2%**. Adding a whole scoring layer and leaving the realistic difficulty exactly where it was
-is the point — the layer exists to make the hand a decision, not to make the game easier, and a
-difficulty number that had moved would mean I did one while claiming the other. Targets roughly
-doubled to pay for it (`--nofigures` scores the same seeds with the layer switched off, which is
-how the before and after columns were separated).
-
-What moved is the **spread**. Careless to optimal was 10.6 points before figures existed; it is
-19.3 now. Reading the board is worth about twice what it was, and ignoring it costs more.
-
-Three findings did most of the work:
-
-1. **Flat chips die.** Targets climb 116× across a run; a Lens paying +45 a word is decisive in
-   round 2 and irrelevant by round 6. PROSPECTOR won 41% against a 64% baseline — it was a trap
-   dressed as an option. Seven Lenses now **grow every round you hold them**, sized against
-   measured tag frequency (DANGER sits on 34% of the lexicon and grows +40; MONEY on 9% and
-   grows +190). They start weaker and end far stronger, which turns a round-2 purchase into a
-   round-8 engine and gives the player a number to watch climb.
-2. **Unconditional ×mult breaks everything.** ENTROPY won *every* run and reached round 7.7 with
-   no other Lens, because "each word shorter than the last" is not a condition, it is a sorting
-   instruction. GLUTTON paid ×2.5 for playing three words, which everybody does anyway. Both
-   cost something now.
-3. **The slot cap was not a cost.** With five slots and nothing but upside in the shop, the right
-   play was always "buy the biggest number". Six **flawed** Lenses have the biggest numbers in
-   the game and every one takes something back: a play, a discard, two cards of hand, half your
-   income, or the target itself.
-
-### Two curves
-
-The game loses four runs in five on purpose, which is right for a roguelite and wrong for somebody
-who has lost six in a row without seeing a Lens do anything. **APPRENTICE** scales every target to
-60% and hands back a fourth discard. Nothing else moves: the deck, the Lenses, the Ordeals, the
-figures and the Reckoning are identical, because an easier mode that removes the decision is not an
-easier version of the same game. The extra discard is the deliberate part — what ends an early run
-is usually a dead draw rather than a wrong choice.
-
-| | SCHOLAR | APPRENTICE |
-|---|---|---|
-| realistic player (`--play human`) | **17.5%** | **44.0%** |
-| round 1 / round 8 target | 350 / 46,000 | 210 / 27,600 |
-| discards | 3 | 4 |
-
-Measure it with `node tools/balance.js --difficulty apprentice`.
-
-**A first run starts on APPRENTICE, and cannot start anywhere else.** Somebody opening this for
-the first time has no idea that four runs in five end early on purpose, and finding out by losing
-six of them is not a lesson. The default is written down on the first boot rather than derived
-every time, or it would flip to SCHOLAR the moment their run counter passed zero and the game
-would have changed difficulty behind them. Anyone who has already played keeps SCHOLAR.
-
-**SCHOLAR is locked until one run has ended.** Offering the steeper curve on the first screen
-somebody ever sees is how a first session becomes their only one, so the pill is disabled and says
-`Locked` until `runs > 0` — a win or a loss, either will do; what one run buys is knowing what
-the curve feels like before choosing to stand in front of it. The unlock is announced on the
-result screen they are already reading, styled apart from a Memory unlock so the two are not
-mistaken for each other, and it changes nothing under them: they carry on with whatever they were
-doing. The lock never applies to the difficulty currently selected, so a profile that already
-holds SCHOLAR is never told it cannot have it.
-
-Three things keep it honest. The difficulty is **pinned at `newRun`**, so nobody switches at round
-7 to duck the wall. A total scored on the gentler curve is stored under its own key and **never
-becomes the SCHOLAR best**. And the share block names the mode, so two scores are never compared
-blind — SCHOLAR, being the default, says nothing.
-
-The result screen offers it, once, to a player who has lost three runs and is still falling inside
-the first third. Never on a first run, never to someone reaching round 6, never to someone already
-playing it.
-
-### Setting a target curve
-
-`--curve` reports what a round can *produce* at each point in a run, so targets are a percentile
-of measured output rather than a number that felt right. Rounds 3–8 are a percentile of that
-curve, deliberately generous early, because **dying in round 2 reads as the game cheating and
-dying in round 6 reads as your build being wrong**, and only one of those makes someone start
-again.
-
-Rounds 1 and 2 are not set from that curve at all, and the figure pass is what made the
-difference obvious. `--curve` measures what the *best* hand in the deck is worth; the opening
-rounds are not aimed at that player. `--floor` measures the other end — first three cards as
-dealt, no reordering, no discards, four plays, which is what the first minute of a first run
-actually looks like. It puts round 1 at a median of 855 and a 5th percentile of 455.
-
-That gap is the mechanic working. Scored on the same seeds, figures inflate what an optimal
-player can produce in rounds 1–2 by five or six times and rounds 3–8 by about 1.8, because an
-*added* multiplier is worth most to a deck that has none of its own. Scaling every target
-uniformly would have left the endgame untouched and made the opening unwinnable for anyone who
-had not yet been told the rule. So round 1 sits at **450**, just under the floor, and round 2 at
-**1,100**, just above its median — which is where clicking stops working and the board starts
-being worth reading.
-
-The first attempt did scale uniformly, put round 1 at 1,400, and the full-run E2E test — which
-plays the first three cards in dealt order and never discards — died in round one. That test
-exists for exactly this.
-
-### Two bugs the old simulator could not see
-
-`sim.js` caught decks that could hand you an unwinnable Demand (FOOD sits on only 21 of 249
-words) and a difficulty wall at round 3 — both in [DESIGN.md §5.4](DESIGN.md). It could not catch
-either of these, because both live on the far side of a purchase.
+`onfinish`, with the timeout kept only as a net. A test samples every frame of the scoring window
+and fails if any particle's animation does not hold its last frame. It was checked against the
+broken version, because a regression test that passes either way is worse than none.
 
 ## Card faces
 
-Each card shows the **icons for its own overtones** — a flame for HEAT, a snowflake for COLD,
-paws for ANIMAL — on a plate tinted by its most distinctive one. The picture and the scoring
-rule are views of the same data, so a player learns the mapping within a round, and overtones
-matching the current Demand get a gold ring so a playable card reads at a glance.
+Each card shows the icons for its own overtones, a flame for HEAT, a snowflake for COLD, paws for
+ANIMAL, on a plate tinted by its most distinctive one. The picture and the scoring rule are two
+views of the same data, so the mapping is learnable inside a round. Overtones the round wants get
+a gold ring, and resting ones go grey and struck.
 
-Nineteen icons cover all 249 words, and every word a player invents with the Interpreter — the
-case a fixed art library could never serve. Icons are [Google Material Symbols](https://fonts.google.com/icons); that set is also the only one the artifact host’s CSP will
-serve, since it allows stylesheets from `fonts.googleapis.com` alone.
+Nineteen icons cover all 249 words and every word a player invents with the Interpreter, which is
+the case a fixed art library could not serve. They are
+[Google Material Symbols](https://fonts.google.com/icons), which is also the only set the
+artifact host's CSP will serve.
 
-The full card list is in [`art/CARDS.md`](art/CARDS.md), regenerate with `node tools/export-cards.js`.
+The full list is in [`art/CARDS.md`](art/CARDS.md). Regenerate it with
+`node tools/export-cards.js`.
 
-## AI in this project
+The display face is [Russo One](https://fonts.google.com/specimen/Russo+One). To swap in your own
+arcade TTF, `npm run font -- ARCADE_R.TTF` embeds it as a data URI, which is necessary because
+the artifact host only serves fonts from `fonts.gstatic.com`. Check the licence first: embedding
+a font in a published page redistributes it, and plenty of free for personal use faces do not
+allow that.
 
-- **Build time** — the 249-word lexicon and its 19-overtone ontology (~800 semantic judgements)
-  were authored with Claude and baked to a static table. That table *is* the rules engine. The
-  game runs at 0ms, offline, deterministic, which is what makes a shared daily seed possible.
-- **Runtime** — the Interpreter calls Claude live from the published page, validates the reply
-  against the tag whitelist, and falls back to a local morphological appraiser when there's no
-  runtime or the viewer declines. It degrades; it never breaks.
-- **The rule held throughout** — no network call inside the one-second loop.
+## Balance
+
+Nothing here is guessed. Two simulators run the real engine through the same harness the tests
+use, with real deck construction, real draws, real scoring and a real shop.
+
+```bash
+npm run sim                      # deck coverage, and a player who buys nothing
+npm run balance                  # win rate, where runs die, multiplier ceiling
+npm run balance -- --curve       # what a round can actually produce
+npm run balance -- --lenses      # per Lens power against the baseline
+npm run balance -- --fair        # rounds no sequence of plays can reach
+```
+
+Over 500 runs with a player that searches for the best line and buys by value, APPRENTICE wins
+51.2% and SCHOLAR 29.2%. Losing most of your runs is right for the genre and wrong for somebody
+who has lost six in a row without ever seeing a Lens do anything, which is what the two curves
+are for.
+
+Three findings did most of the work over the life of the project.
+
+The simulator flattered itself for a long time. It never rerolled the shop, never carried a Lens
+into the next run, and its "realistic" player took the best cards by face value without trying
+orderings. That last one is the worst, because the board scores every selection live, so clicking
+cards and swapping them about is a search. A human is much closer to optimal than a greedy model,
+since the game does the arithmetic for them.
+
+Unconditional multipliers break everything. ENTROPY used to win every run on its own, back when
+its rule read "each word shorter than the last", because that is not a condition, it is a sorting
+instruction. GLUTTON paid a flat multiplier for playing three words, which everybody did anyway.
+Both cost something now, and ENTROPY reads overtones rather than letters like everything else.
+
+A slot cap is not a cost. With five slots and nothing but upside on the shelf, the right play was
+always to buy the biggest number, which is not a decision. The flawed Lenses exist so that the
+biggest numbers have a price attached.
+
+`--fair` answers the question nobody wants to ask: can a round always be won? No, and that is
+deliberate, but it is visible a round ahead. For every round it works out the best score the
+whole deck could produce with perfect draws and perfect ordering, and the Bookseller says out
+loud when the target is above it, along with the two ways out. One honest finding from that work:
+selling rarely rescues a run. Modelling a player who sells whenever the warning fires made things
+worse, because stripping the engine costs more than the drawback did. So a flawed Lens is a bet
+you commit to rather than a trap you escape.
+
+## Where AI is used
+
+The 249 word lexicon and its 19 overtone ontology, about 800 semantic judgements, were written
+with Claude and baked into a static table. That table is the rules engine. The game runs at 0ms,
+offline and deterministic, which is what makes a shared daily seed possible at all.
+
+At runtime, the Interpreter calls Claude from the published page, checks the reply against the
+overtone whitelist, and falls back to a local appraiser when there is no runtime or the player
+declines. Once a run it will take any word you type, your dog's name or your job title, appraise
+it, and shuffle it into your deck as a real card.
+
+The rule held throughout: no network call inside the one second loop.
 
 ## Licence
 

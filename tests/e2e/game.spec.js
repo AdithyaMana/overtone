@@ -395,6 +395,53 @@ test.describe("playing a hand", () => {
       expect(seen.told, "a resting overtone does not say when it wakes").toBe(true);
     });
 
+  /* The card tells a player when a resting overtone wakes up. That has to be
+     a promise the board keeps. It did not: every path that puts a tag to
+     sleep ignored whether the tag was asleep already, so playing the same
+     overtone over and over held its clock at the top forever while it paid
+     nothing - the board charging for something it had already declined to
+     pay for, which is the same shape as the gilding bug above. */
+  test("a resting overtone keeps counting down when you play it again",
+    async ({ page }) => {
+      await open(page);
+      const out = await page.evaluate(async () => {
+        const mk = (w, t) => makeCard({ w, t }, false);
+        /* An overtone the round does not want, so the pair that shares it is
+           the only thing that can tire it - and a clash beside it, so the
+           line still scores on the second play rather than falling silent
+           the moment the shared tag goes quiet. */
+        const tag = TAG_KEYS.find(t =>
+          G.demand.tags.indexOf(t) < 0 && t !== "HEA" && t !== "COL");
+        const lay = () => {
+          G.plays = 9;
+          G.hand = [mk("ONE", [tag, "HEA"]), mk("TWO", [tag, "COL"])];
+          G.selected = G.hand.map(c => c.id);
+        };
+        lay(); await play();
+        const asleep = G.dull[tag];
+        lay(); await play();
+        const again = G.dull[tag];
+
+        /* The round's own overtone travels the other path into the same map,
+           and it was missing the same check. */
+        const want = G.demand.tags[0];
+        G.dull = {}; G.dull[want] = FATIGUE_SPAN;
+        G.plays = 9;
+        G.hand = [mk("THREE", [want, "HEA"]), mk("FOUR", [want, "COL"])];
+        G.selected = G.hand.map(c => c.id);
+        await play();
+
+        return { asleep, again, wanted: G.dull[want], span: FATIGUE_SPAN };
+      });
+
+      expect(out.asleep, "scoring an overtone did not put it to sleep")
+        .toBe(out.span);
+      expect(out.again, "playing a resting overtone put its clock back to the top")
+        .toBe(out.span - 1);
+      expect(out.wanted, "the round's own overtone never woke up either")
+        .toBe(out.span - 1);
+    });
+
   test("says the order matters once a Lens actually reads position", async ({ page }) => {
     await open(page);
     /* On the idle board, which is where the hint lives: lay a word and the
