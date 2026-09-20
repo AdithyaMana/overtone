@@ -423,6 +423,62 @@ button{ font-family: inherit; color: inherit; }
 }
 .rail-empty{ font-size: 12px; color: var(--text-faint); align-self:center; padding: 4px 2px; }
 
+/* ---------- lines you kept ----------
+   A kept line was written down in the shop and then never shown again until
+   the next shop. It pays on every hand it matches, so it is a rule the player
+   is playing under - and it was invisible for a whole round at a time.
+
+   It shares the Lens slab but not the Lens rail: keeps and Lenses have
+   separate shelves and separate counts, and one row of chips that mixed them
+   would say they compete. A thin strip under the rail, gold because every
+   payout a kept line makes is printed in gold, and there at all only once a
+   player has one. */
+.keptbar{
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--inset);
+}
+/* A class beats [hidden] in the cascade, so without this the strip draws its
+   rule and its KEPT label on every board in the game, keeps or none. Same
+   guard every other hideable thing on this sheet carries. */
+.keptbar[hidden]{ display: none !important; }
+.keptbar-k{
+  font-family: var(--f-display); font-size: 11px; letter-spacing: .1em;
+  color: var(--text-dim); flex: none; padding-top: 4px; white-space: nowrap;
+}
+.keptrail{ display: flex; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1; }
+.keptline{
+  position: relative; border-radius: 7px; padding: 5px 20px 5px 9px;
+  min-width: 0; max-width: 220px; cursor: pointer;
+  background: var(--gold); box-shadow: 0 3px 0 var(--gold-d);
+  border: none; font-family: inherit; text-align: left;
+}
+.keptline:active{ transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-d); }
+.keptline .n{
+  font-size: 12px; font-weight: 700; color: #12181C;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Closed it is the words, which is what the player recognises. The rule only
+   unfolds when asked for, so the strip stays one row tall on a phone. */
+.keptline .d{ display: none; }
+.keptline.open{ max-width: none; }
+.keptline.open .d{
+  display: block; font-size: 11px; line-height: 1.4;
+  color: #4A3407; margin-top: 3px;
+}
+.keptline::before{
+  content: "+"; position: absolute; top: 4px; right: 7px;
+  font-family: var(--f-display); font-size: 11px; line-height: 1;
+  color: #12181C; opacity: .6;
+}
+.keptline.open::before{ content: "\2212"; }   /* minus */
+.keptline.fired{ animation: lensFire .5s cubic-bezier(.2,1.3,.3,1); }
+.keptline.fired::after{
+  content: ""; position: absolute; inset: 0; border-radius: 7px; z-index: 1;
+  background: #FFF; animation: lensWash .5s steps(3) forwards;
+  pointer-events: none;
+}
+
 /* the green table */
 .stage{
   flex:1; min-height: 212px; position:relative;
@@ -1756,6 +1812,17 @@ button{ font-family: inherit; color: inherit; }
     overflow: hidden;
   }
   .rail-empty{ white-space: normal; font-size: 11px; line-height: 1.35; }
+  .keptbar{ margin-top: 5px; padding-top: 5px; gap: 6px; }
+  .keptbar-k{ font-size: 9px; padding-top: 3px; }
+  .keptrail{
+    flex-wrap: nowrap; overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .keptrail::-webkit-scrollbar{ display: none; }
+  .keptline{ flex: 0 0 auto; max-width: 150px; padding: 4px 18px 4px 8px; }
+  .keptline.open{ min-width: 82%; max-width: none; }
+  .keptline .n{ font-size: 11px; }
+  .keptline.open .d{ font-size: 10px; line-height: 1.3; }
 
   /* The picked words go up to the board here, the way they do on a desktop —
      but small. At full size they were 240px of portrait spent drawing the very
@@ -1896,6 +1963,10 @@ button{ font-family: inherit; color: inherit; }
   .lens .n{ font-size: 10px; }
   .lens .d{ font-size: 9px; -webkit-line-clamp: 2; }
   .rail-empty{ font-size: 10px; }
+  .keptbar{ margin-top: 4px; padding-top: 4px; }
+  .keptbar-k{ font-size: 8px; }
+  .keptline{ padding: 3px 16px 3px 7px; }
+  .keptline .n{ font-size: 10px; }
 
   /* The board's prose repeats the plaque above it, so here it is the short
      version of itself rather than a paragraph. */
@@ -2053,6 +2124,9 @@ button{ font-family: inherit; color: inherit; }
   .lensbar{ padding: 4px 7px; }
   .lensbar-head{ margin-bottom: 3px; font-size: 10px; }
   .rail{ min-height: 26px; }
+  .keptbar{ margin-top: 4px; padding-top: 4px; }
+  .keptline{ padding: 3px 16px 3px 7px; }
+  .keptline .n{ font-size: 10px; }
   .hand{ min-height: 0; gap: 5px; padding-top: 8px; padding-bottom: 6px;
          flex-wrap: nowrap; }
   /* 62px could not hold INHERITANCE without breaking it in half; 72 can, and
@@ -2174,6 +2248,10 @@ button{ font-family: inherit; color: inherit; }
           <b id="lensCount">0/5</b>
         </div>
         <div class="rail" id="rail"></div>
+        <div class="keptbar" id="keptBar" hidden>
+          <span class="keptbar-k">KEPT</span>
+          <div class="keptrail" id="keptRail"></div>
+        </div>
       </div>
 
       <section class="stage" id="stage">
@@ -3847,6 +3925,8 @@ function newRun(seedStr, fresh){
     roundLines: [],
     /* which Lens in the rail is opened out to its full rule */
     openLens: null,
+    /* and which kept line is opened out to what it pays */
+    openKept: null,
     interpreterUsed: false,
     interpretedWord: null,
     animating: false,
@@ -4217,10 +4297,13 @@ function resolve(cards){
                   chips:chips, mult:mult });
     /* A line you kept in an earlier round pays again whenever the figure it
        made comes back. It is the only engine in the run; nothing is bought. */
-    (G.kept || []).forEach(function(k){
+    (G.kept || []).forEach(function(k, ki){
       if(k.fig !== fig.id) return;
       chips += KEPT_CHIPS; mult += KEPT_MULT;
-      events.push({ k:"card", i:-1, cls:"m",
+      /* `kept` so the chip on the shelf flashes as its label goes up, the way
+         a Lens does. Without it the biggest engine in the run paid out of
+         nowhere. */
+      events.push({ k:"card", i:-1, cls:"m", kept:ki,
                     txt: k.n + " +" + KEPT_CHIPS + " and +" + KEPT_MULT + " mult",
                     chips:chips, mult:mult });
     });
@@ -4472,6 +4555,7 @@ async function play(){
     }
     floatLabel(host || stageCards, ev.txt, ev.cls + (ev.fig ? " fig" : ""));
     if(ev.k === "lens"){ flashLens(ev.lens); buzz(11); }
+    if(ev.kept != null){ flashKept(ev.kept); buzz(11); }
     /* the number leaves the word that earned it and lands on the counter */
     chipFly(host || stageCards, ev.cls === "m" ? "multV" : "chipsV", ev.cls, Math.max(120, gap * 2));
     /* THE FOG, THE TOLL, THE MIRROR and THE ORACLE all subtract chips, and a
@@ -4913,6 +4997,7 @@ function openShop(reward){
         G.kept = G.kept || [];
         if(keepsFull()) return;
         G.kept.push({ n: l.ws.join(" \u00b7 "), fig: l.fig, figName: l.figName });
+        renderKept();
         SFX.buy();
         toast("Kept " + l.ws.join(" \u00b7 "));
         openShop(reward);
@@ -6573,6 +6658,43 @@ function renderRail(){
   }
 }
 
+/* The kept-line shelf. Same open-one-at-a-time idiom as the Lens rail, so
+   there is no second interaction to learn: tap a line to read what it pays,
+   tap it again to fold it away. */
+function renderKept(){
+  const bar = document.getElementById("keptBar");
+  const rail = document.getElementById("keptRail");
+  if(!bar || !rail) return;
+  const kept = (G && G.kept) || [];
+  bar.hidden = kept.length === 0;
+  rail.innerHTML = "";
+  if(!kept.length) return;
+  kept.forEach(function(k, i){
+    const open = G.openKept === i;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "keptline" + (open ? " open" : "");
+    b.title = k.n + " \u00b7 " + k.figName;
+    b.setAttribute("aria-expanded", open ? "true" : "false");
+    b.innerHTML = '<div class="n">' + escapeHtml(k.n) + '</div>'
+      + '<div class="d">' + escapeHtml(k.figName) + ' \u00b7 +' + KEPT_CHIPS
+      + ' and +' + KEPT_MULT + ' mult every time you make that hand</div>';
+    b.onclick = function(){
+      G.openKept = open ? null : i;
+      SFX.button();
+      renderKept();
+    };
+    rail.appendChild(b);
+  });
+}
+
+function flashKept(i){
+  const rail = document.getElementById("keptRail");
+  const el = rail && rail.children[i];
+  if(!el) return;
+  el.classList.remove("fired"); void el.offsetWidth; el.classList.add("fired");
+}
+
 function renderHand(){
   const h = document.getElementById("hand");
   h.innerHTML = "";
@@ -6640,7 +6762,7 @@ function renderControls(){
 }
 
 function render(){
-  renderDemand(); renderRail(); renderHand(); renderControls(); renderPreview();
+  renderDemand(); renderRail(); renderKept(); renderHand(); renderControls(); renderPreview();
   coachSet(G.coachStep);
   /* Anything that redraws the board can move what the tutorial is pointing at,
      and a fifth of a second of a spotlight sitting off its target is visible.
@@ -7185,7 +7307,7 @@ function showHelp(back){
 
   showPanel(''
     + '<h2>How to play</h2>'
-    + '<div class="sub">Five rules</div>'
+    + '<div class="sub">Six rules</div>'
     + '<div class="why">'
     +   '<p>Every word in this game comes with tags. <b>FURNACE</b> is tagged '
     +   '<b class="gold">HEAT</b>, <b class="gold">TOOL</b>, '
@@ -7232,14 +7354,23 @@ function showHelp(back){
     +     '. The two counters at the top of the board add your line up as you '
     +     'build it. What they cannot tell you is whether some other five words '
     +     'would have paid more, and that is the game.</p></div>'
+    /* Rule 5 was two rules under one number: a tag going quiet on the table
+       and the Bookseller handing a line back in the shop. Different places,
+       different moments, and nothing in common but the paragraph. Split. */
     +   '<div class="teach-row"><div class="teach-n">5</div>'
-    +     '<p>A tag you just scored goes <b>dull</b> for ' + FATIGUE_SPAN + ' plays '
-    +     'and pays nothing until it recovers. Clear a round and the Bookseller '
-    +     'offers you back a line you played, for nothing: keep it and it pays '
+    +     '<p>A tag pays once and then rests. Score it and it turns grey and '
+    +     'struck through on the card for ' + FATIGUE_SPAN + ' plays, and it pays '
+    +     'nothing at all until it wakes up. Opposites never rest, so a line '
+    +     'built on clashes keeps paying where one built on the same tag over '
+    +     'and over runs dry.</p></div>'
+    +   '<div class="teach-row"><div class="teach-n">6</div>'
+    +     '<p>Clear a round and the Bookseller offers you back a line you just '
+    +     'played, for nothing. Keep it and it pays '
     +     '<b>+' + KEPT_CHIPS + ' points</b> and <b>+' + KEPT_MULT + ' multiplier</b> '
     +     'every time you make that hand again. The hand, not those exact words. '
     +     'You can hold ' + KEEP_SLOTS + ' kept lines and ' + LENS_SLOTS + ' Lenses, '
-    +     'on separate shelves.</p></div>'
+    +     'on separate shelves, and the lines you kept sit under your Lenses on '
+    +     'the board so you can read one back whenever you want.</p></div>'
     + '</div>'
 
     + '<p>' + (function(){

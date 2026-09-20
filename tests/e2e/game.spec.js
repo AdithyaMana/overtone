@@ -227,6 +227,19 @@ test.describe("first visit", () => {
       .toContainText(keep.keeps + " kept lines and " + keep.lenses + " Lenses");
     await expect(panel, "the card sells a line the Bookseller gives away")
       .not.toContainText("buy it and it pays");
+
+    /* Rule 5 used to carry two unrelated rules: a tag going quiet on the table
+       and the Bookseller handing a line back in the shop. They are numbered
+       separately now, and the count in the subhead has to agree with how many
+       there actually are or the card is lying in its own first line. */
+    const rules = panel.locator(".teach-row");
+    await expect(rules).toHaveCount(6);
+    await expect(panel.locator(".sub").first()).toHaveText("Six rules");
+    await expect(rules.nth(4), "the resting rule is not on its own")
+      .toContainText("rests");
+    await expect(rules.nth(4), "the keep rule leaked back into the resting one")
+      .not.toContainText("Bookseller");
+    await expect(rules.nth(5)).toContainText("Bookseller");
   });
 
   test("deals a full hand once the help card is dismissed", async ({ page }) => {
@@ -678,6 +691,62 @@ test.describe("the Bookseller", () => {
     await expect(page.locator("#rail .lens")).toHaveCount(1);
     await expect(page.locator("#rail .lens .n")).toContainText(bought);
     await expect(page.locator("#lensCount")).toHaveText("1/5");
+  });
+
+  /* A kept line is the only rule in the run the player wrote, and it pays on
+     every hand that matches it. It used to be written down in the shop and
+     then never shown again until the next shop - a rule you are playing under
+     with no way to read it back. */
+  test("a kept line stays readable on the board all round", async ({ page }) => {
+    await open(page);
+
+    /* Nothing on the shelf when nothing has been kept: the strip is for the
+       players who have one, and it costs the stage its height. */
+    await expect(page.locator("#keptBar")).toBeHidden();
+
+    await toTheShop(page);
+    const line = await page.evaluate(() => {
+      const box = document.getElementById("keeps");
+      if (!box || !box.children.length) return null;
+      box.children[0].click();
+      return G.kept[0] ? { n: G.kept[0].n, fig: G.kept[0].figName } : null;
+    });
+    test.skip(line === null, "this hand made no figure to keep");
+
+    await page.click("#leaveShop");
+    await expect(page.locator("#veil")).toBeHidden();
+
+    const chip = page.locator("#keptRail .keptline");
+    await expect(page.locator("#keptBar")).toBeVisible();
+    await expect(chip).toHaveCount(1);
+    await expect(chip.locator(".n")).toHaveText(line.n);
+
+    /* Closed it is the words. Open it says what it pays, and what it pays on
+       is the hand rather than those words - the part a player gets wrong. */
+    await expect(chip).toHaveAttribute("aria-expanded", "false");
+    await chip.click();
+    await expect(chip).toHaveAttribute("aria-expanded", "true");
+    const pays = await page.evaluate(() => ({ c: KEPT_CHIPS, m: KEPT_MULT }));
+    await expect(chip).toContainText(line.fig);
+    await expect(chip).toContainText("+" + pays.c + " and +" + pays.m + " mult");
+
+    await chip.click();
+    await expect(chip).toHaveAttribute("aria-expanded", "false");
+  });
+
+  /* The shelves are separate in the rules and have separate counts, so they
+     have to be separate on the board too. Keeps in the Lens rail would say
+     they compete for the same five slots. */
+  test("keeps its own shelf rather than crowding the Lenses", async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+      G.kept = [{ n: "ONE \u00b7 TWO", fig: "antithesis", figName: "THE CLASH" }];
+      render();
+    });
+    await expect(page.locator("#rail .keptline")).toHaveCount(0);
+    await expect(page.locator("#keptRail .keptline")).toHaveCount(1);
+    await expect(page.locator("#lensCount"), "a kept line was counted as a Lens")
+      .toHaveText("0/5");
   });
 });
 
