@@ -6366,8 +6366,45 @@ const COACH = {
   /* Written twice against a board that had changed under it: first promising
      a score preview that the JOIN rebuild had removed, then telling a player
      they would only find out on commit, which stopped being true the day the
-     counters came back. It says what is on the screen now. */
-  play:  "Happy with the two counters at the top? Hit PLAY.",
+     counters came back. Both rewrites left "Happy with the two counters at
+     the top? Hit PLAY", which is wrong three ways over.
+
+     The counters are not at the top. They are in the left sidebar on a desk
+     and near the top on a phone, so the one word locating them is right on
+     one of the two boards.
+
+     "Happy with" asks a first-time player to judge a number against a scale
+     they have not been given. This is their first hand. They have nothing to
+     compare 480 to, and the honest answer to the question is "I have no
+     idea", which is not a step forward.
+
+     And it fires on the FIRST word, where PLAY is disabled - renderControls
+     greys it out below minPlay() and its own tooltip says "A line is 2 words
+     or more". So the coach told a player to press a button the board had
+     already locked, and pulsed it at them while they could not. Same shape
+     as the gilding and the resting-clock bugs: the board asking for
+     something it had decided not to allow.
+
+     A getter, so it reads the state it is actually in, the way `pick` reads
+     blindMode().
+
+     BOTH BRANCHES STAY ON ONE LINE, and that is a layout constraint rather
+     than a style preference. The coach bar is 52ch wide and the `pick` line
+     above fills two of them, so picking a first word SHRINKS the bar by 17px
+     - which is almost exactly what the stage grows by when a card goes up to
+     it. The board holds still because those two cancel. The first draft of
+     this ran to two lines, the shrink stopped happening, and "picking a word
+     does not move the board under you" caught it moving 18px. Keep each
+     branch under about fifty characters, the length of the line this
+     replaced. */
+  get play(){
+    const have = (G && G.selected) ? G.selected.length : 0;
+    const WORDS = ["", "one", "two", "three", "four", "five"];
+    const lo = minPlay();
+    return have < lo
+      ? "A line is " + (WORDS[lo] || lo) + " words or more. Lay another one."
+      : "The counters are adding your line up. Hit PLAY.";
+  },
   score: "That is points × multiplier. Your hand and your tags make the points. Lenses multiply them."
 };
 function coachDone(){ return store.get("coached", false); }
@@ -6380,7 +6417,9 @@ function coachSet(step){
   if(!step || coachDone() || tutActive() || !COACH[step]){ el.hidden = true; return; }
   el.textContent = COACH[step];
   el.hidden = false;
-  if(step === "play" && btn) btn.classList.add("hint-pulse");
+  /* Never pulse a button the board has locked. renderControls() runs before
+     this on every path that reaches it, so `disabled` is current. */
+  if(step === "play" && btn && !btn.disabled) btn.classList.add("hint-pulse");
 }
 
 /* Named like a poker hand, so the player learns to aim for a shape rather

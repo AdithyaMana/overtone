@@ -1228,13 +1228,26 @@ test.describe("first-run coaching", () => {
     await expect(coach).toBeVisible();
     await expect(coach).toContainText("something in common");
 
-    /* step 2: play — and the button it points at is marked */
+    /* step 2 opens on the first word, where a line is still too short to
+       play. It used to say "Hit PLAY" here and pulse the button, which the
+       board had already greyed out. */
     await page.keyboard.press("1");
+    const play = page.locator("#playBtn");
+    await expect(play, "one word is a playable line now?").toBeDisabled();
+    await expect(coach, "still sending them at a locked button")
+      .toContainText("words or more");
+    await expect(play, "pulsing a button the board will not accept")
+      .not.toHaveClass(/hint-pulse/);
+
+    /* and once the line is real, it points at PLAY and marks it */
+    await page.keyboard.press("2");
+    await expect(play).toBeEnabled();
     await expect(coach).toContainText("Hit PLAY");
-    await expect(page.locator("#playBtn")).toHaveClass(/hint-pulse/);
+    await expect(play).toHaveClass(/hint-pulse/);
 
     /* deselecting walks it back rather than stranding the player */
     await page.keyboard.press("1");
+    await page.keyboard.press("2");
     await expect(coach).toContainText("something in common");
 
     /* step 3: read the result */
@@ -1255,6 +1268,23 @@ test.describe("first-run coaching", () => {
       await expect(coach).toContainText("you do not need one");
       await expect(coach, "still pointing at the gold tags as the only way in")
         .not.toContainText("that have one");
+    });
+
+  /* "Happy with the two counters at the top?" put the counters somewhere
+     they are not - the sidebar on a desk, near the top only on a phone - and
+     asked a first-time player to judge their first number against a scale
+     nobody had given them. */
+  test("does not ask the player to judge a number they have no scale for",
+    async ({ page }) => {
+      await open(page);
+      const coach = page.locator("#coach");
+      await page.keyboard.press("1");
+      await page.keyboard.press("2");
+      await expect(coach).toContainText("Hit PLAY");
+      await expect(coach, "still asking whether they are happy with a first score")
+        .not.toContainText("Happy with");
+      await expect(coach, "still putting the counters at the top of the board")
+        .not.toContainText("at the top");
     });
 
   test("does not come back on a later run", async ({ page }) => {
