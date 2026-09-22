@@ -1273,26 +1273,18 @@ test.describe("first-run coaching", () => {
     await expect(coach).toBeVisible();
     await expect(coach).toContainText("something in common");
 
-    /* step 2 opens on the first word, where a line is still too short to
-       play. It used to say "Hit PLAY" here and pulse the button, which the
-       board had already greyed out. */
+    /* and then it gets out of the way. Whether this hand is good enough to
+       commit is the one decision in the game that is entirely the player's,
+       and a panel of advice sitting over it is the game answering for them. */
     await page.keyboard.press("1");
-    const play = page.locator("#playBtn");
-    await expect(play, "one word is a playable line now?").toBeDisabled();
-    await expect(coach, "still sending them at a locked button")
-      .toContainText("words or more");
-    await expect(play, "pulsing a button the board will not accept")
-      .not.toHaveClass(/hint-pulse/);
-
-    /* and once the line is real, it points at PLAY and marks it */
+    await expect(coach, "still talking while they are building a line").toBeHidden();
     await page.keyboard.press("2");
-    await expect(play).toBeEnabled();
-    await expect(coach).toContainText("Hit PLAY");
-    await expect(play).toHaveClass(/hint-pulse/);
+    await expect(coach).toBeHidden();
 
     /* deselecting walks it back rather than stranding the player */
     await page.keyboard.press("1");
     await page.keyboard.press("2");
+    await expect(coach).toBeVisible();
     await expect(coach).toContainText("something in common");
 
     /* step 3: read the result */
@@ -1315,80 +1307,48 @@ test.describe("first-run coaching", () => {
         .not.toContainText("that have one");
     });
 
-  /* "Happy with the two counters at the top?" put the counters somewhere
-     they are not - the sidebar on a desk, near the top only on a phone - and
-     asked a first-time player to judge their first number against a scale
-     nobody had given them. */
-  test("does not ask the player to judge a number they have no scale for",
-    async ({ page }) => {
-      await open(page);
-      const coach = page.locator("#coach");
-      await page.keyboard.press("1");
-      await page.keyboard.press("2");
-      await expect(coach).toContainText("Hit PLAY");
-      await expect(coach, "still asking whether they are happy with a first score")
-        .not.toContainText("Happy with");
-      await expect(coach, "still putting the counters at the top of the board")
-        .not.toContainText("at the top");
-    });
-
-  /* Three canned lines in a row is a script, not a coach. The two things
-     worth saying while a line is being built are the two a first-time player
-     cannot yet see on the board: that a silence kills everything after it,
-     and that an opposition is worth far more than a match. */
-  test("reads the line being built rather than reciting", async ({ page }) => {
+  /* The middle step has been rewritten three times and thrown away once,
+     which is the tell. It promised a score preview the JOIN rebuild had
+     removed; then said the score only arrives on commit, after the counters
+     came back; then "Happy with the two counters at the top? Hit PLAY",
+     which put the counters somewhere they are not and asked a first-time
+     player to judge their first number against a scale nobody had given
+     them. Every version was advice over a decision that is the player's. */
+  test("says nothing at all while a line is being built", async ({ page }) => {
     await open(page);
     const coach = page.locator("#coach");
+    await expect(coach).toBeVisible();
 
-    const lay = (a, b) => page.evaluate(([ta, tb]) => {
-      const mk = (w, t) => makeCard({ w, t }, false);
-      G.coachStep = "play";
-      G.hand = [mk("ONE", ta), mk("TWO", tb)];
-      G.selected = G.hand.map(c => c.id);
-      render();
-    }, [a, b]);
-
-    await lay(["HEA", "TOO"], ["MON", "TIM"]);        /* nothing in common */
-    await expect(coach, "a line that dies mid-way and the coach says nothing")
-      .toContainText("stops where two words share nothing");
-
-    await lay(["HEA", "TOO"], ["COL", "MIN"]);        /* HEAT against COLD */
-    await expect(coach, "the multiplier is the whole game and goes unmentioned")
-      .toContainText("opposite pair lifts the multiplier");
-
-    await lay(["HEA", "TOO"], ["HEA", "MOT"]);        /* a plain match */
-    await expect(coach).toContainText("Hit PLAY");
+    for (const key of ["1", "2", "3"]) {
+      await page.keyboard.press(key);
+      await expect(coach, "the coach is back over the line at " + key + " words")
+        .toBeHidden();
+    }
+    /* and nothing is nudging them at the button either */
+    await expect(page.locator("#playBtn")).not.toHaveClass(/hint-pulse/);
   });
 
-  /* Every branch of the play step has to fit one line of the coach bar. The
-     `pick` line above it fills two, so picking a first word shrinks the bar
-     by 17px, which is almost exactly what the stage grows by when a card
-     goes up to it. The board holds still because those cancel, and nothing
-     in the stylesheet enforces it. */
-  test("none of its lines wrap, which the board is relying on", async ({ page }) => {
+  /* Taking the bar away frees 49px mid-hand, and this board is laid out to
+     the pixel. */
+  test("and taking it away does not move the board", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 640 });
     await open(page);
-    const oneLine = (a, b) => page.evaluate(([ta, tb]) => {
-      const mk = (w, t) => makeCard({ w, t }, false);
-      G.coachStep = "play";
-      G.hand = [mk("ONE", ta), mk("TWO", tb)];
-      G.selected = ta ? G.hand.map(c => c.id) : [];
-      render();
-      const el = document.getElementById("coach");
-      const cs = getComputedStyle(el);
-      const line = parseFloat(cs.lineHeight) || 20;
-      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-      return {
-        lines: Math.round((el.getBoundingClientRect().height - pad) / line),
-        txt: el.textContent
-      };
-    }, [a, b]);
+    const where = () => page.evaluate(() => ({
+      play: Math.round(document.querySelector(".controls .btn").getBoundingClientRect().bottom),
+      hand: Math.round(document.querySelector(".hand").getBoundingClientRect().top),
+      coach: !document.getElementById("coach").hidden
+    }));
 
-    for (const [a, b] of [[["HEA", "TOO"], ["MON", "TIM"]],
-                          [["HEA", "TOO"], ["COL", "MIN"]],
-                          [["HEA", "TOO"], ["HEA", "MOT"]]]) {
-      const got = await oneLine(a, b);
-      expect(got.lines, "this wraps, and the board moves when it does: " + got.txt).toBe(1);
-    }
+    const withBar = await where();
+    expect(withBar.coach, "no bar to take away").toBe(true);
+    await page.keyboard.press("1");
+    const without = await where();
+    expect(without.coach).toBe(false);
+
+    expect(Math.abs(without.play - withBar.play),
+      "PLAY moved when the coach bar went").toBeLessThanOrEqual(4);
+    expect(Math.abs(without.hand - withBar.hand),
+      "the hand moved when the coach bar went").toBeLessThanOrEqual(4);
   });
 
   test("does not come back on a later run", async ({ page }) => {
