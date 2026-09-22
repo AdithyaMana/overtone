@@ -240,6 +240,18 @@ test.describe("first visit", () => {
     await expect(rules.nth(4), "the keep rule leaked back into the resting one")
       .not.toContainText("Bookseller");
     await expect(rules.nth(5)).toContainText("Bookseller");
+
+    /* Six rules, and not one of them mentioned the biggest slab on the board.
+       A player reads the card, finds nothing about the two gold tags they are
+       looking at, then reads WANTS and concludes it is an order. */
+    const want = await page.evaluate(() => ({
+      chips: DEMAND_CHIPS, mult: DEMAND_MULT
+    }));
+    await expect(panel, "the card never explains the round's own tags")
+      .toContainText("+" + want.chips + " points");
+    await expect(panel).toContainText("+" + want.mult + " multiplier");
+    await expect(panel, "and never says they are optional")
+      .toContainText("never required to play them");
   });
 
   test("deals a full hand once the help card is dismissed", async ({ page }) => {
@@ -263,6 +275,36 @@ test.describe("first visit", () => {
     /* one icon per demanded overtone */
     const wanted = await page.evaluate(() => G.demand.tags.length);
     await expect(call.locator(".dc-icons .ms")).toHaveCount(wanted);
+  });
+
+  /* The slab says WANTS over two gold chips and the panel priced a match,
+     and between them a first-time player reads a requirement: find HEAT,
+     find DANGER, and if the hand holds neither there is nothing to do. A
+     seven-card hand holds nothing the round wants between 1.5% and 15.2% of
+     the time depending on the round, so that player exists. Both places have
+     to say it is an offer. */
+  test("says the round's tags are a bonus rather than a requirement",
+    async ({ page }) => {
+      await open(page);
+      const call = page.locator(".demand-call");
+      await expect(call).toContainText("a bonus, not a rule");
+      /* In the line that already names them, not a new one: the panel is
+         drawn only on an empty stage, so a line added here is a line the
+         board loses the moment a word is picked. */
+      await expect(call.locator(".dc-text"),
+        "the correction is not attached to the claim it corrects")
+        .toContainText("Wants");
+    });
+
+  test("the WANTS slab says so too, after the panel has gone", async ({ page }) => {
+    await open(page);
+    /* The panel above is drawn only on an empty stage. Pick a card and the
+       one thing still naming the round's tags is the sidebar. */
+    await page.keyboard.press("1");
+    await expect(page.locator(".demand-call")).toHaveCount(0);
+    const title = await page.getAttribute("#demandWants", "title");
+    expect(title, "the slab explains nothing once the panel is gone").toBeTruthy();
+    expect(title).toContain("not a rule");
   });
 
   test("marks the cards that can actually score", async ({ page }) => {
@@ -1184,7 +1226,7 @@ test.describe("first-run coaching", () => {
 
     /* step 1: pick */
     await expect(coach).toBeVisible();
-    await expect(coach).toContainText("what this round wants");
+    await expect(coach).toContainText("something in common");
 
     /* step 2: play — and the button it points at is marked */
     await page.keyboard.press("1");
@@ -1193,7 +1235,7 @@ test.describe("first-run coaching", () => {
 
     /* deselecting walks it back rather than stranding the player */
     await page.keyboard.press("1");
-    await expect(coach).toContainText("what this round wants");
+    await expect(coach).toContainText("something in common");
 
     /* step 3: read the result */
     await playAHand(page);
@@ -1201,6 +1243,19 @@ test.describe("first-run coaching", () => {
       await expect(coach).toContainText("points × multiplier");
     }
   });
+
+  /* It used to open with "Tap two or three words that have one", meaning a
+     gold tag, which is an instruction the deal does not guarantee a player
+     can follow - the same trap the blind-mode branch beside it was written
+     to avoid. */
+  test("its first line does not ask for a card the hand may not hold",
+    async ({ page }) => {
+      await open(page);
+      const coach = page.locator("#coach");
+      await expect(coach).toContainText("you do not need one");
+      await expect(coach, "still pointing at the gold tags as the only way in")
+        .not.toContainText("that have one");
+    });
 
   test("does not come back on a later run", async ({ page }) => {
     await open(page);
@@ -1441,7 +1496,7 @@ test.describe("the opening tutorial", () => {
     await page.click("#tutSkip");
     /* they opted out of the overlay, not out of ever being helped */
     await expect(page.locator("#coach")).toBeVisible();
-    await expect(page.locator("#coach")).toContainText("what this round wants");
+    await expect(page.locator("#coach")).toContainText("something in common");
   });
 
   test("finishing it retires the coach, which would only repeat itself", async ({ page }) => {

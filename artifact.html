@@ -543,6 +543,13 @@ button{ font-family: inherit; color: inherit; }
    push the hand's bottom row under the pinned controls. The board's beads
    still say what the laid words are doing. */
 @media (max-height: 700px){ .stage-hint .nxt{ display: none; } }
+/* The idle panel has no room to grow. It is drawn only while nothing is
+   picked, so a line added here and gone on the first tap moves the hand and
+   the controls under the player - and at 1366x640, the commonest screen
+   there is, the board is already tight enough that the stage cannot flex it
+   away. Anything this panel has to say has to fit the lines it already has.
+   Two specs hold it to that: "picking a word does not move the board under
+   you" and "the idle board points at the figures before anything is picked". */
 .dc-fig{ display:block; margin-top: 4px; }
 /* The portrait board is laid out to the pixel on a 667px screen — the hand's
    bottom row clears the controls by one. A second line on the idle board is
@@ -6342,7 +6349,12 @@ const COACH = {
        an instruction it had made impossible to follow. */
     return blindMode()
       ? "Lay two words side by side and see what they do to each other."
-      : "Gold tags are what this round wants. Tap two or three words that have one.";
+      /* "Tap two or three words that have one" is the same instruction the
+         blind branch above was written to avoid: it can be impossible to
+         follow. A hand with no matching tag is dealt often enough that the
+         very first line the coach speaks to a new player can name something
+         that is not on the table. Point at what always is. */
+      : "Tap two or three words that have something in common. A gold tag pays extra on top, but you do not need one.";
   },
   /* Written twice against a board that had changed under it: first promising
      a score preview that the JOIN rebuild had removed, then telling a player
@@ -6389,10 +6401,27 @@ function renderPreview(){
     });
     const txt = document.createElement("div");
     txt.className = "dc-text";
+    /* "Wants HEAT or DANGER" over a slab that says WANTS reads as the
+       objective: find HEAT, find DANGER, and if the hand holds neither the
+       game has dealt you nothing to do. It has not - a line is paid for its
+       own pairs whether or not a single tag matches - but nowhere on the
+       board or in the rules card did it ever say so.
+
+       Not a rare corner, either. A seven-card hand holds nothing the round
+       wants between 1.5% of the time (THE FLOOD) and 15.2% (THE COUNTING
+       HOUSE), so the board a new player is looking at is one of those about
+       one run in eight.
+
+       Said in the line that was already here rather than a new one under it:
+       the panel is drawn only while nothing is picked, so every line it
+       gains is a line the board loses on the first tap. "Each matching tag"
+       for "Every matching tag you play" pays for the clause. The full
+       version is on the slab's tooltip and in rule 4, neither of which has
+       to fit a board. */
     txt.innerHTML = 'Wants '
       + G.demand.tags.map(function(t){ return "<b>" + TAGS[t][0] + "</b>"; }).join(" or ")
-      + '. Every matching tag you play is <b>+' + DEMAND_CHIPS + ' points</b>'
-      + ' and <b>+' + DEMAND_MULT + ' multiplier</b>.'
+      + ' \u2014 a bonus, not a rule. Each matching tag pays <b>+' + DEMAND_CHIPS
+      + ' points</b> and <b>+' + DEMAND_MULT + ' multiplier</b> on top.'
       + '<span class="dc-fig">The shape of your hand pays too. '
       + '<button class="figlink" type="button">see the five hands</button>.</span>';
     call.appendChild(icons);
@@ -6603,6 +6632,13 @@ function renderDemand(){
   document.getElementById("demandName").textContent = G.demand.n;
   const w = document.getElementById("demandWants");
   w.innerHTML = "";
+  /* The panel in the middle of the board explains these, and then vanishes
+     the moment a card is picked, which leaves the word WANTS standing over
+     two gold chips for the rest of the round with nothing to say it is an
+     offer rather than an order. */
+  w.title = "A bonus, not a rule. Each matching tag you play pays +"
+    + DEMAND_CHIPS + " points and +" + DEMAND_MULT + " multiplier on top, but a "
+    + "line scores from what each word does to the one beside it either way.";
   const lead = document.createElement("span");
   lead.style.cssText = "font-size:11px;letter-spacing:.08em;color:var(--text-faint);align-self:center;margin-right:1px";
   lead.textContent = "WANTS";
@@ -7368,7 +7404,12 @@ function showHelp(back){
     +     Math.round(TARGETS[0] * runDifficulty().curve[0]).toLocaleString()
     +     ' points. Round ' + ROUNDS + ' wants '
     +     Math.round(TARGETS[ROUNDS-1] * runDifficulty().curve[ROUNDS-1]).toLocaleString()
-    +     '. The two counters at the top of the board add your line up as you '
+    +     '. Every round also names two tags it <b>wants</b>, and pays '
+    +     '<b>+' + DEMAND_CHIPS + ' points</b> and <b>+' + DEMAND_MULT
+    +     ' multiplier</b> for each one you play. That is a bonus on top of '
+    +     'what your line already scores. You are never required to play them, '
+    +     'and some hands will not hold one.'
+    +     ' The two counters at the top of the board add your line up as you '
     +     'build it. What they cannot tell you is whether some other five words '
     +     'would have paid more, and that is the game.</p></div>'
     /* Rule 5 was two rules under one number: a tag going quiet on the table
