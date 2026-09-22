@@ -499,7 +499,7 @@ button{ font-family: inherit; color: inherit; }
 .stage-hint b{ color: var(--gold); }
 /* --lens is the Lens purple, and at 13px on the stage it measured 4.36:1 —
    under AA for body text, on the one line whose whole job is to be noticed. */
-.stage-hint .ord{ display:inline-block; margin-top:5px; font-size:13px; color: var(--lens-lit); }
+.stage-hint .ord{ display:inline; margin-left:2px; font-size:13px; color: var(--lens-lit); }
 .stage-hint .fig-pay{
   display:inline-block; margin-left:9px; font-size:13.5px; font-weight:700;
   color: var(--gold); letter-spacing:.02em; vertical-align: middle;
@@ -1873,7 +1873,7 @@ button{ font-family: inherit; color: inherit; }
   .demand-call{ gap: 7px; }
   .pos{ width:19px; height:19px; font-size:11px; top:-7px; left:-5px; }
   .stage-hint{ font-size: 12.5px; }
-  .stage-hint .ord{ font-size: 11.5px; margin-top: 3px; }
+  .stage-hint .ord{ font-size: 11.5px; }
   .stage-hint .fig-pay{ font-size: 11.5px; margin-left: 6px; }
   .stage-hint .hand-name{ font-size: 13px; padding: 4px 11px; margin-bottom: 6px; }
   .stage-total{ font-size: 42px; text-shadow: 3px 3px 0 var(--edge); }
@@ -6381,7 +6381,7 @@ const COACH = {
      A getter, so it reads the state it is actually in, the way `pick` reads
      blindMode().
 
-     BOTH BRANCHES STAY ON ONE LINE, and that is a layout constraint rather
+     EVERY BRANCH STAYS ON ONE LINE, and that is a layout constraint rather
      than a style preference. The coach bar is 52ch wide and the `pick` line
      above fills two of them, so picking a first word SHRINKS the bar by 17px
      - which is almost exactly what the stage grows by when a card goes up to
@@ -6391,12 +6391,26 @@ const COACH = {
      branch under about fifty characters, the length of the line this
      replaced. */
   get play(){
-    const have = (G && G.selected) ? G.selected.length : 0;
+    const sel = (G && G.selected) || [];
     const WORDS = ["", "one", "two", "three", "four", "five"];
     const lo = minPlay();
-    return have < lo
-      ? "A line is " + (WORDS[lo] || lo) + " words or more. Lay another one."
-      : "The counters are adding your line up. Hit PLAY.";
+    if(sel.length < lo)
+      return "A line is " + (WORDS[lo] || lo) + " words or more. Lay another one.";
+    /* Read the line they have actually built rather than reciting the next
+       line of a script. The two things worth saying at this moment are the
+       two a first-time player cannot yet see: that a silence kills the tail
+       of the line, and that an opposition is worth far more than a match.
+       joinsOf is pure and this is five cards at most, so it costs nothing to
+       ask on every render. */
+    const cards = sel.map(function(id){
+      return G.hand.find(function(c){ return c.id === id; });
+    }).filter(Boolean);
+    const jr = joinsOf(cards, dullTags());
+    if(jr.scored < cards.length)
+      return "Your line stops where two words share nothing.";
+    if(jr.joins.some(function(j){ return j.kind === "tension" || j.kind === "paradox"; }))
+      return "An opposite pair lifts the multiplier. Hit PLAY.";
+    return "The counters are adding your line up. Hit PLAY.";
   },
   score: "That is points × multiplier. Your hand and your tags make the points. Lenses multiply them."
 };
@@ -6571,6 +6585,17 @@ function renderPreview(){
     + (figs.length > 1
         ? '<span class="figlv" title="Every figure this line makes">and '
           + (figs.length - 1) + ' more</span>' : '')
+    + (better
+        /* On the hand-name row, not a row of its own. It appears only when a
+           better order exists, which is a thing the player cannot predict,
+           so as its own line it made the hint 24px taller from one word to
+           the next and shoved the board down with it - PLAY moved 25px at
+           1366x640 and 1280x860, which is the board jumping under someone
+           mid-decision for reasons they cannot see coming. The hand-name row
+           is drawn in every state, so hanging the nudge off the end of it
+           costs nothing at all. Shorter wording because it is sharing. */
+        ? ' <span class="ord">&middot; better as <b>' + better.n + '</b> reordered</span>'
+        : '')
     + '<br>'
     + (solo
         ? 'One word rings on its own. Lay another beside it.'
@@ -6579,9 +6604,6 @@ function renderPreview(){
               ? '<span class="stops"> &middot; the line stops after '
                 + jr.scored + (jr.scored === 1 ? ' word' : ' words') + '</span>'
               : (spare ? '<span class="room"> &middot; room for ' + room + ' more</span>' : '')))
-    + (better
-        ? '<br><span class="ord">The same words say more as <b>' + better.n + '</b> in another order.</span>'
-        : '')
     + (nextRow
         ? '<div class="nxt"><span class="nxl">Lay next to ' + tip.w + '</span>'
           + nextRow + '</div>'

@@ -1183,6 +1183,51 @@ test.describe("layout", () => {
     expect(three.play, "PLAY ended below the fold").toBeLessThanOrEqual(three.vh);
   });
 
+  /* "The same words say more as THE BUILD in another order" is the one row
+     of the hint a player cannot see coming: it appears only when a better
+     order exists, which depends on the words. As a row of its own it made
+     the hint 24px taller mid-decision and pushed PLAY down 25px at 1366x640
+     and at 1280x860 - the board jumping under someone halfway through
+     choosing, for a reason invisible to them.
+
+     Isolated properly: the SAME three cards in two orders. One order has a
+     better one and shows the nudge, the other is already the better one and
+     does not. Nothing else about the two boards differs, so any movement
+     between them is the nudge and only the nudge. */
+  test("the better-order nudge does not push the board down", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 640 });
+    await open(page);
+
+    const lay = (order) => page.evaluate((ord) => {
+      const mk = (w, t) => makeCard({ w, t }, false);
+      /* AAA-BBB-CCC escalates only when BBB leads: BBB|AAA share one tag and
+         AAA|CCC share two. Laid A-B-C it is one match then one match, which
+         is no figure at all and a better order away from THE BUILD. */
+      const A = mk("AAA", ["TOO", "MOT", "NAT"]);
+      const B = mk("BBB", ["TOO"]);
+      const C = mk("CCC", ["TOO", "MOT"]);
+      const by = { A: A, B: B, C: C };
+      G.hand = [A, B, C];
+      G.selected = ord.split("").map(k => by[k].id);
+      render();
+      return {
+        nudge: !!document.querySelector(".stage-hint .ord"),
+        play: Math.round(document.querySelector(".controls .btn").getBoundingClientRect().bottom),
+        hand: Math.round(document.querySelector(".hand").getBoundingClientRect().top)
+      };
+    }, order);
+
+    const nudged = await lay("ABC");
+    const already = await lay("BAC");
+
+    expect(nudged.nudge, "the line that should be reordered is not saying so").toBe(true);
+    expect(already.nudge, "the control order is being nudged as well").toBe(false);
+    expect(Math.abs(nudged.play - already.play),
+      "PLAY moved when the better-order nudge appeared").toBeLessThanOrEqual(4);
+    expect(Math.abs(nudged.hand - already.hand),
+      "the hand moved when the better-order nudge appeared").toBeLessThanOrEqual(4);
+  });
+
   test("card words are not broken mid-word", async ({ page }) => {
     await open(page);
     await measurableStageCards(page);
@@ -1286,6 +1331,65 @@ test.describe("first-run coaching", () => {
       await expect(coach, "still putting the counters at the top of the board")
         .not.toContainText("at the top");
     });
+
+  /* Three canned lines in a row is a script, not a coach. The two things
+     worth saying while a line is being built are the two a first-time player
+     cannot yet see on the board: that a silence kills everything after it,
+     and that an opposition is worth far more than a match. */
+  test("reads the line being built rather than reciting", async ({ page }) => {
+    await open(page);
+    const coach = page.locator("#coach");
+
+    const lay = (a, b) => page.evaluate(([ta, tb]) => {
+      const mk = (w, t) => makeCard({ w, t }, false);
+      G.coachStep = "play";
+      G.hand = [mk("ONE", ta), mk("TWO", tb)];
+      G.selected = G.hand.map(c => c.id);
+      render();
+    }, [a, b]);
+
+    await lay(["HEA", "TOO"], ["MON", "TIM"]);        /* nothing in common */
+    await expect(coach, "a line that dies mid-way and the coach says nothing")
+      .toContainText("stops where two words share nothing");
+
+    await lay(["HEA", "TOO"], ["COL", "MIN"]);        /* HEAT against COLD */
+    await expect(coach, "the multiplier is the whole game and goes unmentioned")
+      .toContainText("opposite pair lifts the multiplier");
+
+    await lay(["HEA", "TOO"], ["HEA", "MOT"]);        /* a plain match */
+    await expect(coach).toContainText("Hit PLAY");
+  });
+
+  /* Every branch of the play step has to fit one line of the coach bar. The
+     `pick` line above it fills two, so picking a first word shrinks the bar
+     by 17px, which is almost exactly what the stage grows by when a card
+     goes up to it. The board holds still because those cancel, and nothing
+     in the stylesheet enforces it. */
+  test("none of its lines wrap, which the board is relying on", async ({ page }) => {
+    await open(page);
+    const oneLine = (a, b) => page.evaluate(([ta, tb]) => {
+      const mk = (w, t) => makeCard({ w, t }, false);
+      G.coachStep = "play";
+      G.hand = [mk("ONE", ta), mk("TWO", tb)];
+      G.selected = ta ? G.hand.map(c => c.id) : [];
+      render();
+      const el = document.getElementById("coach");
+      const cs = getComputedStyle(el);
+      const line = parseFloat(cs.lineHeight) || 20;
+      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      return {
+        lines: Math.round((el.getBoundingClientRect().height - pad) / line),
+        txt: el.textContent
+      };
+    }, [a, b]);
+
+    for (const [a, b] of [[["HEA", "TOO"], ["MON", "TIM"]],
+                          [["HEA", "TOO"], ["COL", "MIN"]],
+                          [["HEA", "TOO"], ["HEA", "MOT"]]]) {
+      const got = await oneLine(a, b);
+      expect(got.lines, "this wraps, and the board moves when it does: " + got.txt).toBe(1);
+    }
+  });
 
   test("does not come back on a later run", async ({ page }) => {
     await open(page);
